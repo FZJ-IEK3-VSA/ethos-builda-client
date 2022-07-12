@@ -2,8 +2,8 @@ from builda_client.exceptions import MissingCredentialsException
 import pytest
 
 from builda_client.client import ApiClient
-from builda_client.model import BuildingStockEntry, EnergyConsumptionStatistics, Building
-from shapely.geometry import Polygon
+from builda_client.model import BuildingStockEntry, EnergyConsumptionStatistics, Building, NutsEntry
+from shapely.geometry import Polygon, MultiPolygon
 
 __author__ = "k.dabrock"
 __copyright__ = "k.dabrock"
@@ -64,6 +64,11 @@ class TestApiClient:
         with pytest.raises(MissingCredentialsException):
             self.__when_post_building_stock([])
 
+    def test_post_nuts_succeeds(self):
+        self.__given_client_authenticated()
+        nuts_regions: list[NutsEntry] = self.__given_nuts_regions()
+        self.__when_post_nuts(nuts_regions)
+
     # GIVEN
     def __given_client_authenticated(self) -> None:
         self.testee = ApiClient(username='admin', password='admin')
@@ -73,6 +78,27 @@ class TestApiClient:
 
     def __given_polygon(self) -> Polygon:
         return Polygon()
+
+    def __given_nuts_regions(self) -> list[NutsEntry]:
+        nuts_entry_1 = NutsEntry(
+            id=99999,
+            nuts_code='TEST',
+            nuts_name='test',
+            level=5,
+            parent= None,
+            geometry= MultiPolygon([(((0., 0.), (1., 0.), (0., 1.), (0., 0.)), [])]).wkt
+        )
+
+        nuts_entry_2 = NutsEntry(
+            id=99998,
+            nuts_code='TEST2',
+            nuts_name='test2',
+            level=5,
+            parent= None,
+            geometry= MultiPolygon([(((0., 0.), (1., 0.), (0., 1.), (0., 0.)), [])]).wkt
+        )
+
+        return [nuts_entry_1, nuts_entry_2]
 
     # WHEN
     def __when_refresh_view(self):
@@ -89,6 +115,9 @@ class TestApiClient:
 
     def __when_post_building_stock(self, buildings: list[BuildingStockEntry]):
         self.testee.post_building_stock(buildings)
+
+    def __when_post_nuts(self, nuts: list[NutsEntry]):
+        self.testee.post_nuts(nuts)
 
     # THEN
     def __then_energy_statistics_germany_returned(self, result: list[EnergyConsumptionStatistics], count: int):

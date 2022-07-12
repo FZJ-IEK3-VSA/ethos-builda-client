@@ -301,7 +301,7 @@ class ApiClient:
 
         buildings_json = json.dumps(buildings, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, json=buildings_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=buildings_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
@@ -363,7 +363,7 @@ class ApiClient:
 
         residential_infos_json = json.dumps(residential_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, json=residential_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=residential_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
@@ -393,7 +393,7 @@ class ApiClient:
         url: str = f"""{self.base_url}{self.HOUSEHOLD_COUNT_URL}"""
         residential_infos_json = json.dumps(household_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, json=residential_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=residential_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
@@ -423,7 +423,7 @@ class ApiClient:
         url: str = f"""{self.base_url}{self.HEATING_COMMODITY_URL}"""
         heating_commodity_infos_json = json.dumps(heating_commodity_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, json=heating_commodity_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=heating_commodity_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
@@ -452,7 +452,7 @@ class ApiClient:
         url: str = f"""{self.base_url}{self.COOLING_COMMODITY_URL}"""
         cooling_commodity_infos_json = json.dumps(cooling_commodity_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, json=cooling_commodity_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=cooling_commodity_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
@@ -481,7 +481,7 @@ class ApiClient:
         url: str = f"""{self.base_url}{self.WARM_WATER_COMMODITY_URL}"""
         water_heating_commodity_infos_json = json.dumps(water_heating_commodity_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, json=water_heating_commodity_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=water_heating_commodity_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
@@ -510,7 +510,7 @@ class ApiClient:
         url: str = f"""{self.base_url}{self.COOKING_COMMODITY_URL}"""
         cooking_commodity_infos_json = json.dumps(cooking_commodity_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, json=cooking_commodity_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=cooking_commodity_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
@@ -539,7 +539,7 @@ class ApiClient:
         url: str = f"""{self.base_url}{self.ENERGY_CONSUMPTION_URL}"""
         energy_consumption_infos_json = json.dumps(energy_consumption_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, json=energy_consumption_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=energy_consumption_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
