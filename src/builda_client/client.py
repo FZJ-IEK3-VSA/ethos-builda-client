@@ -82,7 +82,7 @@ class ApiClient:
             return ''
         url: str = f"""{self.authentication_url}"""
         try:
-            response: requests.Response = requests.post(url, json=json.dumps({'username': self.username, 'password': self.password}))
+            response: requests.Response = requests.post(url, data={'username': self.username, 'password': self.password})
             response.raise_for_status()
             return json.loads(response.content)['token']
         except requests.exceptions.HTTPError as err:
