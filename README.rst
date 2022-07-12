@@ -44,6 +44,10 @@ For using the client, create an environment of your choice (e.g. conda) and inst
 .. code-block:: bash
     pip install .
 
+Or install directly from remote repository via:
+.. code-block:: bash
+    pip install git+https://jugit.fz-juelich.de/iek-3/groups/urbanmodels/personal/dabrock/builda-client.git 
+
 For development, install in editable mode with:
 .. code-block:: bash
     pip install -e .

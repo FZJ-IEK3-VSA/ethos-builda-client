@@ -97,7 +97,8 @@ class ApiClient:
         Returns:
             Dict[str, str]: The authorization header.
         """
-        return {'Authorization': f'Token {self.api_token}'}
+        return {'Authorization': f'Token {self.api_token}',
+        'Content-Type': 'application/json'}
 
     def get_buildings(self, nuts_code: str = '', residential: bool | None = None, heating_type: str = '') -> list[Building]:
         """Gets all buildings within the specified NUTS region that fall into the provided residential/non-residential category
@@ -214,7 +215,7 @@ class ApiClient:
         """        
         logging.debug("ApiClient: refresh_buildings")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}"""
         try:
@@ -242,7 +243,7 @@ class ApiClient:
         logging.debug(f'ApiClient: get_building_stock')
 
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}building-stock?geom={geom}"""
         return self.__get_paginated_results_building_stock(url, self.__construct_authorization_header())
@@ -295,7 +296,7 @@ class ApiClient:
         """
 
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
         url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}"""
 
         buildings_json = json.dumps(buildings, cls=EnhancedJSONEncoder)
@@ -323,14 +324,14 @@ class ApiClient:
         logging.debug("ApiClient: post_nuts")
 
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.NUTS_URL}"""
 
         nuts_regions_json = json.dumps(nuts_regions, cls=EnhancedJSONEncoder)
 
         try:
-            response: requests.Response = requests.post(url, json=nuts_regions_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=nuts_regions_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
@@ -356,7 +357,7 @@ class ApiClient:
 
         logging.debug("ApiClient: post_residential_info")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.RESIDENTIAL_URL}"""
 
@@ -387,7 +388,7 @@ class ApiClient:
         """        
         logging.debug("ApiClient: post_household_count")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.HOUSEHOLD_COUNT_URL}"""
         residential_infos_json = json.dumps(household_infos, cls=EnhancedJSONEncoder)
@@ -417,7 +418,7 @@ class ApiClient:
         """
         logging.debug("ApiClient: post_heating_commodity")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.HEATING_COMMODITY_URL}"""
         heating_commodity_infos_json = json.dumps(heating_commodity_infos, cls=EnhancedJSONEncoder)
@@ -446,7 +447,7 @@ class ApiClient:
         """
         logging.debug("ApiClient: post_cooling_commodity")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.COOLING_COMMODITY_URL}"""
         cooling_commodity_infos_json = json.dumps(cooling_commodity_infos, cls=EnhancedJSONEncoder)
@@ -475,7 +476,7 @@ class ApiClient:
         """        
         logging.debug("ApiClient: post_water_heating_commodity")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.WARM_WATER_COMMODITY_URL}"""
         water_heating_commodity_infos_json = json.dumps(water_heating_commodity_infos, cls=EnhancedJSONEncoder)
@@ -504,7 +505,7 @@ class ApiClient:
         """
         logging.debug("ApiClient: post_cooking_commodity")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.COOKING_COMMODITY_URL}"""
         cooking_commodity_infos_json = json.dumps(cooking_commodity_infos, cls=EnhancedJSONEncoder)
@@ -533,7 +534,7 @@ class ApiClient:
         """        
         logging.debug("ApiClient: post_energy_consumption_commodity")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initiating the client.')
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.ENERGY_CONSUMPTION_URL}"""
         energy_consumption_infos_json = json.dumps(energy_consumption_infos, cls=EnhancedJSONEncoder)
