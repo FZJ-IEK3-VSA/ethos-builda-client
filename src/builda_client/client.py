@@ -222,7 +222,7 @@ class ApiClient:
 
         url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}"""
         try:
-            response: requests.Response = requests.post(url, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, headers=self.__construct_authorization_header(json=False))
             response.raise_for_status()
         except requests.HTTPError as e:
             if e.response.status_code == 403:
@@ -334,7 +334,7 @@ class ApiClient:
         nuts_regions_json = json.dumps(nuts_regions, cls=EnhancedJSONEncoder)
 
         try:
-            response: requests.Response = requests.post(url, data=nuts_regions_json, headers=self.__construct_authorization_header(json=False))
+            response: requests.Response = requests.post(url, data=nuts_regions_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
