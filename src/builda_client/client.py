@@ -91,14 +91,17 @@ class ApiClient:
             else:
                 raise ServerException('An unexpected error occurred.')
 
-    def __construct_authorization_header(self) -> Dict[str, str]:
+    def __construct_authorization_header(self, json=True) -> Dict[str, str]:
         """Constructs the header for authorization including the API token.
 
         Returns:
             Dict[str, str]: The authorization header.
         """
-        return {'Authorization': f'Token {self.api_token}',
-        'Content-Type': 'application/json'}
+        if json==True:
+            return {'Authorization': f'Token {self.api_token}',
+            'Content-Type': 'application/json'}
+        else:
+            return {'Authorization': f'Token {self.api_token}'}
 
     def get_buildings(self, nuts_code: str = '', residential: bool | None = None, heating_type: str = '') -> list[Building]:
         """Gets all buildings within the specified NUTS region that fall into the provided residential/non-residential category
@@ -331,7 +334,7 @@ class ApiClient:
         nuts_regions_json = json.dumps(nuts_regions, cls=EnhancedJSONEncoder)
 
         try:
-            response: requests.Response = requests.post(url, data=nuts_regions_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=nuts_regions_json, headers=self.__construct_authorization_header(json=False))
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
