@@ -34,10 +34,23 @@ builda-client
 =============
 
 
-    Add a short description here!
+    Client for BUILDA, the European building database
 
 
-A longer description of your project goes here...
+This is an HTTP-Client that provides methods for accessing the API endpoints that provide access to the European building database (BUILDA).
+
+
+For using the client, create an environment of your choice (e.g. conda) and install the client into it via:
+.. code-block:: bash
+    pip install .
+
+For development, install in editable mode with:
+.. code-block:: bash
+    pip install -e .
+
+And if you want to execute tests:
+.. code-block:: bash
+    pip install -e .[testing]
 
 
 .. _pyscaffold-notes:
