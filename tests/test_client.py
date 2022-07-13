@@ -1,7 +1,7 @@
 import pytest
 from builda_client.client import ApiClient
 from builda_client.exceptions import MissingCredentialsException
-from builda_client.model import (Building, BuildingStockEntry,
+from builda_client.model import (Building, BuildingCommodityStatistics, BuildingStockEntry,
                                  EnergyConsumptionStatistics, NutsEntry, BuildingStatistics)
 from shapely.geometry import MultiPolygon, Polygon
 
@@ -33,6 +33,16 @@ class TestApiClient:
         self.__given_client_unauthenticated()
         consumption_statistic = self.__when_get_energy_statistics(nuts_code='DE')
         self.__then_energy_statistics_germany_returned(consumption_statistic, 1)
+
+    def test_get_building_commodity_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        commodity_statistic = self.__when_get_building_commodity_statistics(nuts_code='DE')
+        self.__then_building_commodity_statistics_germany_returned(commodity_statistic)
+
+    def test_get_building_commodity_statistics_commodity_filter_succeeds(self):
+        self.__given_client_unauthenticated()
+        commodity_statistic = self.__when_get_building_commodity_statistics(nuts_code='DE', commodity='EL')
+        self.__then_building_commodity_statistics_germany_returned(commodity_statistic)
 
     def test_get_energy_statistics_raises_value_error(self):
         self.__given_client_unauthenticated()
@@ -117,6 +127,9 @@ class TestApiClient:
     def __when_get_energy_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[EnergyConsumptionStatistics]:
         return self.testee.get_energy_consumption_statistics(nuts_level=nuts_level, nuts_code=nuts_code)
 
+    def __when_get_building_commodity_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None, commodity: str='') -> list[BuildingCommodityStatistics]:
+        return self.testee.get_building_commodity_statistics(nuts_level=nuts_level, nuts_code=nuts_code, commodity=commodity)
+
     def __when_get_buildings(self, nuts_code: str = '', residential: bool | None = None, heating_type: str = ''):
         return self.testee.get_buildings(nuts_code=nuts_code, residential=residential, heating_type=heating_type)
 
@@ -137,6 +150,10 @@ class TestApiClient:
     def __then_energy_statistics_germany_returned(self, result: list[EnergyConsumptionStatistics], count: int):
         assert result
         assert len(result) == count
+    
+    def __then_building_commodity_statistics_germany_returned(self, result: list[BuildingCommodityStatistics]):
+        assert result
+        assert len(result) > 0
 
     def __then_buildings_returned(self, result: list[Building]):
         assert result
