@@ -10,7 +10,7 @@ from shapely.geometry import Polygon
 from builda_client.exceptions import (ClientException,
                                       MissingCredentialsException,
                                       ServerException, UnauthorizedException)
-from builda_client.model import (Building, BuildingStockEntry,
+from builda_client.model import (Building, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
                                  CookingCommodityInfo, CoolingCommodityInfo,
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
@@ -37,6 +37,8 @@ class ApiClient:
     BUILDINGS_URL = 'buildings'
     VIEW_REFRESH_URL = 'buildings/refresh'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
+    BUILDING_STATISTICS_URL = 'statistics/buildings'
+    BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
     RESIDENTIAL_URL = 'residential'
@@ -163,6 +165,41 @@ class ApiClient:
         
         return buildings
 
+    def get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
+
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+
+        query_params = ""
+        if nuts_level is not None:
+            query_params = f"?nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params = f"?nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{self.BUILDING_STATISTICS_URL}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        response_content: Dict = json.loads(response.content)
+        results: list = response_content['results']
+        statistics: list[BuildingStatistics] = []
+        for res in results:
+            res_nuts_code: str = res['nuts_code']
+            building_count_total: int = res['building_count_total']
+            building_count_residential: int = res['building_count_residential']
+            building_count_non_residential: int = res['building_count_non_residential']
+
+            statistic = BuildingStatistics(
+                nuts_code=res_nuts_code, 
+                building_count_total=building_count_total, 
+                building_count_residential=building_count_residential, 
+                building_count_non_residential=building_count_non_residential)
+            statistics.append(statistic)
+        return statistics
+
     def get_energy_consumption_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[EnergyConsumptionStatistics]:
         """Get the energy consumption statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
@@ -208,6 +245,67 @@ class ApiClient:
 
             statistic = EnergyConsumptionStatistics(nuts_code=res_nuts_code, energy_consumption=energy_consumption, residential=residential)
             statistics.append(statistic)
+        return statistics
+
+    def get_building_commodity_statistics(self,  nuts_level: int | None = None, nuts_code: str | None = None, commodity: str = ''):
+        """Get the building commodity statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            nuts_level (int | None, optional): The NUTS level for which to retrieve the statistics. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code of the region for which to retrieve the statistics. Defaults to None.
+            commodity (str, optional): The commodity for which to get statistics
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are given.
+            ServerException: If an error occurrs on the server side.
+
+        Returns:
+            list[BuildingCommodityStatistics]: A list of building commodity statistics. If just one nuts_code is queried, the list will only contain one element.
+        """        
+        logging.debug(f"ApiClient: get_building_commodity_statistics(nuts_level={nuts_level}, nuts_code={nuts_code}, commodity={commodity}")
+        
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+        
+        query_params = "?"
+        if nuts_level is not None:
+            query_params = f"?nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params = f"?nuts_code={nuts_code}"
+
+        if commodity:
+            query_params += f"&commodity={commodity}"
+
+        url: str = f"""{self.base_url}{self.BUILDING_COMMODITY_STATISTICS_URL}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        response_content: Dict = json.loads(response.content)
+        results: list = response_content['results']
+        statistics: list[BuildingCommodityStatistics] = []
+        for res in results:
+            res_nuts_code: str = res['nuts_code']
+            res_commodity: str = res['commodity']
+            res_heating_commodity_count: int = int(res['commodity_count']['heating_commodity_count'])
+            res_cooling_commodity_count: int = int(res['commodity_count']['cooling_commodity_count'])
+            res_water_heating_commodity_count: int = int(res['commodity_count']['water_heating_commodity_count'])
+            res_cooking_commodity_count: int = int(res['commodity_count']['cooking_commodity_count'])
+
+            statistic = BuildingCommodityStatistics(
+                nuts_code=res_nuts_code,
+                commodity_name=res_commodity,
+                commodity_counts = CommodityCount(
+                    heating_commodity_count=res_heating_commodity_count,
+                    cooling_commodity_count=res_cooling_commodity_count,
+                    water_heating_commodity_count=res_water_heating_commodity_count,
+                    cooking_commodity_count=res_cooking_commodity_count
+                )
+            )
+            statistics.append(statistic)
+
         return statistics
 
     def refresh_buildings(self) -> None:
