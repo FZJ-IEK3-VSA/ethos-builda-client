@@ -34,13 +34,13 @@ builda-client
 =============
 
 
-    Client for BUILDA, the European building database
+    Client for BUILDA, the European building database.
 
 
-This is an HTTP-Client that provides methods for accessing the API endpoints that provide access to the European building database (BUILDA).
+This is an HTTP-Client that provides methods for accessing the API endpoints of the European building database (BUILDA).
 
 
-For using the client, create an environment of your choice (e.g. conda) and install the client into it via:
+For using the client, download the repo to a local folder, cd into it and install the client into an environment of your choice (e.g. conda) via:
 .. code-block:: bash
     pip install .
 

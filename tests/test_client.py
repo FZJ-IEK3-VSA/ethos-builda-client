@@ -1,15 +1,17 @@
-from builda_client.exceptions import MissingCredentialsException
 import pytest
-
 from builda_client.client import ApiClient
-from builda_client.model import BuildingStockEntry, EnergyConsumptionStatistics, Building, NutsEntry
-from shapely.geometry import Polygon, MultiPolygon
+from builda_client.exceptions import MissingCredentialsException
+from builda_client.model import (Building, BuildingStockEntry,
+                                 EnergyConsumptionStatistics, NutsEntry)
+from shapely.geometry import MultiPolygon, Polygon
 
 __author__ = "k.dabrock"
 __copyright__ = "k.dabrock"
 __license__ = "MIT"
 
 class TestApiClient:
+    """Integration tests for API client
+    """
 
     testee: ApiClient
 
@@ -70,8 +72,8 @@ class TestApiClient:
         self.__when_post_nuts(nuts_regions)
 
     # GIVEN
-    def __given_client_authenticated(self) -> None:
-        self.testee = ApiClient(username='admin', password='admin')
+    def __given_client_authenticated(self, proxy: bool = False) -> None:
+        self.testee = ApiClient(proxy=proxy, username='admin', password='admin')
 
     def __given_client_unauthenticated(self) -> None:
         self.testee = ApiClient()
