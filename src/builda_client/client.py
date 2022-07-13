@@ -10,7 +10,7 @@ from shapely.geometry import Polygon
 from builda_client.exceptions import (ClientException,
                                       MissingCredentialsException,
                                       ServerException, UnauthorizedException)
-from builda_client.model import (Building, BuildingStockEntry,
+from builda_client.model import (Building, BuildingStatistics, BuildingStockEntry,
                                  CookingCommodityInfo, CoolingCommodityInfo,
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
@@ -37,6 +37,7 @@ class ApiClient:
     BUILDINGS_URL = 'buildings'
     VIEW_REFRESH_URL = 'buildings/refresh'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
+    BUILDING_STATISTICS_URL = 'statistics/buildings'
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
     RESIDENTIAL_URL = 'residential'
@@ -162,6 +163,41 @@ class ApiClient:
                 url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
         
         return buildings
+
+    def get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
+
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+
+        query_params = ""
+        if nuts_level is not None:
+            query_params = f"?nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params = f"?nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{self.BUILDING_STATISTICS_URL}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        response_content: Dict = json.loads(response.content)
+        results: list = response_content['results']
+        statistics: list[BuildingStatistics] = []
+        for res in results:
+            res_nuts_code: str = res['nuts_code']
+            building_count_total: int = res['building_count_total']
+            building_count_residential: int = res['building_count_residential']
+            building_count_non_residential: int = res['building_count_non_residential']
+
+            statistic = BuildingStatistics(
+                nuts_code=res_nuts_code, 
+                building_count_total=building_count_total, 
+                building_count_residential=building_count_residential, 
+                building_count_non_residential=building_count_non_residential)
+            statistics.append(statistic)
+        return statistics
 
     def get_energy_consumption_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[EnergyConsumptionStatistics]:
         """Get the energy consumption statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.

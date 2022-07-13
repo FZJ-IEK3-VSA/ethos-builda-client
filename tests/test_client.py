@@ -2,7 +2,7 @@ import pytest
 from builda_client.client import ApiClient
 from builda_client.exceptions import MissingCredentialsException
 from builda_client.model import (Building, BuildingStockEntry,
-                                 EnergyConsumptionStatistics, NutsEntry)
+                                 EnergyConsumptionStatistics, NutsEntry, BuildingStatistics)
 from shapely.geometry import MultiPolygon, Polygon
 
 __author__ = "k.dabrock"
@@ -23,6 +23,11 @@ class TestApiClient:
         self.__given_client_unauthenticated()
         with pytest.raises(MissingCredentialsException):
             self.__when_refresh_view()
+
+    def test_get_building_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_statistic = self.__when_get_building_statistics(nuts_code='DE')
+        self.__then_building_statistics_germany_returned(building_statistic, 1)
 
     def test_get_energy_statistics_succeeds(self):
         self.__given_client_unauthenticated()
@@ -106,6 +111,9 @@ class TestApiClient:
     def __when_refresh_view(self):
         self.testee.refresh_buildings()
 
+    def __when_get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
+        return self.testee.get_building_statistics(nuts_level=nuts_level, nuts_code=nuts_code)
+
     def __when_get_energy_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[EnergyConsumptionStatistics]:
         return self.testee.get_energy_consumption_statistics(nuts_level=nuts_level, nuts_code=nuts_code)
 
@@ -122,6 +130,10 @@ class TestApiClient:
         self.testee.post_nuts(nuts)
 
     # THEN
+    def __then_building_statistics_germany_returned(self, result: list[BuildingStatistics], count: int):
+        assert result
+        assert len(result) == count
+
     def __then_energy_statistics_germany_returned(self, result: list[EnergyConsumptionStatistics], count: int):
         assert result
         assert len(result) == count

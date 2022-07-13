@@ -68,6 +68,13 @@ class EnergyConsumption(Info):
     value: str
 
 @dataclass
+class BuildingStatistics:
+    nuts_code: str
+    building_count_total: int
+    building_count_residential: int
+    building_count_non_residential: int
+
+@dataclass
 class SectorEnergyConsumptionStatistics:
     energy_consumption: float
     commodities: Dict[str, float]
