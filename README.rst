@@ -37,28 +37,72 @@ builda-client
     Client for BUILDA, the European building database.
 
 
-This is an HTTP-Client that provides methods for accessing the API endpoints of the European building database (BUILDA).
+This is an HTTP-client that provides methods for accessing the API endpoints of the European building database (BUILDA).
 
+Installation
+====
 
 For using the client, download the repo to a local folder, cd into it and install the client into an environment of your choice (e.g. conda) via:
+
 .. code-block:: console
+
     pip install .
 
 Or install directly from remote repository via:
+
 .. code-block:: console
+
     pip install git+https://jugit.fz-juelich.de/iek-3/groups/urbanmodels/personal/dabrock/builda-client.git 
 
 For development, install in editable mode with:
+
 .. code-block:: console
+
     pip install -e .
 
 And if you want to execute tests:
+
 .. code-block:: console
+
     pip install -e .[testing]
 
-Or for development and desting:
+Or for development and testing:
+
 .. code-block:: console 
+
     pip install -e ".[test,development]"
+
+Usage 
+====
+
+Import the client via:
+
+.. code-block:: python
+
+    from builda_client.client import ApiClient
+
+And instantiate client like this:
+
+.. code-block:: python
+
+    client: ApiClient = ApiClient()
+
+This is sufficient for the standard case. 
+
+If you need to use a proxy because you are executing your code on the cluster compute nodes, you have to tell the client on instantiation:
+
+.. code-block:: python
+
+    client: ApiClient = ApiClient(use_proxy=True)
+
+Now you can use the methods provided by the client, e.g.:
+
+.. code-block:: python
+
+    buildings: list[Building] = client.get_buildings()
+
+Some methods require authentication. You can recognize those by the comment [REQUIRES AUTHENTICATION] at the beginning of the method's docstring.
+To use these methods the client has to be instantiated with a valid username and password.
 
 .. _pyscaffold-notes:
 
