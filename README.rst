@@ -41,21 +41,24 @@ This is an HTTP-Client that provides methods for accessing the API endpoints of 
 
 
 For using the client, download the repo to a local folder, cd into it and install the client into an environment of your choice (e.g. conda) via:
-.. code-block:: bash
+.. code-block:: console
     pip install .
 
 Or install directly from remote repository via:
-.. code-block:: bash
+.. code-block:: console
     pip install git+https://jugit.fz-juelich.de/iek-3/groups/urbanmodels/personal/dabrock/builda-client.git 
 
 For development, install in editable mode with:
-.. code-block:: bash
+.. code-block:: console
     pip install -e .
 
 And if you want to execute tests:
-.. code-block:: bash
+.. code-block:: console
     pip install -e .[testing]
 
+Or for development and desting:
+.. code-block:: console 
+    pip install -e ".[test,development]"
 
 .. _pyscaffold-notes:
 

@@ -20,7 +20,7 @@ from builda_client.model import (Building, BuildingCommodityStatistics, Building
                                  WaterHeatingCommodityInfo)
 
 
-def load_config() -> Dict:
+def __load_config() -> Dict:
     """Loads the config file.
 
     Returns:
@@ -57,10 +57,9 @@ class ApiClient:
             proxy (bool, optional): Whether to use a proxy or not. Proxy should be used when using client on cluster compute nodes. Defaults to False.
             username (str | None, optional): Username for authentication. Only required when using client for accessing endpoints that are not open. Defaults to None.
             password (str | None, optional): Password; see username. Defaults to None.
-            loglevel (_Level, optional): Logging level of client. Defaults to WARN.
         """
         logging.basicConfig(level=logging.WARN)
-        self.config = load_config()
+        self.config = __load_config()
         api = 'proxy' if proxy else 'api'
         self.authentication_url = f"""http://{self.config[api]['host']}:{self.config[api]['port']}{self.AUTH_URL}"""
         self.base_url = f"""http://{self.config[api]['host']}:{self.config[api]['port']}{self.config['base_url']}"""
@@ -110,7 +109,7 @@ class ApiClient:
         and are of the given heating type.
 
         Args:
-            nuts_code (str): The NUTS-code, e.g. 'DE' for Germany.
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
             residential (str): Get only residential buildings.
             heating_type (str): Heating type of buildings.
 
@@ -166,7 +165,19 @@ class ApiClient:
         return buildings
 
     def get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
+        """Get the building statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
+        Args:
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical info about buildings.
+        """
         if nuts_level is not None and nuts_code is not None:
             raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
 
@@ -205,7 +216,7 @@ class ApiClient:
 
         Args:
             nuts_level (int | None, optional): The NUTS level for which to retrieve the statistics. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code of the region for which to retrieve the statistics. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code of the region for which to retrieve the statistics according to the 2021 NUTS code definitions. Defaults to None.
 
         Raises:
             ValueError: If both nuts_level and nuts_code are given.
@@ -252,7 +263,7 @@ class ApiClient:
 
         Args:
             nuts_level (int | None, optional): The NUTS level for which to retrieve the statistics. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code of the region for which to retrieve the statistics. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code of the region for which to retrieve the statistics according to the 2021 NUTS code definitions. Defaults to None.
             commodity (str, optional): The commodity for which to get statistics
 
         Raises:
@@ -297,7 +308,7 @@ class ApiClient:
             statistic = BuildingCommodityStatistics(
                 nuts_code=res_nuts_code,
                 commodity_name=res_commodity,
-                commodity_counts = CommodityCount(
+                building_count = CommodityCount(
                     heating_commodity_count=res_heating_commodity_count,
                     cooling_commodity_count=res_cooling_commodity_count,
                     water_heating_commodity_count=res_water_heating_commodity_count,
@@ -309,7 +320,7 @@ class ApiClient:
         return statistics
 
     def refresh_buildings(self) -> None:
-        """Refreshes the materialized view 'buildings'. This method requires authentication.
+        """[REQUIRES AUTHENTICATION] Refreshes the materialized view 'buildings'.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
@@ -330,7 +341,7 @@ class ApiClient:
             
 
     def get_building_stock(self, geom: Polygon) -> list[BuildingStockEntry]:
-        """Gets all entries of the building stock within the specified geometry.
+        """[REQUIRES AUTHENTICATION]  Gets all entries of the building stock within the specified geometry.
 
         Args:
             geom (Polygon): The polygon for which to retrieve buildings.
@@ -384,7 +395,7 @@ class ApiClient:
         return buildings
 
     def post_building_stock(self, buildings: list[BuildingStockEntry]) -> None:
-        """Posts the building_stock data to the database. Private endpoint: Client must have credentials.
+        """[REQUIRES AUTHENTICATION]  Posts the building_stock data to the database.
 
         Args:
             buildings (list[BuildingStockEntry]): The building stock entries to post.
@@ -414,7 +425,7 @@ class ApiClient:
 
 
     def post_nuts(self, nuts_regions: list[NutsEntry]) -> None:
-        """Posts the nuts data to the database. Private endpoint: requires client to have credentials.
+        """[REQUIRES AUTHENTICATION] Posts the nuts data to the database. Private endpoint: requires client to have credentials.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
@@ -444,7 +455,7 @@ class ApiClient:
   
 
     def post_residential_info(self, residential_infos: list[ResidentialInfo]) -> None:
-        """Posts the residential info data to the database.
+        """[REQUIRES AUTHENTICATION] Posts the residential info data to the database.
 
         Args:
             residential_infos (list[ResidentialInfo]): The residential info data to post.
@@ -476,7 +487,7 @@ class ApiClient:
 
 
     def post_household_count(self, household_infos: list[HouseholdInfo]) -> None:
-        """Posts the household count data to the database.
+        """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
 
         Args:
             household_infos (list[HouseholdInfo]): The household count data to post.
@@ -506,7 +517,7 @@ class ApiClient:
 
 
     def post_heating_commodity(self, heating_commodity_infos: list[HeatingCommodityInfo]) -> None:
-        """Posts the heating commodity data to the database.
+        """[REQUIRES AUTHENTICATION]  Posts the heating commodity data to the database.
 
         Args:
             heating_commodity_infos (list[HeatingCommodityInfo]): The heating commodity data to post.
@@ -535,7 +546,7 @@ class ApiClient:
                 raise ServerException('An unexpected error occurred', err)
 
     def post_cooling_commodity(self, cooling_commodity_infos: list[CoolingCommodityInfo]) -> None:
-        """Posts the cooling commodity data to the database.
+        """[REQUIRES AUTHENTICATION] Posts the cooling commodity data to the database.
 
         Args:
             cooling_commodity_infos (list[CoolingCommodityInfo]): The cooling commodity data to post.
@@ -564,7 +575,7 @@ class ApiClient:
                 raise ServerException('An unexpected error occurred', err)
     
     def post_water_heating_commodity(self, water_heating_commodity_infos: list[WaterHeatingCommodityInfo]) -> None:
-        """Posts the water heating commodity data to the database.
+        """[REQUIRES AUTHENTICATION] Posts the water heating commodity data to the database.
 
         Args:
             water_heating_commodity_infos (list[WaterHeatingCommodityInfo]): The water heating commodity infos to post.
@@ -593,7 +604,7 @@ class ApiClient:
                 raise ServerException('An unexpected error occurred', err)
             
     def post_cooking_commodity(self, cooking_commodity_infos: list[CookingCommodityInfo]) -> None:
-        """Posts the cooking commodity data to the database.
+        """[REQUIRES AUTHENTICATION] Posts the cooking commodity data to the database.
 
         Args:
             cooking_commodity_infos (list[CookingCommodityInfo]): The cooking commodity infos to post.
@@ -622,7 +633,7 @@ class ApiClient:
                 raise ServerException('An unexpected error occurred', err)
 
     def post_energy_consumption(self, energy_consumption_infos: list[EnergyConsumption]) -> None:
-        """Posts the energy consumption data to the database.
+        """[REQUIRES AUTHENTICATION] Posts the energy consumption data to the database.
 
         Args:
             energy_consumption_infos (list[EnergyConsumption]): The energy consumption infos to post.

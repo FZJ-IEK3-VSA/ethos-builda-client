@@ -85,7 +85,7 @@ class CommodityCount:
 class BuildingCommodityStatistics:
     nuts_code: str
     commodity_name: str
-    commodity_counts: CommodityCount
+    building_count: CommodityCount
 
 @dataclass
 class SectorEnergyConsumptionStatistics:
