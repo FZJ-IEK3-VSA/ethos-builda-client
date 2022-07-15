@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import dataclasses
 import json
 from typing import Dict
+from uuid import UUID, uuid4
 
 @dataclass
 class Building:
@@ -26,6 +27,7 @@ class NutsEntry:
 
 @dataclass
 class BuildingStockEntry:
+    building_id: str
     footprint: str
     centroid: str
     nuts3: str
