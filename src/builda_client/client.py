@@ -20,16 +20,6 @@ from builda_client.model import (Building, BuildingCommodityStatistics, Building
                                  WaterHeatingCommodityInfo)
 
 
-def __load_config() -> Dict:
-    """Loads the config file.
-
-    Returns:
-        dict: The configuration.
-    """
-    project_dir = Path(__file__).resolve().parents[0]
-    config_file_path = project_dir / 'config.yml'
-    with open(str(config_file_path), "r") as config_file:
-        return yaml.safe_load(config_file)
 
 class ApiClient:
 
@@ -59,13 +49,24 @@ class ApiClient:
             password (str | None, optional): Password; see username. Defaults to None.
         """
         logging.basicConfig(level=logging.WARN)
-        self.config = __load_config()
+        self.config = self.__load_config()
         api = 'proxy' if proxy else 'api'
         self.authentication_url = f"""http://{self.config[api]['host']}:{self.config[api]['port']}{self.AUTH_URL}"""
         self.base_url = f"""http://{self.config[api]['host']}:{self.config[api]['port']}{self.config['base_url']}"""
         self.username = username
         self.password = password
         self.api_token = self.__get_authentication_token()
+
+    def __load_config(self) -> Dict:
+        """Loads the config file.
+
+        Returns:
+            dict: The configuration.
+        """
+        project_dir = Path(__file__).resolve().parents[0]
+        config_file_path = project_dir / 'config.yml'
+        with open(str(config_file_path), "r") as config_file:
+            return yaml.safe_load(config_file)
 
     def __get_authentication_token(self) -> str:
         """Retrieves the authentication token for the given username and password from the token endpoint.
@@ -340,11 +341,12 @@ class ApiClient:
                 raise ServerException('An unexpected error occured.')
             
 
-    def get_building_stock(self, geom: Polygon) -> list[BuildingStockEntry]:
+    def get_building_stock(self, geom: Polygon | None = None, nuts_code: str = '') -> list[BuildingStockEntry]:
         """[REQUIRES AUTHENTICATION]  Gets all entries of the building stock within the specified geometry.
 
         Args:
-            geom (Polygon): The polygon for which to retrieve buildings.
+            geom (Polygon, optional): The polygon for which to retrieve buildings.
+            nuts_code (str, optional): The NUTS region to get buildings from.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
@@ -357,7 +359,15 @@ class ApiClient:
         if not self.api_token:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
-        url: str = f"""{self.base_url}building-stock?geom={geom}"""
+        query_params: str = ''
+        if geom is not None and nuts_code:
+            query_params = f'?geom={geom}&nuts={nuts_code}'
+        elif geom is not None:
+            query_params = f'?geom={geom}'
+        elif nuts_code:
+            query_params = f'?nuts={nuts_code}'
+
+        url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}{query_params}"""
         return self.__get_paginated_results_building_stock(url, self.__construct_authorization_header())
 
         
@@ -378,12 +388,13 @@ class ApiClient:
             results: list = response_content['results']
             for result in results:
                 building = BuildingStockEntry(
+                    building_id = result['building_id'],
                     footprint = result['footprint'],
                     centroid = result['centroid'],
                     nuts3 = result['nuts3'],
                     nuts2 = result['nuts2'],
                     nuts1 = result['nuts1'],
-                    nuts0 = result['nutsß'],
+                    nuts0 = result['nuts0'],
                 )
                 buildings.append(building)
            

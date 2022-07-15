@@ -76,15 +76,22 @@ class TestApiClient:
         result = self.__when_get_building_stock(polygon)
         self.__then_empty_list_returned(result)
 
+    def test_get_building_stock_geom_nuts_succeeds_empty(self):
+        self.__given_client_authenticated()
+        polygon = self.__given_polygon()
+        result = self.__when_get_building_stock(polygon, 'DE')
+        self.__then_empty_list_returned(result)
+
     def test_post_building_stock_raises_missing_credentials_exception(self):
         self.__given_client_unauthenticated()
         with pytest.raises(MissingCredentialsException):
             self.__when_post_building_stock([])
 
-    def test_post_nuts_succeeds(self):
-        self.__given_client_authenticated()
-        nuts_regions: list[NutsEntry] = self.__given_nuts_regions()
-        self.__when_post_nuts(nuts_regions)
+    # TODO comment in once test db is in place
+    # def test_post_nuts_succeeds(self):
+    #     self.__given_client_authenticated()
+    #     nuts_regions: list[NutsEntry] = self.__given_nuts_regions()
+    #     self.__when_post_nuts(nuts_regions)
 
     # GIVEN
     def __given_client_authenticated(self, proxy: bool = False) -> None:
@@ -103,7 +110,7 @@ class TestApiClient:
             nuts_name='test',
             level=5,
             parent= None,
-            geometry= MultiPolygon([(((0., 0.), (1., 0.), (0., 1.), (0., 0.)), [])]).wkt
+            geometry= MultiPolygon([(((0., 0.), (0., 0.), (0., 0.), (0., 0.)), [])]).wkt
         )
 
         nuts_entry_2 = NutsEntry(
@@ -133,8 +140,8 @@ class TestApiClient:
     def __when_get_buildings(self, nuts_code: str = '', residential: bool | None = None, heating_type: str = ''):
         return self.testee.get_buildings(nuts_code=nuts_code, residential=residential, heating_type=heating_type)
 
-    def __when_get_building_stock(self, geom: Polygon):
-        return self.testee.get_building_stock(geom)
+    def __when_get_building_stock(self, geom: Polygon, nuts_code: str = ''):
+        return self.testee.get_building_stock(geom, nuts_code)
 
     def __when_post_building_stock(self, buildings: list[BuildingStockEntry]):
         self.testee.post_building_stock(buildings)
