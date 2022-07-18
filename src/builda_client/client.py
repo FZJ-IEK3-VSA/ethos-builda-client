@@ -40,19 +40,18 @@ class ApiClient:
     ENERGY_CONSUMPTION_URL = 'energy-consumption'
     base_url: str
 
-    def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None, dev = False):
+    def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None, phase = 'staging'):
         """Constructor.
 
         Args:
             proxy (bool, optional): Whether to use a proxy or not. Proxy should be used when using client on cluster compute nodes. Defaults to False.
             username (str | None, optional): Username for authentication. Only required when using client for accessing endpoints that are not open. Defaults to None.
             password (str | None, optional): Password; see username. Defaults to None.
-            dev (boolean, optional): If using in development mode with API running on localhost. Defaults to False.
+            dev (boolean, optional): The 'phase' the client is used in, i.e. which databse to access. Possible options: 'dev', 'staging'. Defaults to 'staging'.
         """
         logging.basicConfig(level=logging.WARN)
         self.config = self.__load_config()
         api = 'proxy' if proxy else 'api'
-        phase = 'dev' if dev == True else 'staging'
         self.authentication_url = f"""http://{self.config[phase][api]['host']}:{self.config[phase][api]['port']}{self.AUTH_URL}"""
         self.base_url = f"""http://{self.config[phase][api]['host']}:{self.config[phase][api]['port']}{self.config['base_url']}"""
         self.username = username
