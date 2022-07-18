@@ -54,7 +54,7 @@ class ApiClient:
         api = 'proxy' if proxy else 'api'
         phase = 'dev' if dev == True else 'staging'
         self.authentication_url = f"""http://{self.config[phase][api]['host']}:{self.config[phase][api]['port']}{self.AUTH_URL}"""
-        self.base_url = f"""http://{self.config[api]['host']}:{self.config[api]['port']}{self.config['base_url']}"""
+        self.base_url = f"""http://{self.config[phase][api]['host']}:{self.config[phase][api]['port']}{self.config['base_url']}"""
         self.username = username
         self.password = password
         self.api_token = self.__get_authentication_token()
