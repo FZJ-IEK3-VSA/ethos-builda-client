@@ -2,8 +2,14 @@ proxy:
   host: 192.168.90.1
   port: 8080
 
-api:
-  host: 134.94.116.65
-  port: 8000
+dev:
+  api:
+    host: localhost
+    port: 8000
+
+staging:
+  api:
+    host: 134.94.116.65
+    port: 8000
 
 base_url: /api/v1/
