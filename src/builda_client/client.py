@@ -41,19 +41,20 @@ class ApiClient:
     TIMING_LOG_URL = 'admin/timing-log'
     base_url: str
 
-    def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None):
+    def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None, phase = 'staging'):
         """Constructor.
 
         Args:
             proxy (bool, optional): Whether to use a proxy or not. Proxy should be used when using client on cluster compute nodes. Defaults to False.
             username (str | None, optional): Username for authentication. Only required when using client for accessing endpoints that are not open. Defaults to None.
             password (str | None, optional): Password; see username. Defaults to None.
+            dev (boolean, optional): The 'phase' the client is used in, i.e. which databse to access. Possible options: 'dev', 'staging'. Defaults to 'staging'.
         """
         logging.basicConfig(level=logging.WARN)
         self.config = self.__load_config()
         api = 'proxy' if proxy else 'api'
-        self.authentication_url = f"""http://{self.config[api]['host']}:{self.config[api]['port']}{self.AUTH_URL}"""
-        self.base_url = f"""http://{self.config[api]['host']}:{self.config[api]['port']}{self.config['base_url']}"""
+        self.authentication_url = f"""http://{self.config[phase][api]['host']}:{self.config[phase][api]['port']}{self.AUTH_URL}"""
+        self.base_url = f"""http://{self.config[phase][api]['host']}:{self.config[phase][api]['port']}{self.config['base_url']}"""
         self.username = username
         self.password = password
         self.api_token = self.__get_authentication_token()
