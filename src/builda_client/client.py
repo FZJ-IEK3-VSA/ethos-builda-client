@@ -681,7 +681,7 @@ class ApiClient:
                 raise ServerException('An unexpected error occurred', err)
 
     def post_timing_log(self, function_name: str, measured_time: float):
-        logging.debug("ApiClient: post_energy_consumption_commodity")
+        logging.debug("ApiClient: post_timing_log")
         if not self.api_token:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
