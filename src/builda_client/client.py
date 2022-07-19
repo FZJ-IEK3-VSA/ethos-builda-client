@@ -52,9 +52,15 @@ class ApiClient:
         """
         logging.basicConfig(level=logging.WARN)
         self.config = self.__load_config()
-        api = 'proxy' if proxy else 'api'
-        self.authentication_url = f"""http://{self.config[phase][api]['host']}:{self.config[phase][api]['port']}{self.AUTH_URL}"""
-        self.base_url = f"""http://{self.config[phase][api]['host']}:{self.config[phase][api]['port']}{self.config['base_url']}"""
+        if proxy:
+            host = self.config['proxy']['host']
+            port = self.config['proxy']['port']
+        else:
+            host = self.config[phase]['api']['host']
+            port = self.config[phase]['api']['port']
+
+        self.authentication_url = f"""http://{host}:{port}{self.AUTH_URL}"""
+        self.base_url = f"""http://{host}:{port}{self.config['base_url']}"""
         self.username = username
         self.password = password
         self.api_token = self.__get_authentication_token()
