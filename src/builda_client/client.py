@@ -38,6 +38,7 @@ class ApiClient:
     WARM_WATER_COMMODITY_URL = 'water-heating-commodity'
     COOKING_COMMODITY_URL = 'cooking-commodity'
     ENERGY_CONSUMPTION_URL = 'energy-consumption'
+    TIMING_LOG_URL = 'admin/timing-log'
     base_url: str
 
     def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None):
@@ -672,4 +673,20 @@ class ApiClient:
             else:
                 raise ServerException('An unexpected error occurred', err)
 
+    def post_timing_log(self, function_name: str, measured_time: float):
+        logging.debug("ApiClient: post_energy_consumption_commodity")
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
+        url: str = f"""{self.base_url}{self.TIMING_LOG_URL}"""
+
+        try:
+            response: requests.Response = requests.post(url, data=json.dumps({'function_name': function_name, 'measured_time': measured_time}), headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
