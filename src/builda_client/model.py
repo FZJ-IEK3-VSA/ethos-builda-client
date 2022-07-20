@@ -40,8 +40,8 @@ class Info:
     source: str
 
 @dataclass
-class ResidentialInfo(Info):
-    value: bool
+class TypeInfo(Info):
+    value: str
 
 @dataclass
 class HouseholdInfo(Info):

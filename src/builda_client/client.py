@@ -15,7 +15,7 @@ from builda_client.model import (Building, BuildingCommodityStatistics, Building
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
                                  EnhancedJSONEncoder, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsEntry, ResidentialInfo,
+                                 HouseholdInfo, NutsEntry, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
 
@@ -31,7 +31,7 @@ class ApiClient:
     BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
-    RESIDENTIAL_URL = 'residential'
+    RESIDENTIAL_URL = 'type'
     HOUSEHOLD_COUNT_URL = 'household-count'
     HEATING_COMMODITY_URL = 'heating-commodity'
     COOLING_COMMODITY_URL = 'cooling-commodity'
@@ -473,11 +473,11 @@ class ApiClient:
                 raise ServerException('An unexpected error occurred', err)
   
 
-    def post_residential_info(self, residential_infos: list[ResidentialInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the residential info data to the database.
+    def post_type_info(self, type_infos: list[TypeInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the type info data to the database.
 
         Args:
-            residential_infos (list[ResidentialInfo]): The residential info data to post.
+            type_infos (list[TypeInfo]): The type info data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
@@ -486,15 +486,15 @@ class ApiClient:
             ServerException: If an unexpected error on the server side occurred.
         """
 
-        logging.debug("ApiClient: post_residential_info")
+        logging.debug("ApiClient: post_type_info")
         if not self.api_token:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.RESIDENTIAL_URL}"""
 
-        residential_infos_json = json.dumps(residential_infos, cls=EnhancedJSONEncoder)
+        type_infos_json = json.dumps(type_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=residential_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=type_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
@@ -522,9 +522,9 @@ class ApiClient:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.HOUSEHOLD_COUNT_URL}"""
-        residential_infos_json = json.dumps(household_infos, cls=EnhancedJSONEncoder)
+        household_infos_json = json.dumps(household_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=residential_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=household_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
