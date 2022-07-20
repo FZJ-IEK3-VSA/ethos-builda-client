@@ -8,7 +8,7 @@ class Building:
     id: str
     area: float
     height: float
-    residential: bool
+    type: str
     household_count: int
     heating_commodity: str
     cooling_commodity: str

@@ -31,7 +31,7 @@ class ApiClient:
     BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
-    RESIDENTIAL_URL = 'type'
+    TYPE_URL = 'type'
     HOUSEHOLD_COUNT_URL = 'household-count'
     HEATING_COMMODITY_URL = 'heating-commodity'
     COOLING_COMMODITY_URL = 'cooling-commodity'
@@ -113,13 +113,13 @@ class ApiClient:
         else:
             return {'Authorization': f'Token {self.api_token}'}
 
-    def get_buildings(self, nuts_code: str = '', residential: bool | None = None, heating_type: str = '') -> list[Building]:
-        """Gets all buildings within the specified NUTS region that fall into the provided residential/non-residential category
+    def get_buildings(self, nuts_code: str = '', type: str | None = None, heating_type: str = '') -> list[Building]:
+        """Gets all buildings within the specified NUTS region that fall into the provided type category
         and are of the given heating type.
 
         Args:
             nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
-            residential (str): Get only residential buildings.
+            type (str): The type of building ('residential', 'non-residential', 'irrelevant')
             heating_type (str): Heating type of buildings.
 
         Raises:
@@ -129,7 +129,7 @@ class ApiClient:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
         logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code}")
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&residential={residential}&heating_commodity={heating_type}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}&heating_commodity={heating_type}"""
 
         buildings = self.__get_paginated_results_buildings(url)
         ids: list[str] = [b.id for b in buildings]
@@ -157,7 +157,7 @@ class ApiClient:
                     id = result['id'],
                     area = result['area'],
                     height = result['height'],
-                    residential = result['residential'],
+                    type = result['type'],
                     household_count = result['household_count'],
                     heating_commodity = result['heating_commodity'],
                     cooling_commodity = result['heating_commodity'],
@@ -490,7 +490,7 @@ class ApiClient:
         if not self.api_token:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
-        url: str = f"""{self.base_url}{self.RESIDENTIAL_URL}"""
+        url: str = f"""{self.base_url}{self.TYPE_URL}"""
 
         type_infos_json = json.dumps(type_infos, cls=EnhancedJSONEncoder)
         try:

@@ -56,7 +56,7 @@ class TestApiClient:
 
     def test_get_buildings_residential(self):
         self.__given_client_unauthenticated()
-        buildings = self.__when_get_buildings(residential=True)
+        buildings = self.__when_get_buildings(type='residential')
         self.__then_residential_buildings_returned(buildings)
 
     def test_get_buildings_heating_type_solids(self):
@@ -95,10 +95,10 @@ class TestApiClient:
 
     # GIVEN
     def __given_client_authenticated(self, proxy: bool = False) -> None:
-        self.testee = ApiClient(proxy=proxy, username='admin', password='admin')
+        self.testee = ApiClient(proxy=proxy, username='admin', password='admin', phase='dev')
 
     def __given_client_unauthenticated(self) -> None:
-        self.testee = ApiClient()
+        self.testee = ApiClient(phase='dev')
 
     def __given_polygon(self) -> Polygon:
         return Polygon()
@@ -137,8 +137,8 @@ class TestApiClient:
     def __when_get_building_commodity_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None, commodity: str='') -> list[BuildingCommodityStatistics]:
         return self.testee.get_building_commodity_statistics(nuts_level=nuts_level, nuts_code=nuts_code, commodity=commodity)
 
-    def __when_get_buildings(self, nuts_code: str = '', residential: bool | None = None, heating_type: str = ''):
-        return self.testee.get_buildings(nuts_code=nuts_code, residential=residential, heating_type=heating_type)
+    def __when_get_buildings(self, nuts_code: str = '', type: str | None = None, heating_type: str = ''):
+        return self.testee.get_buildings(nuts_code=nuts_code, type=type, heating_type=heating_type)
 
     def __when_get_building_stock(self, geom: Polygon, nuts_code: str = ''):
         return self.testee.get_building_stock(geom, nuts_code)
@@ -170,11 +170,10 @@ class TestApiClient:
         assert result
         assert len(result) > 0
         for b in result:
-            assert b.residential == True
+            assert b.type == 'residential'
 
     def __then_heating_type_buildings_returned(self, result: list[Building], heating_type: str, min_length: int):
-        assert result
-        assert len(result) > min_length
+        assert len(result) >= min_length
         for b in result:
             assert b.heating_commodity == heating_type
 
