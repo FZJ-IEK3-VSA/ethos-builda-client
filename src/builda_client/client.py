@@ -2,6 +2,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Dict
+from uuid import UUID
 
 import requests
 import yaml
@@ -15,11 +16,17 @@ from builda_client.model import (Building, BuildingCommodityStatistics, Building
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
                                  EnhancedJSONEncoder, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsEntry, ResidentialInfo,
+                                 HouseholdInfo, NutsEntry, Parcel, ResidentialInfo,
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
+from shapely import wkt
 
-
+def ewkt_loads(x):
+    try:
+        wkt_str = x.split(';')[1]
+        return wkt.loads(wkt_str)
+    except Exception:
+        return None
 
 class ApiClient:
 
@@ -39,6 +46,7 @@ class ApiClient:
     COOKING_COMMODITY_URL = 'cooking-commodity'
     ENERGY_CONSUMPTION_URL = 'energy-consumption'
     TIMING_LOG_URL = 'admin/timing-log'
+    PARCEL_URL = 'parcels'
     base_url: str
 
     def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None, phase = 'staging'):
@@ -172,6 +180,60 @@ class ApiClient:
                 url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
         
         return buildings
+
+    def get_parcels(self) -> list[Parcel]:
+        logging.debug(f"ApiClient: get_parcels()")
+        url: str = f"""{self.base_url}{self.PARCEL_URL}"""
+
+        parcels = self.__get_paginated_results_parcels(url)
+        return parcels
+
+    def __get_paginated_results_parcels(self, url: str, header: Dict | None = None) -> list[Parcel]:
+        has_next = True
+        parcels: list[Parcel] = []
+        while has_next:
+            try:
+                response: requests.Response = requests.get(url, headers=header)
+                response.raise_for_status()
+            except requests.HTTPError as e:
+                if e.response.status_code == 403:
+                    raise UnauthorizedException('You are not authorized to perform this operation.')
+                else:
+                    raise ServerException('An unexpected error occured.')
+                    
+            response_content: Dict = json.loads(response.content)
+            results: list = response_content['results']
+            for result in results:
+                parcel = Parcel(
+                    id = UUID(result['parcel_id']),
+                    shape = Polygon(ewkt_loads(result['shape'])),
+                    source = 'test'
+                )
+                parcels.append(parcel)
+           
+            if not response_content['next']:
+                has_next = False
+            else:
+                url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
+        
+        return parcels
+
+    def add_parcels(self, parcels: list[Parcel]):
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+        url: str = f"""{self.base_url}{self.PARCEL_URL}"""
+
+        parcels_json = json.dumps(parcels, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(url, data=parcels_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
 
     def get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
         """Get the building statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.

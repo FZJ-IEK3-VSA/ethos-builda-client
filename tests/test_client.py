@@ -1,8 +1,9 @@
+from uuid import uuid4
 import pytest
 from builda_client.client import ApiClient
 from builda_client.exceptions import MissingCredentialsException
 from builda_client.model import (Building, BuildingCommodityStatistics, BuildingStockEntry,
-                                 EnergyConsumptionStatistics, NutsEntry, BuildingStatistics)
+                                 EnergyConsumptionStatistics, NutsEntry, BuildingStatistics, Parcel)
 from shapely.geometry import MultiPolygon, Polygon
 
 __author__ = "k.dabrock"
@@ -93,12 +94,22 @@ class TestApiClient:
     #     nuts_regions: list[NutsEntry] = self.__given_nuts_regions()
     #     self.__when_post_nuts(nuts_regions)
 
+    def test_get_parcels_succeeds(self):
+        self.__given_client_authenticated()
+        parcels = self.__when_get_parcels()
+        self.__then_parcels_returned(parcels)
+
+    def test_post_parcels_succeeds(self):
+        self.__given_client_authenticated()
+        parcels = self.__given_valid_parcels()
+        self.__when_add_parcels(parcels)
+
     # GIVEN
     def __given_client_authenticated(self, proxy: bool = False) -> None:
-        self.testee = ApiClient(proxy=proxy, username='admin', password='admin')
+        self.testee = ApiClient(proxy=proxy, username='admin', password='admin', phase='dev')
 
     def __given_client_unauthenticated(self) -> None:
-        self.testee = ApiClient()
+        self.testee = ApiClient(phase='dev')
 
     def __given_polygon(self) -> Polygon:
         return Polygon()
@@ -124,6 +135,19 @@ class TestApiClient:
 
         return [nuts_entry_1, nuts_entry_2]
 
+    def __given_valid_parcels(self) -> list[Parcel]:
+        parcel1 = Parcel(
+            id = uuid4(),
+            shape = Polygon(((0., 0.), (1., 0.), (0., 1.), (0., 0.))),
+            source = 'test'
+        )
+        parcel2 = Parcel(
+            id = uuid4(),
+            shape = Polygon(((0., 0.), (2., 0.), (0., 2.), (0., 0.))),
+            source = 'test'
+        )
+        return [parcel1, parcel2]
+
     # WHEN
     def __when_refresh_view(self):
         self.testee.refresh_buildings()
@@ -148,6 +172,12 @@ class TestApiClient:
 
     def __when_post_nuts(self, nuts: list[NutsEntry]):
         self.testee.post_nuts(nuts)
+
+    def __when_get_parcels(self):
+        return self.testee.get_parcels()
+
+    def __when_add_parcels(self, parcels: list[Parcel]):
+        self.testee.add_parcels(parcels)
 
     # THEN
     def __then_building_statistics_germany_returned(self, result: list[BuildingStatistics], count: int):
@@ -180,3 +210,6 @@ class TestApiClient:
 
     def __then_empty_list_returned(self, result: list):
         assert len(result) == 0
+
+    def __then_parcels_returned(self, result: list[Parcel]):
+        assert len(result) > 0

@@ -2,6 +2,8 @@ from dataclasses import dataclass
 import dataclasses
 import json
 from typing import Dict
+from uuid import UUID
+from shapely.geometry import Polygon
 
 @dataclass
 class Building:
@@ -14,6 +16,12 @@ class Building:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
+
+@dataclass
+class Parcel:
+    id: UUID
+    shape: Polygon
+    source: str
 
 @dataclass
 class NutsEntry:
@@ -100,7 +108,11 @@ class EnergyConsumptionStatistics:
     residential: SectorEnergyConsumptionStatistics
 
 class EnhancedJSONEncoder(json.JSONEncoder):
-        def default(self, o):
-            if dataclasses.is_dataclass(o):
-                return dataclasses.asdict(o)
-            return super().default(o)
+    def default(self, o):
+        if isinstance(o, UUID):
+            return o.hex
+        if isinstance(o, Polygon):
+            return str(o)
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        return super().default(o)
