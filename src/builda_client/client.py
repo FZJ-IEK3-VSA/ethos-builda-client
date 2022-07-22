@@ -183,7 +183,7 @@ class ApiClient:
 
     def get_parcels(self) -> list[Parcel]:
         """
-        Gets all parcels.
+        [REQUIRES AUTHENTICATION] Gets all parcels.
 
         Returns:
             list[Parcel]: A list of parcels.
@@ -226,7 +226,7 @@ class ApiClient:
 
     def add_parcels(self, parcels: list[Parcel]):
         """
-        Adds parcels.
+        [REQUIRES AUTHENTICATION] Adds parcels.
 
         Args:
             parcels (list[Parcel]): A list of parcels.
