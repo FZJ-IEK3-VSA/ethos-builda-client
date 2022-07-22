@@ -7,7 +7,7 @@ from shapely.geometry import Polygon
 
 @dataclass
 class Building:
-    id: str
+    id: UUID
     area: float
     height: float
     residential: bool
@@ -16,6 +16,7 @@ class Building:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
+    parcel: UUID | None = None
 
 @dataclass
 class Parcel:
@@ -40,11 +41,11 @@ class BuildingStockEntry:
     nuts2: str
     nuts1: str
     nuts0: str
-    building_id: str | None = None
+    building_id: UUID | None = None
 
 @dataclass
 class Info:
-    building_id: str
+    building_id: UUID
     source: str
 
 @dataclass

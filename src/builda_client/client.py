@@ -140,7 +140,7 @@ class ApiClient:
         url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&residential={residential}&heating_commodity={heating_type}"""
 
         buildings = self.__get_paginated_results_buildings(url)
-        ids: list[str] = [b.id for b in buildings]
+        ids: list[UUID] = [b.id for b in buildings]
         if len(ids) > len(set(ids)):
             raise ServerException('Multiple buildings with the same ID have been returned.')
         return buildings
@@ -191,7 +191,7 @@ class ApiClient:
         logging.debug(f"ApiClient: get_parcels()")
         url: str = f"""{self.base_url}{self.PARCEL_URL}"""
 
-        parcels = self.__get_paginated_results_parcels(url)
+        parcels = self.__get_paginated_results_parcels(url, header=self.__construct_authorization_header())
         return parcels
 
     def __get_paginated_results_parcels(self, url: str, header: Dict | None = None) -> list[Parcel]:
