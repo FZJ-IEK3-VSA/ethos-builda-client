@@ -134,7 +134,7 @@ class ApiClient:
             ServerException: When the DB is inconsistent and more than one building with same ID is returned.
 
         Returns:
-            gpd.GeoDataFrame: A geodataframe with all buildings.
+            list[Building]: A list of buildings.
         """
         logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code}")
         url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&residential={residential}&heating_commodity={heating_type}"""
@@ -182,6 +182,12 @@ class ApiClient:
         return buildings
 
     def get_parcels(self) -> list[Parcel]:
+        """
+        Gets all parcels.
+
+        Returns:
+            list[Parcel]: A list of parcels.
+        """
         logging.debug(f"ApiClient: get_parcels()")
         url: str = f"""{self.base_url}{self.PARCEL_URL}"""
 
@@ -219,6 +225,12 @@ class ApiClient:
         return parcels
 
     def add_parcels(self, parcels: list[Parcel]):
+        """
+        Adds parcels.
+
+        Args:
+            parcels (list[Parcel]): A list of parcels.
+        """
         if not self.api_token:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
         url: str = f"""{self.base_url}{self.PARCEL_URL}"""
