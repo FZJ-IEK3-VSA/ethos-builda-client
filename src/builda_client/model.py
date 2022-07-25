@@ -74,6 +74,7 @@ class BuildingStatistics:
     building_count_total: int
     building_count_residential: int
     building_count_non_residential: int
+    building_count_irrelevant: int
 
 @dataclass
 class CommodityCount:

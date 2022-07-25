@@ -211,12 +211,15 @@ class ApiClient:
             building_count_total: int = res['building_count_total']
             building_count_residential: int = res['building_count_residential']
             building_count_non_residential: int = res['building_count_non_residential']
+            building_count_irrelevant: int = res['building_count_irrelevant']
 
             statistic = BuildingStatistics(
                 nuts_code=res_nuts_code, 
                 building_count_total=building_count_total, 
                 building_count_residential=building_count_residential, 
-                building_count_non_residential=building_count_non_residential)
+                building_count_non_residential=building_count_non_residential,
+                building_count_irrelevant=building_count_irrelevant
+                )
             statistics.append(statistic)
         return statistics
 
