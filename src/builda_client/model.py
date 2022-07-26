@@ -69,6 +69,10 @@ class EnergyConsumption(Info):
     value: str
 
 @dataclass
+class HeatDemandInfo(Info):
+    value: float
+
+@dataclass
 class BuildingStatistics:
     nuts_code: str
     building_count_total: int
