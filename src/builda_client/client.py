@@ -15,11 +15,17 @@ from builda_client.model import (Building, BuildingCommodityStatistics, Building
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
                                  EnhancedJSONEncoder, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsEntry, ResidentialInfo,
+                                 HouseholdInfo, NutsRegion, ResidentialInfo,
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
+from shapely import wkt
 
-
+def ewkt_loads(x):
+    try:
+        wkt_str = x.split(';')[1]
+        return wkt.loads(wkt_str)
+    except Exception:
+        return None
 
 class ApiClient:
 
@@ -39,6 +45,7 @@ class ApiClient:
     COOKING_COMMODITY_URL = 'cooking-commodity'
     ENERGY_CONSUMPTION_URL = 'energy-consumption'
     TIMING_LOG_URL = 'admin/timing-log'
+    NUTS_URL = 'nuts'
     base_url: str
 
     def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None, phase = 'staging'):
@@ -443,7 +450,7 @@ class ApiClient:
                 raise ServerException('An unexpected error occurred', err)
 
 
-    def post_nuts(self, nuts_regions: list[NutsEntry]) -> None:
+    def post_nuts(self, nuts_regions: list[NutsRegion]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the nuts data to the database. Private endpoint: requires client to have credentials.
 
         Raises:
@@ -697,3 +704,27 @@ class ApiClient:
                 raise ClientException('A client side error occured', err)
             else:
                 raise ServerException('An unexpected error occurred', err)
+
+    def get_nuts_region(self, nuts_code: str):
+        logging.debug(f'ApiClient: get_nuts_region')
+        url: str = f"""{self.base_url}{self.NUTS_URL}/{nuts_code}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation.')
+            else:
+                raise ServerException('An unexpected error occured.')
+
+        response_content: Dict = json.loads(response.content)
+
+        nuts_region = NutsRegion(
+            code = response_content['code'],
+            name = response_content['name'],
+            level = response_content['level'],
+            parent = response_content['parent'],
+            geometry = ewkt_loads(response_content['geometry']),
+        )
+
+        return nuts_region

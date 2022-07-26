@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import dataclasses
 import json
 from typing import Dict
+from shapely.geometry import Polygon, MultiPolygon
 
 @dataclass
 class Building:
@@ -16,13 +17,12 @@ class Building:
     cooking_commodity: str
 
 @dataclass
-class NutsEntry:
-    id: int
-    nuts_code: str
-    nuts_name: str
+class NutsRegion:
+    code: str
+    name: str
     level: int
-    parent: int | None
-    geometry: str
+    parent: str | None
+    geometry: MultiPolygon
 
 @dataclass
 class BuildingStockEntry:
@@ -101,6 +101,8 @@ class EnergyConsumptionStatistics:
 
 class EnhancedJSONEncoder(json.JSONEncoder):
         def default(self, o):
+            if isinstance(o, Polygon) or isinstance(o, MultiPolygon):
+                return str(o)
             if dataclasses.is_dataclass(o):
                 return dataclasses.asdict(o)
             return super().default(o)
