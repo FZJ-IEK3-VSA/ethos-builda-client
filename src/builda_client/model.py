@@ -3,7 +3,7 @@ import dataclasses
 import json
 from typing import Dict
 from uuid import UUID
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, MultiPolygon
 
 @dataclass
 class Building:
@@ -112,7 +112,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, UUID):
             return o.hex
-        if isinstance(o, Polygon):
+        if isinstance(o, Polygon) or isinstance(o, MultiPolygon):
             return str(o)
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)

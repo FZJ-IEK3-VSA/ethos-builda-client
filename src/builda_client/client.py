@@ -251,9 +251,9 @@ class ApiClient:
         if not self.api_token:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
         url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}/{building_id}"""
-        parcel_json = json.dumps(building_data)
+        building_json = json.dumps(building_data)
         try:
-            response: requests.Response = requests.post(url, data=parcel_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.put(url, data=building_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
