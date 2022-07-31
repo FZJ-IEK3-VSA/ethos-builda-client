@@ -379,42 +379,31 @@ class ApiClient:
             query_params = f'?nuts={nuts_code}'
 
         url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}{query_params}"""
-        return self.__get_paginated_results_building_stock(url, self.__construct_authorization_header())
 
-        
-    def __get_paginated_results_building_stock(self, url: str, header: Dict | None = None) -> list[BuildingStockEntry]:
-        has_next = True
-        buildings: list[BuildingStockEntry] = []
-        while has_next:
-            try:
-                response: requests.Response = requests.get(url, headers=header)
-                response.raise_for_status()
-            except requests.HTTPError as e:
-                if e.response.status_code == 403:
-                    raise UnauthorizedException('You are not authorized to perform this operation.')
-                else:
-                    raise ServerException('An unexpected error occured.')
-                    
-            response_content: Dict = json.loads(response.content)
-            results: list = response_content['results']
-            for result in results:
-                building = BuildingStockEntry(
-                    building_id = result['building_id'],
-                    footprint = result['footprint'],
-                    centroid = result['centroid'],
-                    nuts3 = result['nuts3'],
-                    nuts2 = result['nuts2'],
-                    nuts1 = result['nuts1'],
-                    nuts0 = result['nuts0'],
-                )
-                buildings.append(building)
-           
-            if not response_content['next']:
-                has_next = False
+        try:
+            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation.')
             else:
-                url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
-        
-        return buildings
+                raise ServerException('An unexpected error occured.')
+
+        buildings: list[BuildingStockEntry] = []
+        response_content: Dict = json.loads(response.content)
+        results: list = response_content['results']
+        for result in results:
+            building = BuildingStockEntry(
+                building_id = result['building_id'],
+                footprint = result['footprint'],
+                centroid = result['centroid'],
+                nuts3 = result['nuts3'],
+                nuts2 = result['nuts2'],
+                nuts1 = result['nuts1'],
+                nuts0 = result['nuts0'],
+            )
+            buildings.append(building)
+
 
     def post_building_stock(self, buildings: list[BuildingStockEntry]) -> None:
         """[REQUIRES AUTHENTICATION]  Posts the building_stock data to the database.
