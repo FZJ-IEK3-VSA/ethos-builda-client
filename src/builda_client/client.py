@@ -403,6 +403,8 @@ class ApiClient:
             )
             buildings.append(building)
 
+        return buildings
+
 
     def post_building_stock(self, buildings: list[BuildingStockEntry]) -> None:
         """[REQUIRES AUTHENTICATION]  Posts the building_stock data to the database.
