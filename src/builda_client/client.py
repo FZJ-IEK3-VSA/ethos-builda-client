@@ -390,8 +390,7 @@ class ApiClient:
                 raise ServerException('An unexpected error occured.')
 
         buildings: list[BuildingStockEntry] = []
-        response_content: Dict = json.loads(response.content)
-        results: list = response_content['results']
+        results: Dict = json.loads(response.content)
         for result in results:
             building = BuildingStockEntry(
                 building_id = result['building_id'],
