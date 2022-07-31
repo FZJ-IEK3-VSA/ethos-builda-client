@@ -207,18 +207,13 @@ class ApiClient:
         results: list = response_content['results']
         statistics: list[BuildingStatistics] = []
         for res in results:
-            res_nuts_code: str = res['nuts_code']
-            building_count_total: int = res['building_count_total']
-            building_count_residential: int = res['building_count_residential']
-            building_count_non_residential: int = res['building_count_non_residential']
-            building_count_irrelevant: int = res['building_count_irrelevant']
-
             statistic = BuildingStatistics(
-                nuts_code=res_nuts_code, 
-                building_count_total=building_count_total, 
-                building_count_residential=building_count_residential, 
-                building_count_non_residential=building_count_non_residential,
-                building_count_irrelevant=building_count_irrelevant
+                nuts_code=res['nuts_code'], 
+                building_count_total=res['building_count_total'], 
+                building_count_residential=res['building_count_residential'], 
+                building_count_non_residential=res['building_count_non_residential'],
+                building_count_irrelevant=res['building_count_irrelevant'],
+                building_count_undefined=res['building_count_undefined']
                 )
             statistics.append(statistic)
         return statistics
