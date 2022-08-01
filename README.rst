@@ -37,7 +37,7 @@ builda-client
     Client for BUILDA, the European building database.
 
 
-This is an HTTP-client that provides methods for accessing the API endpoints of the European building database (BUILDA).
+This is an HTTP-client that provides methods for accessing the API endpoints (see http://134.94.116.65:8000/api/v1/swagger/) of the European building database (BUILDA).
 
 Installation
 ====
