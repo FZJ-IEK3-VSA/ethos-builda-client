@@ -15,7 +15,7 @@ from builda_client.model import (Building, BuildingCommodityStatistics, Building
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
                                  EnhancedJSONEncoder, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsEntry, ResidentialInfo,
+                                 HouseholdInfo, NutsEntry, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
 
@@ -31,7 +31,7 @@ class ApiClient:
     BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
-    RESIDENTIAL_URL = 'residential'
+    TYPE_URL = 'type'
     HOUSEHOLD_COUNT_URL = 'household-count'
     HEATING_COMMODITY_URL = 'heating-commodity'
     COOLING_COMMODITY_URL = 'cooling-commodity'
@@ -113,13 +113,13 @@ class ApiClient:
         else:
             return {'Authorization': f'Token {self.api_token}'}
 
-    def get_buildings(self, nuts_code: str = '', residential: bool | None = None, heating_type: str = '') -> list[Building]:
-        """Gets all buildings within the specified NUTS region that fall into the provided residential/non-residential category
+    def get_buildings(self, nuts_code: str = '', type: str | None = None, heating_type: str = '') -> list[Building]:
+        """Gets all buildings within the specified NUTS region that fall into the provided type category
         and are of the given heating type.
 
         Args:
             nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
-            residential (str): Get only residential buildings.
+            type (str): The type of building ('residential', 'non-residential', 'irrelevant')
             heating_type (str): Heating type of buildings.
 
         Raises:
@@ -129,7 +129,7 @@ class ApiClient:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
         logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code}")
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&residential={residential}&heating_commodity={heating_type}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}&heating_commodity={heating_type}"""
 
         buildings = self.__get_paginated_results_buildings(url)
         ids: list[str] = [b.id for b in buildings]
@@ -157,7 +157,7 @@ class ApiClient:
                     id = result['id'],
                     area = result['area'],
                     height = result['height'],
-                    residential = result['residential'],
+                    type = result['type'],
                     household_count = result['household_count'],
                     heating_commodity = result['heating_commodity'],
                     cooling_commodity = result['heating_commodity'],
@@ -207,16 +207,14 @@ class ApiClient:
         results: list = response_content['results']
         statistics: list[BuildingStatistics] = []
         for res in results:
-            res_nuts_code: str = res['nuts_code']
-            building_count_total: int = res['building_count_total']
-            building_count_residential: int = res['building_count_residential']
-            building_count_non_residential: int = res['building_count_non_residential']
-
             statistic = BuildingStatistics(
-                nuts_code=res_nuts_code, 
-                building_count_total=building_count_total, 
-                building_count_residential=building_count_residential, 
-                building_count_non_residential=building_count_non_residential)
+                nuts_code=res['nuts_code'], 
+                building_count_total=res['building_count_total'], 
+                building_count_residential=res['building_count_residential'], 
+                building_count_non_residential=res['building_count_non_residential'],
+                building_count_irrelevant=res['building_count_irrelevant'],
+                building_count_undefined=res['building_count_undefined']
+                )
             statistics.append(statistic)
         return statistics
 
@@ -376,42 +374,32 @@ class ApiClient:
             query_params = f'?nuts={nuts_code}'
 
         url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}{query_params}"""
-        return self.__get_paginated_results_building_stock(url, self.__construct_authorization_header())
 
-        
-    def __get_paginated_results_building_stock(self, url: str, header: Dict | None = None) -> list[BuildingStockEntry]:
-        has_next = True
-        buildings: list[BuildingStockEntry] = []
-        while has_next:
-            try:
-                response: requests.Response = requests.get(url, headers=header)
-                response.raise_for_status()
-            except requests.HTTPError as e:
-                if e.response.status_code == 403:
-                    raise UnauthorizedException('You are not authorized to perform this operation.')
-                else:
-                    raise ServerException('An unexpected error occured.')
-                    
-            response_content: Dict = json.loads(response.content)
-            results: list = response_content['results']
-            for result in results:
-                building = BuildingStockEntry(
-                    building_id = result['building_id'],
-                    footprint = result['footprint'],
-                    centroid = result['centroid'],
-                    nuts3 = result['nuts3'],
-                    nuts2 = result['nuts2'],
-                    nuts1 = result['nuts1'],
-                    nuts0 = result['nuts0'],
-                )
-                buildings.append(building)
-           
-            if not response_content['next']:
-                has_next = False
+        try:
+            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation.')
             else:
-                url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
-        
+                raise ServerException('An unexpected error occured.')
+
+        buildings: list[BuildingStockEntry] = []
+        results: Dict = json.loads(response.content)
+        for result in results:
+            building = BuildingStockEntry(
+                building_id = result['building_id'],
+                footprint = result['footprint'],
+                centroid = result['centroid'],
+                nuts3 = result['nuts3'],
+                nuts2 = result['nuts2'],
+                nuts1 = result['nuts1'],
+                nuts0 = result['nuts0'],
+            )
+            buildings.append(building)
+
         return buildings
+
 
     def post_building_stock(self, buildings: list[BuildingStockEntry]) -> None:
         """[REQUIRES AUTHENTICATION]  Posts the building_stock data to the database.
@@ -473,11 +461,11 @@ class ApiClient:
                 raise ServerException('An unexpected error occurred', err)
   
 
-    def post_residential_info(self, residential_infos: list[ResidentialInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the residential info data to the database.
+    def post_type_info(self, type_infos: list[TypeInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the type info data to the database.
 
         Args:
-            residential_infos (list[ResidentialInfo]): The residential info data to post.
+            type_infos (list[TypeInfo]): The type info data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
@@ -486,15 +474,15 @@ class ApiClient:
             ServerException: If an unexpected error on the server side occurred.
         """
 
-        logging.debug("ApiClient: post_residential_info")
+        logging.debug("ApiClient: post_type_info")
         if not self.api_token:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
-        url: str = f"""{self.base_url}{self.RESIDENTIAL_URL}"""
+        url: str = f"""{self.base_url}{self.TYPE_URL}"""
 
-        residential_infos_json = json.dumps(residential_infos, cls=EnhancedJSONEncoder)
+        type_infos_json = json.dumps(type_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=residential_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=type_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
@@ -522,9 +510,9 @@ class ApiClient:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
         url: str = f"""{self.base_url}{self.HOUSEHOLD_COUNT_URL}"""
-        residential_infos_json = json.dumps(household_infos, cls=EnhancedJSONEncoder)
+        household_infos_json = json.dumps(household_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=residential_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(url, data=household_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
