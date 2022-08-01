@@ -121,7 +121,7 @@ class ApiClient:
         else:
             return {'Authorization': f'Token {self.api_token}'}
 
-    def get_buildings(self, nuts_code: str = '', type: str | None = None, heating_type: str = '') -> list[Building]:
+    def get_buildings(self, nuts_code: str = '', type: str | None = None, heating_type: str = '', page_size: int = 100) -> list[Building]:
         """Gets all buildings within the specified NUTS region that fall into the provided type category
         and are of the given heating type.
 
@@ -137,7 +137,7 @@ class ApiClient:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
         logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code}")
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}&heating_commodity={heating_type}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}&heating_commodity={heating_type}&page_size={page_size}"""
 
         buildings = self.__get_paginated_results_buildings(url)
         ids: list[str] = [b.id for b in buildings]
