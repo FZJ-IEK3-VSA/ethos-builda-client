@@ -9,7 +9,7 @@ class Building:
     id: str
     area: float
     height: float
-    residential: bool
+    type: str
     household_count: int
     heating_commodity: str
     cooling_commodity: str
@@ -40,8 +40,8 @@ class Info:
     source: str
 
 @dataclass
-class ResidentialInfo(Info):
-    value: bool
+class TypeInfo(Info):
+    value: str
 
 @dataclass
 class HouseholdInfo(Info):
@@ -78,6 +78,8 @@ class BuildingStatistics:
     building_count_total: int
     building_count_residential: int
     building_count_non_residential: int
+    building_count_irrelevant: int
+    building_count_undefined: int
 
 @dataclass
 class CommodityCount:
