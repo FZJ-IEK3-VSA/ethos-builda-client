@@ -163,6 +163,8 @@ class ApiClient:
             for result in results:
                 building = Building(
                     id = result['id'],
+                    footprint = ewkt_loads(result['footprint']),
+                    centroid = ewkt_loads(result['centroid']),
                     area = result['area'],
                     height = result['height'],
                     type = result['type'],
@@ -397,8 +399,8 @@ class ApiClient:
         for result in results:
             building = BuildingStockEntry(
                 building_id = result['building_id'],
-                footprint = result['footprint'],
-                centroid = result['centroid'],
+                footprint = ewkt_loads(result['footprint']),
+                centroid = ewkt_loads(result['centroid']),
                 nuts3 = result['nuts3'],
                 nuts2 = result['nuts2'],
                 nuts1 = result['nuts1'],

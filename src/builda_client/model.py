@@ -1,12 +1,17 @@
-from dataclasses import dataclass
 import dataclasses
 import json
-from typing import Dict
-from shapely.geometry import Polygon, MultiPolygon
+from dataclasses import dataclass
+from typing import Dict, Optional
+from uuid import UUID
+
+from shapely.geometry import MultiPolygon, Point, Polygon
+
 
 @dataclass
 class Building:
     id: str
+    footprint: MultiPolygon
+    centroid: Point
     area: float
     height: float
     type: str
@@ -21,18 +26,18 @@ class NutsRegion:
     code: str
     name: str
     level: int
-    parent: str | None
+    parent: Optional[str]
     geometry: MultiPolygon
 
 @dataclass
 class BuildingStockEntry:
-    footprint: str
-    centroid: str
+    footprint: Polygon
+    centroid: Point
     nuts3: str
     nuts2: str
     nuts1: str
     nuts0: str
-    building_id: str | None = None
+    building_id: Optional[UUID] = None
 
 @dataclass
 class Info:
