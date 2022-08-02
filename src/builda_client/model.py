@@ -6,6 +6,17 @@ from uuid import UUID
 from shapely.geometry import Polygon, MultiPolygon
 
 @dataclass
+class Parcel:
+    id: UUID
+    shape: Polygon
+    source: str
+
+@dataclass
+class ParcelMinimalDto:
+    id: UUID
+    shape: Polygon
+
+@dataclass
 class Building:
     id: UUID
     area: float
@@ -16,13 +27,8 @@ class Building:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
-    parcel: Optional[UUID] = None
+    parcel: Optional[ParcelMinimalDto] = None
 
-@dataclass
-class Parcel:
-    id: UUID
-    shape: Polygon
-    source: str
 
 @dataclass
 class NutsEntry:

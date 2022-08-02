@@ -16,7 +16,7 @@ from builda_client.model import (Building, BuildingCommodityStatistics, Building
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
                                  EnhancedJSONEncoder, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsEntry, Parcel, ParcelInfo, TypeInfo,
+                                 HouseholdInfo, NutsEntry, Parcel, ParcelInfo, ParcelMinimalDto, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
 from shapely import wkt
@@ -122,7 +122,7 @@ class ApiClient:
         else:
             return {'Authorization': f'Token {self.api_token}'}
 
-    def get_buildings(self, nuts_code: str = '', type: str | None = None, heating_type: str = '') -> list[Building]:
+    def get_buildings(self, nuts_code: str = '', type: str = '', heating_type: str = '') -> list[Building]:
         """Gets all buildings within the specified NUTS region that fall into the provided type category
         and are of the given heating type.
 
@@ -172,6 +172,10 @@ class ApiClient:
                     cooling_commodity = result['heating_commodity'],
                     water_heating_commodity = result['heating_commodity'],
                     cooking_commodity = result['heating_commodity'],
+                    parcel = ParcelMinimalDto(
+                        id = result['parcel']['source'],
+                        shape = result['parcel']['shape'],
+                    )
                 )
                 buildings.append(building)
            
