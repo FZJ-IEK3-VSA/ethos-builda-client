@@ -1,9 +1,8 @@
 import json
 import logging
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 from uuid import UUID
-
 import requests
 import yaml
 from shapely.geometry import Polygon
@@ -162,6 +161,13 @@ class ApiClient:
             response_content: Dict = json.loads(response.content)
             results: list = response_content['results']
             for result in results:
+                parcel: Optional[ParcelMinimalDto] = None
+                if result['parcel']:
+                    parcel =  ParcelMinimalDto(
+                        id = result['parcel']['source'],
+                        shape = result['parcel']['shape'],
+                    )
+
                 building = Building(
                     id = result['id'],
                     area = result['area'],
@@ -172,10 +178,7 @@ class ApiClient:
                     cooling_commodity = result['heating_commodity'],
                     water_heating_commodity = result['heating_commodity'],
                     cooking_commodity = result['heating_commodity'],
-                    parcel = ParcelMinimalDto(
-                        id = result['parcel']['source'],
-                        shape = result['parcel']['shape'],
-                    )
+                    parcel = parcel
                 )
                 buildings.append(building)
            
