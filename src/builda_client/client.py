@@ -136,7 +136,7 @@ class ApiClient:
         Returns:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
-        logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code}")
+        logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code})")
         url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}&heating_commodity={heating_type}&page_size={page_size}"""
 
         buildings = self.__get_paginated_results_buildings(url)
