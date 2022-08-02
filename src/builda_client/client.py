@@ -16,7 +16,7 @@ from builda_client.model import (Building, BuildingCommodityStatistics, Building
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
                                  EnhancedJSONEncoder, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsEntry, Parcel, TypeInfo,
+                                 HouseholdInfo, NutsEntry, Parcel, ParcelInfo, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
 from shapely import wkt
@@ -47,6 +47,7 @@ class ApiClient:
     ENERGY_CONSUMPTION_URL = 'energy-consumption'
     TIMING_LOG_URL = 'admin/timing-log'
     PARCEL_URL = 'parcels'
+    PARCEL_INFO_URL = 'parcel-info'
     base_url: str
 
     def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None, phase = 'staging'):
@@ -223,6 +224,26 @@ class ApiClient:
                 url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
         
         return parcels
+
+    def post_parcel_infos(self, parcel_infos: list[ParcelInfo]):
+        logging.debug("ApiClient: post_parcel_infos")
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+
+        url: str = f"""{self.base_url}{self.PARCEL_INFO_URL}"""
+
+        parcel_infos_json = json.dumps(parcel_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(url, data=parcel_infos_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
+
 
     def add_parcels(self, parcels: list[Parcel]):
         """

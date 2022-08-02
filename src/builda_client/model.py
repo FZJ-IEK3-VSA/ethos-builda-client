@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import dataclasses
 import json
-from typing import Dict
+from typing import Dict, Optional
 from uuid import UUID
 from shapely.geometry import Polygon, MultiPolygon
 
@@ -16,7 +16,7 @@ class Building:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
-    parcel: UUID | None = None
+    parcel: Optional[UUID] = None
 
 @dataclass
 class Parcel:
@@ -51,6 +51,10 @@ class Info:
 @dataclass
 class TypeInfo(Info):
     value: str
+
+@dataclass
+class ParcelInfo(Info):
+    value: UUID
 
 @dataclass
 class HouseholdInfo(Info):
