@@ -165,7 +165,7 @@ class ApiClient:
                 if result['parcel']:
                     parcel =  ParcelMinimalDto(
                         id = result['parcel']['id'],
-                        shape = result['parcel']['shape'],
+                        shape = ewkt_loads(result['parcel']['shape']),
                     )
 
                 building = Building(
