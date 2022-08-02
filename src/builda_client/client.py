@@ -164,7 +164,7 @@ class ApiClient:
                 parcel: Optional[ParcelMinimalDto] = None
                 if result['parcel']:
                     parcel =  ParcelMinimalDto(
-                        id = result['parcel']['source'],
+                        id = result['parcel']['id'],
                         shape = result['parcel']['shape'],
                     )
 

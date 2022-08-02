@@ -161,7 +161,7 @@ class TestApiClient:
     def __when_get_building_commodity_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None, commodity: str='') -> list[BuildingCommodityStatistics]:
         return self.testee.get_building_commodity_statistics(nuts_level=nuts_level, nuts_code=nuts_code, commodity=commodity)
 
-    def __when_get_buildings(self, nuts_code: str = '', type: str | None = None, heating_type: str = ''):
+    def __when_get_buildings(self, nuts_code: str = '', type: str = '', heating_type: str = ''):
         return self.testee.get_buildings(nuts_code=nuts_code, type=type, heating_type=heating_type)
 
     def __when_get_building_stock(self, geom: Polygon, nuts_code: str = ''):
