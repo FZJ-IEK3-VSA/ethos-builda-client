@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 import requests
 import yaml
@@ -14,7 +14,7 @@ from builda_client.model import (Building, BuildingCommodityStatistics, Building
                                  CookingCommodityInfo, CoolingCommodityInfo,
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
-                                 EnhancedJSONEncoder, HeatDemandInfo, HeatingCommodityInfo,
+                                 EnhancedJSONEncoder, HeatDemandInfo, HeatDemandStatistics, HeatingCommodityInfo,
                                  HouseholdInfo, NutsRegion, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
@@ -34,6 +34,7 @@ class ApiClient:
     VIEW_REFRESH_URL = 'buildings/refresh'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
     BUILDING_STATISTICS_URL = 'statistics/buildings'
+    HEAT_DEMAND_STATISTICS_URL = 'statistics/heat-demand'
     BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
@@ -224,6 +225,47 @@ class ApiClient:
                 building_count_non_residential=res['building_count_non_residential'],
                 building_count_irrelevant=res['building_count_irrelevant'],
                 building_count_undefined=res['building_count_undefined']
+                )
+            statistics.append(statistic)
+        return statistics
+
+    def get_heat_demand_statistics(self, nuts_level: Optional[int] = None, nuts_code: Optional[str] = None) -> list[HeatDemand]:
+        """Get the building statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical info about buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+
+        query_params = ""
+        if nuts_level is not None:
+            query_params = f"?nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params = f"?nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{self.HEAT_DEMAND_STATISTICS_URL}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        response_content: Dict = json.loads(response.content)
+        results: list = response_content['results']
+        statistics: list[HeatDemandStatistics] = []
+        for res in results:
+            statistic = HeatDemandStatistics(
+                nuts_code=res['nuts_code'], 
+                heat_demand=res['heat_demand'], 
                 )
             statistics.append(statistic)
         return statistics

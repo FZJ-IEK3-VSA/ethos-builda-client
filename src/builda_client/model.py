@@ -87,6 +87,11 @@ class BuildingStatistics:
     building_count_undefined: int
 
 @dataclass
+class HeatDemandStatistics:
+    nuts_code: str
+    heat_demand: float
+
+@dataclass
 class CommodityCount:
     heating_commodity_count: int
     cooling_commodity_count: int
