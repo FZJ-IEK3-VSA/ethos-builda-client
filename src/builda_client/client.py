@@ -732,7 +732,7 @@ class ApiClient:
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
         """        
-        logging.debug("ApiClient: post_energy_consumption_commodity")
+        logging.debug("ApiClient: post_heat_demand")
         if not self.api_token:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
