@@ -19,6 +19,7 @@ class ParcelMinimalDto:
 @dataclass
 class Building:
     id: UUID
+    footprint: MultiPolygon # TODO Polygon
     area: float
     height: float
     type: str
