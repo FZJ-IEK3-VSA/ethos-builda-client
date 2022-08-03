@@ -198,7 +198,7 @@ class ApiClient:
         Returns:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
-        logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code})")
+        logging.debug(f"ApiClient: get_buildings_base(nuts_code = {nuts_code}, type = {type})")
         url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?nuts={nuts_code}&type={type}"""
 
         try:
