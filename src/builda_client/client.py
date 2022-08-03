@@ -170,7 +170,7 @@ class ApiClient:
 
                 building = Building(
                     id = result['id'],
-                    footprint = result['footprint'],
+                    footprint = ewkt_loads(result['footprint']),
                     area = result['area'],
                     height = result['height'],
                     type = result['type'],
