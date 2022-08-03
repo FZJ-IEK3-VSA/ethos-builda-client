@@ -22,6 +22,13 @@ class Building:
     cooking_commodity: str
 
 @dataclass
+class BuildingBase:
+    id: str
+    footprint: MultiPolygon
+    centroid: Point
+    type: str
+
+@dataclass
 class NutsRegion:
     code: str
     name: str

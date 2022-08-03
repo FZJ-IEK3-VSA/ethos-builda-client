@@ -10,7 +10,7 @@ from shapely.geometry import Polygon
 from builda_client.exceptions import (ClientException,
                                       MissingCredentialsException,
                                       ServerException, UnauthorizedException)
-from builda_client.model import (Building, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
+from builda_client.model import (Building, BuildingBase, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
                                  CookingCommodityInfo, CoolingCommodityInfo,
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
@@ -182,6 +182,41 @@ class ApiClient:
             else:
                 url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
         
+        return buildings
+
+    def get_buildings_base(self, nuts_code: str = '', type: str = '') -> list[BuildingBase]:
+        """Gets buildings with reduced parameter set within the specified NUTS region that fall into the provided type category.
+
+        Args:
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+            type (str): The type of building ('residential', 'non-residential', 'irrelevant')
+
+        Raises:
+            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
+
+        Returns:
+            gpd.GeoDataFrame: A geodataframe with all buildings.
+        """
+        logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code})")
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}"""
+
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        response_content: Dict = json.loads(response.content)
+        results: list = response_content['results']
+        buildings: list[BuildingBase] = []
+        for res in results:
+            building = BuildingBase(
+                    id = res['id'],
+                    footprint = ewkt_loads(res['footprint']),
+                    centroid = ewkt_loads(res['centroid']),
+                    type = res['type'],
+                )
+            buildings.append(building)
         return buildings
 
     def get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
