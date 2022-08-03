@@ -31,6 +31,7 @@ class ApiClient:
 
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
+    BUILDINGS_BASE_URL = 'buildings-base'
     VIEW_REFRESH_URL = 'buildings/refresh'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
     BUILDING_STATISTICS_URL = 'statistics/buildings'
@@ -198,7 +199,7 @@ class ApiClient:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
         logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code})")
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?nuts={nuts_code}&type={type}"""
 
         try:
             response: requests.Response = requests.get(url)
