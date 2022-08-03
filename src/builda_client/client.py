@@ -229,8 +229,8 @@ class ApiClient:
             statistics.append(statistic)
         return statistics
 
-    def get_heat_demand_statistics(self, nuts_level: Optional[int] = None, nuts_code: Optional[str] = None) -> list[HeatDemand]:
-        """Get the building statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+    def get_heat_demand_statistics(self, nuts_level: Optional[int] = None, nuts_code: Optional[str] = None) -> list[HeatDemandStatistics]:
+        """Get the heat demand statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
             nuts_level (int | None, optional): The NUTS level. Defaults to None.
@@ -241,7 +241,7 @@ class ApiClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[BuildingStatistics]: A list of objects per NUTS region with statistical info about buildings.
+            list[HeatDemandStatistics]: A list of objects per NUTS region with statistical info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
             raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
