@@ -205,7 +205,7 @@ class ApiClient:
         
         return buildings
 
-    def get_buildings_base(self, nuts_code: str = '', type: str = '') -> list[BuildingBase]:
+    def get_buildings_base(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingBase]:
         """Gets buildings with reduced parameter set within the specified NUTS region that fall into the provided type category.
 
         Args:
@@ -220,6 +220,8 @@ class ApiClient:
         """
         logging.debug(f"ApiClient: get_buildings_base(nuts_code = {nuts_code}, type = {type})")
         url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?nuts={nuts_code}&type={type}"""
+        if geom:
+            url += "?geom={geom}"
 
         try:
             response: requests.Response = requests.get(url)
