@@ -1,11 +1,17 @@
-from dataclasses import dataclass
 import dataclasses
 import json
-from typing import Dict
+from dataclasses import dataclass
+from typing import Dict, Optional
+from uuid import UUID
+
+from shapely.geometry import MultiPolygon, Point, Polygon
+
 
 @dataclass
 class Building:
     id: str
+    footprint: MultiPolygon
+    centroid: Point
     area: float
     height: float
     type: str
@@ -16,23 +22,29 @@ class Building:
     cooking_commodity: str
 
 @dataclass
-class NutsEntry:
-    id: int
-    nuts_code: str
-    nuts_name: str
+class BuildingBase:
+    id: str
+    footprint: MultiPolygon
+    centroid: Point
+    type: str
+
+@dataclass
+class NutsRegion:
+    code: str
+    name: str
     level: int
-    parent: int | None
-    geometry: str
+    parent: Optional[str]
+    geometry: MultiPolygon
 
 @dataclass
 class BuildingStockEntry:
-    footprint: str
-    centroid: str
+    footprint: Polygon
+    centroid: Point
     nuts3: str
     nuts2: str
     nuts1: str
     nuts0: str
-    building_id: str | None = None
+    building_id: Optional[UUID] = None
 
 @dataclass
 class Info:
@@ -69,6 +81,10 @@ class EnergyConsumption(Info):
     value: str
 
 @dataclass
+class HeatDemandInfo(Info):
+    value: float
+
+@dataclass
 class BuildingStatistics:
     nuts_code: str
     building_count_total: int
@@ -76,6 +92,11 @@ class BuildingStatistics:
     building_count_non_residential: int
     building_count_irrelevant: int
     building_count_undefined: int
+
+@dataclass
+class HeatDemandStatistics:
+    nuts_code: str
+    heat_demand: float
 
 @dataclass
 class CommodityCount:
@@ -103,6 +124,8 @@ class EnergyConsumptionStatistics:
 
 class EnhancedJSONEncoder(json.JSONEncoder):
         def default(self, o):
+            if isinstance(o, Polygon) or isinstance(o, MultiPolygon):
+                return str(o)
             if dataclasses.is_dataclass(o):
                 return dataclasses.asdict(o)
             return super().default(o)
