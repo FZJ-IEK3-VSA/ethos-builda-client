@@ -221,7 +221,7 @@ class ApiClient:
         logging.debug(f"ApiClient: get_buildings_base(nuts_code = {nuts_code}, type = {type})")
         url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?nuts={nuts_code}&type={type}"""
         if geom:
-            url += "?geom={geom}"
+            url += "&geom={geom}"
 
         try:
             response: requests.Response = requests.get(url)
