@@ -24,6 +24,7 @@ from shapely.geometry import shape
 import socket
 import requests.packages.urllib3.util.connection as urllib3_cn
 from http.client import HTTPConnection
+from uuid import UUID
     
    
 def allowed_gai_family():
@@ -46,6 +47,7 @@ class ApiClient:
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
     BUILDINGS_BASE_URL = 'buildings-base/'
+    BUILDINGS_ID_URL = 'buildings-id/'
     VIEW_REFRESH_URL = 'buildings/refresh'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
     BUILDING_STATISTICS_URL = 'statistics/buildings'
@@ -63,6 +65,7 @@ class ApiClient:
     HEAT_DEMAND_URL = 'heat-demand'
     TIMING_LOG_URL = 'admin/timing-log'
     NUTS_URL = 'nuts'
+
     base_url: str
 
     def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None, phase = 'staging'):
@@ -233,6 +236,22 @@ class ApiClient:
         logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
         buildings = self.__deserialize(response.content)
         return buildings
+
+    def get_building_ids(self, nuts_code: str = '', type: str = '') -> list[UUID]:
+        logging.debug(f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})")
+        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?nuts={nuts_code}&type={type}"""
+
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug('ApiClient: received response. Checking for errors.')
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        building_ids: list[UUID] = json.loads(response.content)
+
+        return building_ids
 
     def __deserialize(self, response_content):
         results: list[str] = json.loads(response_content)
