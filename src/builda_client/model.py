@@ -5,7 +5,6 @@ from typing import Dict, Optional
 from uuid import UUID
 
 from shapely.geometry import MultiPolygon, Point, Polygon
-, Optional
 from uuid import UUID
 from shapely.geometry import Polygon, MultiPolygon
 
