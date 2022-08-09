@@ -19,6 +19,21 @@ from builda_client.model import (Building, BuildingBase, BuildingCommodityStatis
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
 from shapely import wkt
+from shapely.geometry import shape
+
+import socket
+import requests.packages.urllib3.util.connection as urllib3_cn
+from http.client import HTTPConnection
+from uuid import UUID
+    
+   
+def allowed_gai_family():
+    """
+     https://github.com/shazow/urllib3/blob/master/urllib3/util/connection.py
+    """
+    return socket.AF_INET
+
+urllib3_cn.allowed_gai_family = allowed_gai_family
 
 def ewkt_loads(x):
     try:
@@ -31,7 +46,8 @@ class ApiClient:
 
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
-    BUILDINGS_BASE_URL = 'buildings-base'
+    BUILDINGS_BASE_URL = 'buildings-base/'
+    BUILDINGS_ID_URL = 'buildings-id/'
     VIEW_REFRESH_URL = 'buildings/refresh'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
     BUILDING_STATISTICS_URL = 'statistics/buildings'
@@ -49,6 +65,7 @@ class ApiClient:
     HEAT_DEMAND_URL = 'heat-demand'
     TIMING_LOG_URL = 'admin/timing-log'
     NUTS_URL = 'nuts'
+
     base_url: str
 
     def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None, phase = 'staging'):
@@ -61,6 +78,12 @@ class ApiClient:
             dev (boolean, optional): The 'phase' the client is used in, i.e. which databse to access. Possible options: 'dev', 'staging'. Defaults to 'staging'.
         """
         logging.basicConfig(level=logging.WARN)
+
+        HTTPConnection.debuglevel = 1
+        requests_log = logging.getLogger("urllib3")
+        requests_log.setLevel(logging.DEBUG)
+        requests_log.propagate = True
+
         self.config = self.__load_config()
         if proxy:
             host = self.config['proxy']['host']
@@ -185,7 +208,7 @@ class ApiClient:
         
         return buildings
 
-    def get_buildings_base(self, nuts_code: str = '', type: str = '') -> list[BuildingBase]:
+    def get_buildings_base(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingBase]:
         """Gets buildings with reduced parameter set within the specified NUTS region that fall into the provided type category.
 
         Args:
@@ -200,21 +223,45 @@ class ApiClient:
         """
         logging.debug(f"ApiClient: get_buildings_base(nuts_code = {nuts_code}, type = {type})")
         url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?nuts={nuts_code}&type={type}"""
+        if geom:
+            url += f"&geom={geom}"
 
         try:
             response: requests.Response = requests.get(url)
+            logging.debug('ApiClient: received response. Checking for errors.')
             response.raise_for_status()
         except requests.HTTPError as e:
             raise ServerException('An unexpected exception occurred.')
 
-        response_content: Dict = json.loads(response.content)
-        results: list = response_content['results']
+        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        buildings = self.__deserialize(response.content)
+        return buildings
+
+    def get_building_ids(self, nuts_code: str = '', type: str = '') -> list[UUID]:
+        logging.debug(f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})")
+        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?nuts={nuts_code}&type={type}"""
+
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug('ApiClient: received response. Checking for errors.')
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        building_ids: list[UUID] = json.loads(response.content)
+
+        return building_ids
+
+    def __deserialize(self, response_content):
+        results: list[str] = json.loads(response_content)
         buildings: list[BuildingBase] = []
-        for res in results:
+        for res_json in results:
+            res = json.loads(res_json)
             building = BuildingBase(
                     id = res['id'],
-                    footprint = ewkt_loads(res['footprint']),
-                    centroid = ewkt_loads(res['centroid']),
+                    footprint = shape(res['footprint']),
+                    centroid = shape(res['centroid']),
                     type = res['type'],
                 )
             buildings.append(building)
