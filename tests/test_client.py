@@ -3,7 +3,7 @@ import pytest
 from builda_client.client import ApiClient
 from builda_client.exceptions import MissingCredentialsException
 from builda_client.model import (Building, BuildingCommodityStatistics, BuildingStockEntry,
-                                 EnergyConsumptionStatistics, NutsEntry, BuildingStatistics, Parcel)
+                                 EnergyConsumptionStatistics, NutsRegion, BuildingStatistics, Parcel)
 from shapely.geometry import MultiPolygon, Polygon
 
 __author__ = "k.dabrock"
@@ -94,6 +94,11 @@ class TestApiClient:
     #     nuts_regions: list[NutsEntry] = self.__given_nuts_regions()
     #     self.__when_post_nuts(nuts_regions)
 
+    def test_get_nuts_region(self):
+        self.__given_client_unauthenticated()
+        result = self.__when_get_nuts_region('DE')
+        self.__then_nuts_region_with_code_returned(result, 'DE')
+
     def test_get_parcels_succeeds(self):
         self.__given_client_authenticated()
         parcels = self.__when_get_parcels()
@@ -114,23 +119,21 @@ class TestApiClient:
     def __given_polygon(self) -> Polygon:
         return Polygon()
 
-    def __given_nuts_regions(self) -> list[NutsEntry]:
-        nuts_entry_1 = NutsEntry(
-            id=99999,
-            nuts_code='TEST',
-            nuts_name='test',
+    def __given_nuts_regions(self) -> list[NutsRegion]:
+        nuts_entry_1 = NutsRegion(
+            code='TEST',
+            name='test',
             level=5,
             parent= None,
-            geometry= MultiPolygon([(((0., 0.), (0., 0.), (0., 0.), (0., 0.)), [])]).wkt
+            geometry= MultiPolygon([(((0., 0.), (0., 0.), (0., 0.), (0., 0.)), [])])
         )
 
-        nuts_entry_2 = NutsEntry(
-            id=99998,
-            nuts_code='TEST2',
-            nuts_name='test2',
+        nuts_entry_2 = NutsRegion(
+            code='TEST2',
+            name='test2',
             level=5,
             parent= None,
-            geometry= MultiPolygon([(((0., 0.), (1., 0.), (0., 1.), (0., 0.)), [])]).wkt
+            geometry= MultiPolygon([(((0., 0.), (1., 0.), (0., 1.), (0., 0.)), [])])
         )
 
         return [nuts_entry_1, nuts_entry_2]
@@ -170,8 +173,11 @@ class TestApiClient:
     def __when_post_building_stock(self, buildings: list[BuildingStockEntry]):
         self.testee.post_building_stock(buildings)
 
-    def __when_post_nuts(self, nuts: list[NutsEntry]):
+    def __when_post_nuts(self, nuts: list[NutsRegion]):
         self.testee.post_nuts(nuts)
+
+    def __when_get_nuts_region(self, code: str):
+        return self.testee.get_nuts_region(code)
 
     def __when_get_parcels(self):
         return self.testee.get_parcels()
@@ -209,6 +215,10 @@ class TestApiClient:
 
     def __then_empty_list_returned(self, result: list):
         assert len(result) == 0
+
+    def __then_nuts_region_with_code_returned(self, result, code):
+        assert isinstance(result, NutsRegion)
+        assert result.code == code
 
     def __then_parcels_returned(self, result: list[Parcel]):
         assert len(result) > 0

@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Optional
 from uuid import UUID
 import requests
 import yaml
@@ -10,12 +10,12 @@ from shapely.geometry import Polygon
 from builda_client.exceptions import (ClientException,
                                       MissingCredentialsException,
                                       ServerException, UnauthorizedException)
-from builda_client.model import (Building, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
+from builda_client.model import (Building, BuildingBase, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
                                  CookingCommodityInfo, CoolingCommodityInfo,
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
-                                 EnhancedJSONEncoder, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsEntry, Parcel, ParcelInfo, ParcelMinimalDto, TypeInfo,
+                                 EnhancedJSONEncoder, HeatDemandInfo, HeatDemandStatistics, HeatingCommodityInfo,
+                                 HouseholdInfo, NutsRegion, Parcel, ParcelInfo, ParcelMinimalDto, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
 from shapely import wkt
@@ -31,9 +31,11 @@ class ApiClient:
 
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
+    BUILDINGS_BASE_URL = 'buildings-base'
     VIEW_REFRESH_URL = 'buildings/refresh'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
     BUILDING_STATISTICS_URL = 'statistics/buildings'
+    HEAT_DEMAND_STATISTICS_URL = 'statistics/heat-demand'
     BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
@@ -44,7 +46,9 @@ class ApiClient:
     WARM_WATER_COMMODITY_URL = 'water-heating-commodity'
     COOKING_COMMODITY_URL = 'cooking-commodity'
     ENERGY_CONSUMPTION_URL = 'energy-consumption'
+    HEAT_DEMAND_URL = 'heat-demand'
     TIMING_LOG_URL = 'admin/timing-log'
+    NUTS_URL = 'nuts'
     PARCEL_URL = 'parcels'
     PARCEL_INFO_URL = 'parcel-info'
     base_url: str
@@ -121,7 +125,7 @@ class ApiClient:
         else:
             return {'Authorization': f'Token {self.api_token}'}
 
-    def get_buildings(self, nuts_code: str = '', type: str = '', heating_type: str = '') -> list[Building]:
+    def get_buildings(self, nuts_code: str = '', type: str = '', heating_type: str = '', page_size: int = 100) -> list[Building]:
         """Gets all buildings within the specified NUTS region that fall into the provided type category
         and are of the given heating type.
 
@@ -136,8 +140,8 @@ class ApiClient:
         Returns:
             list[Building]: A list of buildings.
         """
-        logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code}")
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}&heating_commodity={heating_type}"""
+        logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code})")
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}&heating_commodity={heating_type}&page_size={page_size}"""
 
         buildings = self.__get_paginated_results_buildings(url)
         ids: list[UUID] = [b.id for b in buildings]
@@ -171,6 +175,7 @@ class ApiClient:
                 building = Building(
                     id = result['id'],
                     footprint = ewkt_loads(result['footprint']),
+                    centroid = ewkt_loads(result['centroid']),
                     area = result['area'],
                     height = result['height'],
                     type = result['type'],
@@ -188,6 +193,41 @@ class ApiClient:
             else:
                 url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
         
+        return buildings
+
+    def get_buildings_base(self, nuts_code: str = '', type: str = '') -> list[BuildingBase]:
+        """Gets buildings with reduced parameter set within the specified NUTS region that fall into the provided type category.
+
+        Args:
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+            type (str): The type of building ('residential', 'non-residential', 'irrelevant')
+
+        Raises:
+            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
+
+        Returns:
+            gpd.GeoDataFrame: A geodataframe with all buildings.
+        """
+        logging.debug(f"ApiClient: get_buildings_base(nuts_code = {nuts_code}, type = {type})")
+        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?nuts={nuts_code}&type={type}"""
+
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        response_content: Dict = json.loads(response.content)
+        results: list = response_content['results']
+        buildings: list[BuildingBase] = []
+        for res in results:
+            building = BuildingBase(
+                    id = res['id'],
+                    footprint = ewkt_loads(res['footprint']),
+                    centroid = ewkt_loads(res['centroid']),
+                    type = res['type'],
+                )
+            buildings.append(building)
         return buildings
 
     def get_parcels(self) -> list[Parcel]:
@@ -333,6 +373,47 @@ class ApiClient:
                 building_count_non_residential=res['building_count_non_residential'],
                 building_count_irrelevant=res['building_count_irrelevant'],
                 building_count_undefined=res['building_count_undefined']
+                )
+            statistics.append(statistic)
+        return statistics
+
+    def get_heat_demand_statistics(self, nuts_level: Optional[int] = None, nuts_code: Optional[str] = None) -> list[HeatDemandStatistics]:
+        """Get the heat demand statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[HeatDemandStatistics]: A list of objects per NUTS region with statistical info about buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+
+        query_params = ""
+        if nuts_level is not None:
+            query_params = f"?nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params = f"?nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{self.HEAT_DEMAND_STATISTICS_URL}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        response_content: Dict = json.loads(response.content)
+        results: list = response_content['results']
+        statistics: list[HeatDemandStatistics] = []
+        for res in results:
+            statistic = HeatDemandStatistics(
+                nuts_code=res['nuts_code'], 
+                heat_demand=res['heat_demand'], 
                 )
             statistics.append(statistic)
         return statistics
@@ -508,8 +589,8 @@ class ApiClient:
         for result in results:
             building = BuildingStockEntry(
                 building_id = result['building_id'],
-                footprint = result['footprint'],
-                centroid = result['centroid'],
+                footprint = ewkt_loads(result['footprint']),
+                centroid = ewkt_loads(result['centroid']),
                 nuts3 = result['nuts3'],
                 nuts2 = result['nuts2'],
                 nuts1 = result['nuts1'],
@@ -550,7 +631,7 @@ class ApiClient:
                 raise ServerException('An unexpected error occurred', err)
 
 
-    def post_nuts(self, nuts_regions: list[NutsEntry]) -> None:
+    def post_nuts(self, nuts_regions: list[NutsRegion]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the nuts data to the database. Private endpoint: requires client to have credentials.
 
         Raises:
@@ -787,6 +868,35 @@ class ApiClient:
             else:
                 raise ServerException('An unexpected error occurred', err)
 
+    def post_heat_demand(self, heat_demand_infos: list[HeatDemandInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the heat demand data to the database.
+
+        Args:
+            heat_demand_infos (list[HeatDemandInfo]): The heat demand infos to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """        
+        logging.debug("ApiClient: post_heat_demand")
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+
+        url: str = f"""{self.base_url}{self.HEAT_DEMAND_URL}"""
+        heat_demand_infos_json = json.dumps(heat_demand_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(url, data=heat_demand_infos_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
+
     def post_timing_log(self, function_name: str, measured_time: float):
         logging.debug("ApiClient: post_timing_log")
         if not self.api_token:
@@ -804,3 +914,27 @@ class ApiClient:
                 raise ClientException('A client side error occured', err)
             else:
                 raise ServerException('An unexpected error occurred', err)
+
+    def get_nuts_region(self, nuts_code: str):
+        logging.debug(f'ApiClient: get_nuts_region')
+        url: str = f"""{self.base_url}{self.NUTS_URL}/{nuts_code}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation.')
+            else:
+                raise ServerException('An unexpected error occured.')
+
+        response_content: Dict = json.loads(response.content)
+
+        nuts_region = NutsRegion(
+            code = response_content['code'],
+            name = response_content['name'],
+            level = response_content['level'],
+            parent = response_content['parent'],
+            geometry = ewkt_loads(response_content['geometry']),
+        )
+
+        return nuts_region

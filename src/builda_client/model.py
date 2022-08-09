@@ -1,7 +1,11 @@
-from dataclasses import dataclass
 import dataclasses
 import json
+from dataclasses import dataclass
 from typing import Dict, Optional
+from uuid import UUID
+
+from shapely.geometry import MultiPolygon, Point, Polygon
+, Optional
 from uuid import UUID
 from shapely.geometry import Polygon, MultiPolygon
 
@@ -18,8 +22,9 @@ class ParcelMinimalDto:
 
 @dataclass
 class Building:
-    id: UUID
-    footprint: MultiPolygon # TODO Polygon
+    id: str
+    footprint: MultiPolygon
+    centroid: Point
     area: float
     height: float
     type: str
@@ -32,23 +37,29 @@ class Building:
 
 
 @dataclass
-class NutsEntry:
-    id: int
-    nuts_code: str
-    nuts_name: str
+class BuildingBase:
+    id: str
+    footprint: MultiPolygon
+    centroid: Point
+    type: str
+
+@dataclass
+class NutsRegion:
+    code: str
+    name: str
     level: int
-    parent: int | None
-    geometry: str
+    parent: Optional[str]
+    geometry: MultiPolygon
 
 @dataclass
 class BuildingStockEntry:
-    footprint: str
-    centroid: str
+    footprint: Polygon
+    centroid: Point
     nuts3: str
     nuts2: str
     nuts1: str
     nuts0: str
-    building_id: UUID | None = None
+    building_id: Optional[UUID] = None
 
 @dataclass
 class Info:
@@ -89,6 +100,10 @@ class EnergyConsumption(Info):
     value: str
 
 @dataclass
+class HeatDemandInfo(Info):
+    value: float
+
+@dataclass
 class BuildingStatistics:
     nuts_code: str
     building_count_total: int
@@ -96,6 +111,11 @@ class BuildingStatistics:
     building_count_non_residential: int
     building_count_irrelevant: int
     building_count_undefined: int
+
+@dataclass
+class HeatDemandStatistics:
+    nuts_code: str
+    heat_demand: float
 
 @dataclass
 class CommodityCount:
