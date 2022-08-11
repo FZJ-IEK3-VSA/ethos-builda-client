@@ -305,7 +305,7 @@ class ApiClient:
                     footprint = shape(res['footprint']),
                     centroid = shape(res['centroid']),
                     type = res['type'],
-                    parcel_id = UUID(res['parcel_id'])
+                    parcel_id = UUID(res['parcel_id']) if res['parcel_id'] != 'None' else None
                 )
             buildings.append(building)
         return buildings
