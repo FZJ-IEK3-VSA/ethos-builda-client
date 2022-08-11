@@ -20,20 +20,9 @@ from builda_client.model import (Building, BuildingBase, BuildingParcel, Buildin
                                  WaterHeatingCommodityInfo)
 from shapely import wkt
 from shapely.geometry import shape
-import socket
-import requests.packages.urllib3.util.connection as urllib3_cn
 from http.client import HTTPConnection
-from uuid import UUID
-    
+from uuid import UUID   
    
-def allowed_gai_family():
-    """
-     https://github.com/shazow/urllib3/blob/master/urllib3/util/connection.py
-    """
-    return socket.AF_INET
-
-urllib3_cn.allowed_gai_family = allowed_gai_family
-
 def ewkt_loads(x):
     try:
         wkt_str = x.split(';')[1]
