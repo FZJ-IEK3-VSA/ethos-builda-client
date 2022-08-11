@@ -20,7 +20,7 @@ from builda_client.model import (Building, BuildingBase, BuildingParcel, Buildin
                                  WaterHeatingCommodityInfo)
 from shapely import wkt
 from shapely.geometry import shape
-
+import socket
 import requests.packages.urllib3.util.connection as urllib3_cn
 from http.client import HTTPConnection
 from uuid import UUID
