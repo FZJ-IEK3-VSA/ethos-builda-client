@@ -301,11 +301,11 @@ class ApiClient:
         for res_json in results:
             res = json.loads(res_json)
             building = BuildingParcel(
-                    id = res['id'],
+                    id = UUID(res['id']),
                     footprint = shape(res['footprint']),
                     centroid = shape(res['centroid']),
                     type = res['type'],
-                    parcel_id = res['parcel_id']
+                    parcel_id = UUID(res['parcel_id'])
                 )
             buildings.append(building)
         return buildings
