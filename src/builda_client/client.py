@@ -10,7 +10,7 @@ from shapely.geometry import Polygon
 from builda_client.exceptions import (ClientException,
                                       MissingCredentialsException,
                                       ServerException, UnauthorizedException)
-from builda_client.model import (Building, BuildingBase, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
+from builda_client.model import (Building, BuildingBase, BuildingParcel, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
                                  CookingCommodityInfo, CoolingCommodityInfo,
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
@@ -21,7 +21,6 @@ from builda_client.model import (Building, BuildingBase, BuildingCommodityStatis
 from shapely import wkt
 from shapely.geometry import shape
 
-import socket
 import requests.packages.urllib3.util.connection as urllib3_cn
 from http.client import HTTPConnection
 from uuid import UUID
@@ -47,6 +46,7 @@ class ApiClient:
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
     BUILDINGS_BASE_URL = 'buildings-base/'
+    BUILDINGS_PARCEL_URL = 'buildings-parcel/'
     BUILDINGS_ID_URL = 'buildings-id/'
     VIEW_REFRESH_URL = 'buildings/refresh'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
@@ -246,6 +246,36 @@ class ApiClient:
         buildings = self.__deserialize(response.content)
         return buildings
 
+    def get_buildings_parcel(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingBase]:
+        """Gets buildings with reduced parameter set including parcel within the specified NUTS region that fall into the provided type category.
+
+        Args:
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+            type (str): The type of building ('residential', 'non-residential', 'irrelevant')
+
+        Raises:
+            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
+
+        Returns:
+            gpd.GeoDataFrame: A geodataframe with all buildings.
+        """
+        logging.debug(f"ApiClient: get_buildings_parcel(nuts_code = {nuts_code}, type = {type})")
+        url: str = f"""{self.base_url}{self.BUILDINGS_PARCEL_URL}?nuts={nuts_code}&type={type}"""
+        if geom:
+            url += f"&geom={geom}"
+
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug('ApiClient: received response. Checking for errors.')
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        buildings = self.__deserialize_buildings_parcel(response.content)
+        return buildings
+
+
     def get_building_ids(self, nuts_code: str = '', type: str = '') -> list[UUID]:
         logging.debug(f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})")
         url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?nuts={nuts_code}&type={type}"""
@@ -272,6 +302,21 @@ class ApiClient:
                     footprint = shape(res['footprint']),
                     centroid = shape(res['centroid']),
                     type = res['type'],
+                )
+            buildings.append(building)
+        return buildings
+
+    def __deserialize_buildings_parcel(self, response_content):
+        results: list[str] = json.loads(response_content)
+        buildings: list[BuildingParcel] = []
+        for res_json in results:
+            res = json.loads(res_json)
+            building = BuildingParcel(
+                    id = res['id'],
+                    footprint = shape(res['footprint']),
+                    centroid = shape(res['centroid']),
+                    type = res['type'],
+                    parcel_id = res['parcel_id']
                 )
             buildings.append(building)
         return buildings

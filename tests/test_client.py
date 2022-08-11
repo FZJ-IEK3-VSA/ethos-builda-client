@@ -109,6 +109,11 @@ class TestApiClient:
         parcels = self.__given_valid_parcels()
         self.__when_add_parcels(parcels)
 
+    def test_get_building_parcel_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_parcel = self.testee.get_buildings_parcel(nuts_code='DE80N')
+        building_parcel
+
     # GIVEN
     def __given_client_authenticated(self, proxy: bool = False) -> None:
         self.testee = ApiClient(proxy=proxy, username='admin', password='admin', phase='dev')

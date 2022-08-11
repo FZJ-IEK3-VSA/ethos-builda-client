@@ -43,6 +43,14 @@ class BuildingBase:
     type: str
 
 @dataclass
+class BuildingParcel:
+    id: UUID
+    footprint: MultiPolygon
+    centroid: Point
+    type: str
+    parcel_id: UUID
+
+@dataclass
 class NutsRegion:
     code: str
     name: str
