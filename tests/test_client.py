@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 import pytest
 from builda_client.client import ApiClient
 from builda_client.exceptions import MissingCredentialsException
@@ -104,6 +104,11 @@ class TestApiClient:
         parcels = self.__when_get_parcels()
         self.__then_parcels_returned(parcels)
 
+    def test_get_parcels_by_ids_succeeds(self):
+        self.__given_client_authenticated()
+        parcels = self.testee.get_parcels(ids=[UUID('064df3a3-aeaa-4bb2-b54c-3a7ccbd91009'), UUID('1ac02b27-949b-437d-8861-e55b252b1561')])
+        parcels
+        
     def test_post_parcels_succeeds(self):
         self.__given_client_authenticated()
         parcels = self.__given_valid_parcels()
@@ -113,6 +118,7 @@ class TestApiClient:
         self.__given_client_unauthenticated()
         building_parcel = self.testee.get_buildings_parcel(nuts_code='DE80N')
         building_parcel
+
 
     # GIVEN
     def __given_client_authenticated(self, proxy: bool = False) -> None:

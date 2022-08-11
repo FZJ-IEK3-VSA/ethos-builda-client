@@ -310,7 +310,7 @@ class ApiClient:
             buildings.append(building)
         return buildings
 
-    def get_parcels(self) -> list[Parcel]:
+    def get_parcels(self, ids: Optional[list[UUID]] = None) -> list[Parcel]:
         """
         [REQUIRES AUTHENTICATION] Gets all parcels.
 
@@ -319,39 +319,31 @@ class ApiClient:
         """
         logging.debug(f"ApiClient: get_parcels()")
         url: str = f"""{self.base_url}{self.PARCEL_URL}"""
+        if ids:
+            id_str = ','.join([str(id) for id in ids])
+            url += f'?ids={id_str}'
 
-        parcels = self.__get_paginated_results_parcels(url, header=self.__construct_authorization_header())
-        return parcels
-
-    def __get_paginated_results_parcels(self, url: str, header: Dict | None = None) -> list[Parcel]:
-        has_next = True
-        parcels: list[Parcel] = []
-        while has_next:
-            try:
-                response: requests.Response = requests.get(url, headers=header)
-                response.raise_for_status()
-            except requests.HTTPError as e:
-                if e.response.status_code == 403:
-                    raise UnauthorizedException('You are not authorized to perform this operation.')
-                else:
-                    raise ServerException('An unexpected error occured.')
-                    
-            response_content: Dict = json.loads(response.content)
-            results: list = response_content['results']
-            for result in results:
-                parcel = Parcel(
-                    id = UUID(result['parcel_id']),
-                    shape = Polygon(ewkt_loads(result['shape'])),
-                    source = 'test'
-                )
-                parcels.append(parcel)
-           
-            if not response_content['next']:
-                has_next = False
+        try:
+            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation.')
             else:
-                url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
-        
+                raise ServerException('An unexpected error occured.')
+                
+        results: Dict = json.loads(response.content)
+        parcels: list[Parcel] = []
+
+        for result in results:
+            parcel = Parcel(
+                id = UUID(result['id']),
+                shape = ewkt_loads(result['shape']),
+                source = 'test'
+            )
+            parcels.append(parcel)
         return parcels
+
 
     def post_parcel_infos(self, parcel_infos: list[ParcelInfo]):
         logging.debug("ApiClient: post_parcel_infos")
