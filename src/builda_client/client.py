@@ -300,12 +300,18 @@ class ApiClient:
         buildings: list[BuildingParcel] = []
         for res_json in results:
             res = json.loads(res_json)
+            parcel: ParcelMinimalDto | None = None
+            if res['parcel_id'] != 'None' and res['parcel_geom'] != 'None':
+                parcel = ParcelMinimalDto(
+                    id = UUID(res['parcel_id']),
+                    shape = shape(res['parcel_geom'])
+                )
             building = BuildingParcel(
                     id = UUID(res['id']),
                     footprint = shape(res['footprint']),
                     centroid = shape(res['centroid']),
                     type = res['type'],
-                    parcel_id = UUID(res['parcel_id']) if res['parcel_id'] != 'None' else None
+                    parcel = parcel
                 )
             buildings.append(building)
         return buildings

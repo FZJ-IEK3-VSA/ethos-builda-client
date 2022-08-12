@@ -48,7 +48,7 @@ class BuildingParcel:
     footprint: MultiPolygon
     centroid: Point
     type: str
-    parcel_id: Optional[UUID]
+    parcel: Optional[ParcelMinimalDto]
 
 @dataclass
 class NutsRegion:
