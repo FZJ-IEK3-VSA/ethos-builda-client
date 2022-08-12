@@ -235,7 +235,7 @@ class ApiClient:
         buildings = self.__deserialize(response.content)
         return buildings
 
-    def get_buildings_parcel(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingBase]:
+    def get_buildings_parcel(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingParcel]:
         """Gets buildings with reduced parameter set including parcel within the specified NUTS region that fall into the provided type category.
 
         Args:
