@@ -119,6 +119,11 @@ class TestApiClient:
         building_parcel = self.testee.get_buildings_parcel(nuts_code='DE80N')
         building_parcel
 
+    def test_get_nuts_children_succeeds(self):
+        self.__given_client_unauthenticated()
+        nuts_regions = self.testee.get_children_nuts_codes('DE')
+        nuts_regions
+
 
     # GIVEN
     def __given_client_authenticated(self, proxy: bool = False) -> None:

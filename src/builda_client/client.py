@@ -44,6 +44,7 @@ class ApiClient:
     BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
+    NUTS_CODES_URL = 'nuts-codes/'
     TYPE_URL = 'type'
     HOUSEHOLD_COUNT_URL = 'household-count'
     HEATING_COMMODITY_URL = 'heating-commodity'
@@ -1016,3 +1017,17 @@ class ApiClient:
         )
 
         return nuts_region
+
+    def get_children_nuts_codes(self, parent_region_code: str = "") -> list[str]:
+        logging.debug(f'ApiClient: get_nuts_region')
+        url: str = f"""{self.base_url}{self.NUTS_CODES_URL}?parent={parent_region_code}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation.')
+            else:
+                raise ServerException('An unexpected error occured.')
+
+        return json.loads(response.content)
