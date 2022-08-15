@@ -15,7 +15,7 @@ from builda_client.model import (Building, BuildingBase, BuildingCommodityStatis
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
                                  EnhancedJSONEncoder, HeatDemandInfo, HeatDemandStatistics, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsRegion, TypeInfo,
+                                 HouseholdInfo, NutsRegion, PvGenerationInfo, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
 from shapely import wkt
@@ -63,6 +63,7 @@ class ApiClient:
     COOKING_COMMODITY_URL = 'cooking-commodity'
     ENERGY_CONSUMPTION_URL = 'energy-consumption'
     HEAT_DEMAND_URL = 'heat-demand'
+    PV_GENERATION_URL = 'pv-generation/'
     TIMING_LOG_URL = 'admin/timing-log'
     NUTS_URL = 'nuts'
 
@@ -831,6 +832,36 @@ class ApiClient:
                 raise ClientException('A client side error occured', err)
             else:
                 raise ServerException('An unexpected error occurred', err)
+
+    def post_pv_generation(self, pv_generation_infos: list[PvGenerationInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the pv generation data to the database.
+
+        Args:
+            pv_generation_infos (list[PvGenerationInfo]): The pv generation infos to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """        
+        logging.debug("ApiClient: post_pv_generation")
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+
+        url: str = f"""{self.base_url}{self.PV_GENERATION_URL}"""
+        pv_generation_infos_json = json.dumps(pv_generation_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(url, data=pv_generation_infos_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
+
 
     def post_timing_log(self, function_name: str, measured_time: float):
         logging.debug("ApiClient: post_timing_log")

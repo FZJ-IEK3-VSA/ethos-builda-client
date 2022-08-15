@@ -84,6 +84,12 @@ class EnergyConsumption(Info):
 class HeatDemandInfo(Info):
     value: float
 
+
+@dataclass
+class PvGenerationInfo(Info):
+    value: float
+    
+
 @dataclass
 class BuildingStatistics:
     nuts_code: str
