@@ -15,6 +15,8 @@ class Building:
     area: float
     height: float
     type: str
+    heat_demand: float
+    pv_generation: float
     household_count: int
     heating_commodity: str
     cooling_commodity: str
@@ -27,6 +29,13 @@ class BuildingBase:
     footprint: MultiPolygon
     centroid: Point
     type: str
+
+@dataclass
+class BuildingEnergyCharacteristics:
+    id: str
+    type: str
+    heat_demand: float
+    pv_generation: float
 
 @dataclass
 class NutsRegion:

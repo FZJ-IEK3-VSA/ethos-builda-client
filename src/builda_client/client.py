@@ -17,7 +17,7 @@ from builda_client.model import (Building, BuildingBase, BuildingCommodityStatis
                                  EnhancedJSONEncoder, HeatDemandInfo, HeatDemandStatistics, HeatingCommodityInfo,
                                  HouseholdInfo, NutsRegion, PvGenerationInfo, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
-                                 WaterHeatingCommodityInfo)
+                                 WaterHeatingCommodityInfo, BuildingEnergyCharacteristics)
 from shapely import wkt
 from shapely.geometry import shape
 
@@ -47,6 +47,7 @@ class ApiClient:
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
     BUILDINGS_BASE_URL = 'buildings-base/'
+    BUILDINGS_ENERGY_CHARACTERISTICS_URL = 'buildings-energy-characteristics/'
     BUILDINGS_ID_URL = 'buildings-id/'
     VIEW_REFRESH_URL = 'buildings/refresh'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
@@ -194,6 +195,8 @@ class ApiClient:
                     area = result['area'],
                     height = result['height'],
                     type = result['type'],
+                    heat_demand = result['heat_demand'],
+                    pv_generation = result['pv_generation'],
                     household_count = result['household_count'],
                     heating_commodity = result['heating_commodity'],
                     cooling_commodity = result['heating_commodity'],
@@ -266,6 +269,34 @@ class ApiClient:
                     type = res['type'],
                 )
             buildings.append(building)
+        return buildings
+
+    def get_building_energy_characteristics(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None):
+        logging.debug(f"ApiClient: get_building_energy_characteristics(nuts_code = {nuts_code}, type = {type})")
+        url: str = f"""{self.base_url}{self.BUILDINGS_ENERGY_CHARACTERISTICS_URL}?nuts={nuts_code}&type={type}"""
+        if geom:
+            url += f"&geom={geom}"
+
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug('ApiClient: received response. Checking for errors.')
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        
+        results: list[Dict] = json.loads(response.content)
+        buildings: list[BuildingEnergyCharacteristics] = []
+        for res in results:
+            building = BuildingEnergyCharacteristics(
+                    id = res['id'],
+                    type = res['type'],
+                    heat_demand = res['heat_demand'],
+                    pv_generation = res['pv_generation'],
+                )
+            buildings.append(building)
+
         return buildings
 
     def get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
