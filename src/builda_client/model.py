@@ -5,7 +5,19 @@ from typing import Dict, Optional
 from uuid import UUID
 
 from shapely.geometry import MultiPolygon, Point, Polygon
+from uuid import UUID
+from shapely.geometry import Polygon, MultiPolygon
 
+@dataclass
+class Parcel:
+    id: UUID
+    shape: Polygon
+    source: str
+
+@dataclass
+class ParcelMinimalDto:
+    id: UUID
+    shape: Polygon
 
 @dataclass
 class Building:
@@ -20,6 +32,8 @@ class Building:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
+    parcel: Optional[ParcelMinimalDto] = None
+
 
 @dataclass
 class BuildingBase:
@@ -27,6 +41,14 @@ class BuildingBase:
     footprint: MultiPolygon
     centroid: Point
     type: str
+
+@dataclass
+class BuildingParcel:
+    id: UUID
+    footprint: MultiPolygon
+    centroid: Point
+    type: str
+    parcel: Optional[ParcelMinimalDto]
 
 @dataclass
 class NutsRegion:
@@ -48,12 +70,16 @@ class BuildingStockEntry:
 
 @dataclass
 class Info:
-    building_id: str
+    building_id: UUID
     source: str
 
 @dataclass
 class TypeInfo(Info):
     value: str
+
+@dataclass
+class ParcelInfo(Info):
+    value: UUID
 
 @dataclass
 class HouseholdInfo(Info):
@@ -123,9 +149,11 @@ class EnergyConsumptionStatistics:
     residential: SectorEnergyConsumptionStatistics
 
 class EnhancedJSONEncoder(json.JSONEncoder):
-        def default(self, o):
-            if isinstance(o, Polygon) or isinstance(o, MultiPolygon):
-                return str(o)
-            if dataclasses.is_dataclass(o):
-                return dataclasses.asdict(o)
-            return super().default(o)
+    def default(self, o):
+        if isinstance(o, UUID):
+            return o.hex
+        if isinstance(o, Polygon) or isinstance(o, MultiPolygon):
+            return str(o)
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        return super().default(o)

@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Dict, Optional
-
+from uuid import UUID
 import requests
 import yaml
 from shapely.geometry import Polygon
@@ -10,31 +10,19 @@ from shapely.geometry import Polygon
 from builda_client.exceptions import (ClientException,
                                       MissingCredentialsException,
                                       ServerException, UnauthorizedException)
-from builda_client.model import (Building, BuildingBase, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
+from builda_client.model import (Building, BuildingBase, BuildingParcel, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
                                  CookingCommodityInfo, CoolingCommodityInfo,
                                  EnergyConsumption,
                                  EnergyConsumptionStatistics,
                                  EnhancedJSONEncoder, HeatDemandInfo, HeatDemandStatistics, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsRegion, TypeInfo,
+                                 HouseholdInfo, NutsRegion, Parcel, ParcelInfo, ParcelMinimalDto, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
                                  WaterHeatingCommodityInfo)
 from shapely import wkt
 from shapely.geometry import shape
-
-import socket
-import requests.packages.urllib3.util.connection as urllib3_cn
 from http.client import HTTPConnection
-from uuid import UUID
-    
+from uuid import UUID   
    
-def allowed_gai_family():
-    """
-     https://github.com/shazow/urllib3/blob/master/urllib3/util/connection.py
-    """
-    return socket.AF_INET
-
-urllib3_cn.allowed_gai_family = allowed_gai_family
-
 def ewkt_loads(x):
     try:
         wkt_str = x.split(';')[1]
@@ -47,6 +35,7 @@ class ApiClient:
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
     BUILDINGS_BASE_URL = 'buildings-base/'
+    BUILDINGS_PARCEL_URL = 'buildings-parcel/'
     BUILDINGS_ID_URL = 'buildings-id/'
     VIEW_REFRESH_URL = 'buildings/refresh'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
@@ -55,6 +44,7 @@ class ApiClient:
     BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
+    NUTS_CODES_URL = 'nuts-codes/'
     TYPE_URL = 'type'
     HOUSEHOLD_COUNT_URL = 'household-count'
     HEATING_COMMODITY_URL = 'heating-commodity'
@@ -65,7 +55,8 @@ class ApiClient:
     HEAT_DEMAND_URL = 'heat-demand'
     TIMING_LOG_URL = 'admin/timing-log'
     NUTS_URL = 'nuts'
-
+    PARCEL_URL = 'parcels'
+    PARCEL_INFO_URL = 'parcel-info'
     base_url: str
 
     def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None, phase = 'staging'):
@@ -146,7 +137,7 @@ class ApiClient:
         else:
             return {'Authorization': f'Token {self.api_token}'}
 
-    def get_buildings(self, nuts_code: str = '', type: str | None = None, heating_type: str = '', page_size: int = 100) -> list[Building]:
+    def get_buildings(self, nuts_code: str = '', type: str = '', heating_type: str = '', page_size: int = 100) -> list[Building]:
         """Gets all buildings within the specified NUTS region that fall into the provided type category
         and are of the given heating type.
 
@@ -159,13 +150,13 @@ class ApiClient:
             ServerException: When the DB is inconsistent and more than one building with same ID is returned.
 
         Returns:
-            gpd.GeoDataFrame: A geodataframe with all buildings.
+            list[Building]: A list of buildings.
         """
         logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code})")
         url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}&heating_commodity={heating_type}&page_size={page_size}"""
 
         buildings = self.__get_paginated_results_buildings(url)
-        ids: list[str] = [b.id for b in buildings]
+        ids: list[UUID] = [b.id for b in buildings]
         if len(ids) > len(set(ids)):
             raise ServerException('Multiple buildings with the same ID have been returned.')
         return buildings
@@ -186,6 +177,13 @@ class ApiClient:
             response_content: Dict = json.loads(response.content)
             results: list = response_content['results']
             for result in results:
+                parcel: Optional[ParcelMinimalDto] = None
+                if result['parcel']:
+                    parcel =  ParcelMinimalDto(
+                        id = result['parcel']['id'],
+                        shape = ewkt_loads(result['parcel']['shape']),
+                    )
+
                 building = Building(
                     id = result['id'],
                     footprint = ewkt_loads(result['footprint']),
@@ -198,6 +196,7 @@ class ApiClient:
                     cooling_commodity = result['heating_commodity'],
                     water_heating_commodity = result['heating_commodity'],
                     cooking_commodity = result['heating_commodity'],
+                    parcel = parcel
                 )
                 buildings.append(building)
            
@@ -237,6 +236,36 @@ class ApiClient:
         buildings = self.__deserialize(response.content)
         return buildings
 
+    def get_buildings_parcel(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingParcel]:
+        """Gets buildings with reduced parameter set including parcel within the specified NUTS region that fall into the provided type category.
+
+        Args:
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+            type (str): The type of building ('residential', 'non-residential', 'irrelevant')
+
+        Raises:
+            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
+
+        Returns:
+            gpd.GeoDataFrame: A geodataframe with all buildings.
+        """
+        logging.debug(f"ApiClient: get_buildings_parcel(nuts_code = {nuts_code}, type = {type})")
+        url: str = f"""{self.base_url}{self.BUILDINGS_PARCEL_URL}?nuts={nuts_code}&type={type}"""
+        if geom:
+            url += f"&geom={geom}"
+
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug('ApiClient: received response. Checking for errors.')
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        buildings = self.__deserialize_buildings_parcel(response.content)
+        return buildings
+
+
     def get_building_ids(self, nuts_code: str = '', type: str = '') -> list[UUID]:
         logging.debug(f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})")
         url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?nuts={nuts_code}&type={type}"""
@@ -266,6 +295,121 @@ class ApiClient:
                 )
             buildings.append(building)
         return buildings
+
+    def __deserialize_buildings_parcel(self, response_content):
+        results: list[str] = json.loads(response_content)
+        buildings: list[BuildingParcel] = []
+        for res_json in results:
+            res = json.loads(res_json)
+            parcel: ParcelMinimalDto | None = None
+            if res['parcel_id'] != 'None' and res['parcel_geom'] != 'None':
+                parcel = ParcelMinimalDto(
+                    id = UUID(res['parcel_id']),
+                    shape = shape(res['parcel_geom'])
+                )
+            building = BuildingParcel(
+                    id = UUID(res['id']),
+                    footprint = shape(res['footprint']),
+                    centroid = shape(res['centroid']),
+                    type = res['type'],
+                    parcel = parcel
+                )
+            buildings.append(building)
+        return buildings
+
+    def get_parcels(self, ids: Optional[list[UUID]] = None) -> list[Parcel]:
+        """
+        [REQUIRES AUTHENTICATION] Gets all parcels.
+
+        Returns:
+            list[Parcel]: A list of parcels.
+        """
+        logging.debug(f"ApiClient: get_parcels()")
+        url: str = f"""{self.base_url}{self.PARCEL_URL}"""
+        if ids:
+            id_str = ','.join([str(id) for id in ids])
+            url += f'?ids={id_str}'
+
+        try:
+            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation.')
+            else:
+                raise ServerException('An unexpected error occured.')
+                
+        results: Dict = json.loads(response.content)
+        parcels: list[Parcel] = []
+
+        for result in results:
+            parcel = Parcel(
+                id = UUID(result['id']),
+                shape = ewkt_loads(result['shape']),
+                source = 'test'
+            )
+            parcels.append(parcel)
+        return parcels
+
+
+    def post_parcel_infos(self, parcel_infos: list[ParcelInfo]):
+        logging.debug("ApiClient: post_parcel_infos")
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+
+        url: str = f"""{self.base_url}{self.PARCEL_INFO_URL}"""
+
+        parcel_infos_json = json.dumps(parcel_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(url, data=parcel_infos_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
+
+
+    def add_parcels(self, parcels: list[Parcel]):
+        """
+        [REQUIRES AUTHENTICATION] Adds parcels.
+
+        Args:
+            parcels (list[Parcel]): A list of parcels.
+        """
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+        url: str = f"""{self.base_url}{self.PARCEL_URL}"""
+
+        parcels_json = json.dumps(parcels, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(url, data=parcels_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
+
+    def modify_building(self, building_id: UUID, building_data: Dict):
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+        url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}/{building_id}"""
+        building_json = json.dumps(building_data)
+        try:
+            response: requests.Response = requests.put(url, data=building_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
 
     def get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
         """Get the building statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
@@ -873,3 +1017,17 @@ class ApiClient:
         )
 
         return nuts_region
+
+    def get_children_nuts_codes(self, parent_region_code: str = "") -> list[str]:
+        logging.debug(f'ApiClient: get_nuts_region')
+        url: str = f"""{self.base_url}{self.NUTS_CODES_URL}?parent={parent_region_code}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation.')
+            else:
+                raise ServerException('An unexpected error occured.')
+
+        return json.loads(response.content)

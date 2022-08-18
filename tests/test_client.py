@@ -1,8 +1,9 @@
+from uuid import UUID, uuid4
 import pytest
 from builda_client.client import ApiClient
 from builda_client.exceptions import MissingCredentialsException
 from builda_client.model import (Building, BuildingCommodityStatistics, BuildingStockEntry,
-                                 EnergyConsumptionStatistics, NutsRegion, BuildingStatistics)
+                                 EnergyConsumptionStatistics, NutsRegion, BuildingStatistics, Parcel)
 from shapely.geometry import MultiPolygon, Polygon
 
 __author__ = "k.dabrock"
@@ -98,6 +99,32 @@ class TestApiClient:
         result = self.__when_get_nuts_region('DE')
         self.__then_nuts_region_with_code_returned(result, 'DE')
 
+    def test_get_parcels_succeeds(self):
+        self.__given_client_authenticated()
+        parcels = self.__when_get_parcels()
+        self.__then_parcels_returned(parcels)
+
+    def test_get_parcels_by_ids_succeeds(self):
+        self.__given_client_authenticated()
+        parcels = self.testee.get_parcels(ids=[UUID('064df3a3-aeaa-4bb2-b54c-3a7ccbd91009'), UUID('1ac02b27-949b-437d-8861-e55b252b1561')])
+        parcels
+        
+    def test_post_parcels_succeeds(self):
+        self.__given_client_authenticated()
+        parcels = self.__given_valid_parcels()
+        self.__when_add_parcels(parcels)
+
+    def test_get_building_parcel_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_parcel = self.testee.get_buildings_parcel(nuts_code='DE80N')
+        building_parcel
+
+    def test_get_nuts_children_succeeds(self):
+        self.__given_client_unauthenticated()
+        nuts_regions = self.testee.get_children_nuts_codes('DE')
+        nuts_regions
+
+
     # GIVEN
     def __given_client_authenticated(self, proxy: bool = False) -> None:
         self.testee = ApiClient(proxy=proxy, username='admin', password='admin', phase='dev')
@@ -127,6 +154,19 @@ class TestApiClient:
 
         return [nuts_entry_1, nuts_entry_2]
 
+    def __given_valid_parcels(self) -> list[Parcel]:
+        parcel1 = Parcel(
+            id = uuid4(),
+            shape = Polygon(((0., 0.), (1., 0.), (0., 1.), (0., 0.))),
+            source = 'test'
+        )
+        parcel2 = Parcel(
+            id = uuid4(),
+            shape = Polygon(((0., 0.), (2., 0.), (0., 2.), (0., 0.))),
+            source = 'test'
+        )
+        return [parcel1, parcel2]
+
     # WHEN
     def __when_refresh_view(self):
         self.testee.refresh_buildings()
@@ -140,7 +180,7 @@ class TestApiClient:
     def __when_get_building_commodity_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None, commodity: str='') -> list[BuildingCommodityStatistics]:
         return self.testee.get_building_commodity_statistics(nuts_level=nuts_level, nuts_code=nuts_code, commodity=commodity)
 
-    def __when_get_buildings(self, nuts_code: str = '', type: str | None = None, heating_type: str = ''):
+    def __when_get_buildings(self, nuts_code: str = '', type: str = '', heating_type: str = ''):
         return self.testee.get_buildings(nuts_code=nuts_code, type=type, heating_type=heating_type)
 
     def __when_get_building_stock(self, geom: Polygon, nuts_code: str = ''):
@@ -154,6 +194,12 @@ class TestApiClient:
 
     def __when_get_nuts_region(self, code: str):
         return self.testee.get_nuts_region(code)
+
+    def __when_get_parcels(self):
+        return self.testee.get_parcels()
+
+    def __when_add_parcels(self, parcels: list[Parcel]):
+        self.testee.add_parcels(parcels)
 
     # THEN
     def __then_building_statistics_germany_returned(self, result: list[BuildingStatistics], count: int):
@@ -189,3 +235,6 @@ class TestApiClient:
     def __then_nuts_region_with_code_returned(self, result, code):
         assert isinstance(result, NutsRegion)
         assert result.code == code
+
+    def __then_parcels_returned(self, result: list[Parcel]):
+        assert len(result) > 0
