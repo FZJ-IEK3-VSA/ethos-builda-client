@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Optional
+from typing import Dict, Optional
 from uuid import UUID
 import requests
 import yaml
