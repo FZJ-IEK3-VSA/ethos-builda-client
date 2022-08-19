@@ -674,6 +674,7 @@ class ApiClient:
                 nuts2 = result['nuts2'],
                 nuts1 = result['nuts1'],
                 nuts0 = result['nuts0'],
+                lau = result['lau'],
             )
             buildings.append(building)
 
