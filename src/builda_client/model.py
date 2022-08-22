@@ -66,6 +66,7 @@ class BuildingStockEntry:
     nuts2: str
     nuts1: str
     nuts0: str
+    lau: str
     building_id: Optional[UUID] = None
 
 @dataclass

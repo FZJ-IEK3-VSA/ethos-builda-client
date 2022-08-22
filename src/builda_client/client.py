@@ -22,6 +22,8 @@ from shapely import wkt
 from shapely.geometry import shape
 from http.client import HTTPConnection
 from uuid import UUID   
+import re
+
    
 def ewkt_loads(x):
     try:
@@ -29,6 +31,35 @@ def ewkt_loads(x):
         return wkt.loads(wkt_str)
     except Exception:
         return None
+
+def determine_nuts_query_param(nuts_lau_code: str) -> str:
+    """Determines the correct query parameter based on the given NUTS or LAU code.
+
+    Args:
+        nuts_lau_code (str): The code for which to query.
+
+    Raises:
+        ValueError: If the code is invalid.
+
+    Returns:
+        str: The appropriate query parameter for the given code.
+    """
+    pattern = re.compile("^[A-Z]{2}[A-Z0-9]*$")
+    if pattern.match(nuts_lau_code):
+        # Probably NUTS code
+        if len(nuts_lau_code) == 2:
+            return 'nuts0'
+        elif len(nuts_lau_code) == 3:
+            return 'nuts1'
+        elif len(nuts_lau_code) == 4:
+            return 'nuts2'
+        elif len(nuts_lau_code) == 5:
+            return 'nuts3'
+        else:
+            raise ValueError('NUTS region code too long.')
+    else:
+        # Maybe LAU code
+        return 'lau'
 
 class ApiClient:
 
@@ -153,13 +184,15 @@ class ApiClient:
             list[Building]: A list of buildings.
         """
         logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code})")
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?nuts={nuts_code}&type={type}&heating_commodity={heating_type}&page_size={page_size}"""
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?{nuts_query_param}={nuts_code}&type={type}&heating_commodity={heating_type}&page_size={page_size}"""
 
         buildings = self.__get_paginated_results_buildings(url)
         ids: list[UUID] = [b.id for b in buildings]
         if len(ids) > len(set(ids)):
             raise ServerException('Multiple buildings with the same ID have been returned.')
         return buildings
+
 
     def __get_paginated_results_buildings(self, url: str, header: Dict | None = None) -> list[Building]:
         has_next = True
@@ -221,7 +254,8 @@ class ApiClient:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
         logging.debug(f"ApiClient: get_buildings_base(nuts_code = {nuts_code}, type = {type})")
-        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?nuts={nuts_code}&type={type}"""
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?{nuts_query_param}={nuts_code}&type={type}"""
         if geom:
             url += f"&geom={geom}"
 
@@ -250,7 +284,8 @@ class ApiClient:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
         logging.debug(f"ApiClient: get_buildings_parcel(nuts_code = {nuts_code}, type = {type})")
-        url: str = f"""{self.base_url}{self.BUILDINGS_PARCEL_URL}?nuts={nuts_code}&type={type}"""
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        url: str = f"""{self.base_url}{self.BUILDINGS_PARCEL_URL}?{nuts_query_param}={nuts_code}&type={type}"""
         if geom:
             url += f"&geom={geom}"
 
@@ -268,7 +303,8 @@ class ApiClient:
 
     def get_building_ids(self, nuts_code: str = '', type: str = '') -> list[UUID]:
         logging.debug(f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})")
-        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?nuts={nuts_code}&type={type}"""
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}"""
 
         try:
             response: requests.Response = requests.get(url)
@@ -650,7 +686,8 @@ class ApiClient:
         elif geom is not None:
             query_params = f'?geom={geom}'
         elif nuts_code:
-            query_params = f'?nuts={nuts_code}'
+            nuts_query_param: str = determine_nuts_query_param(nuts_code)
+            query_params = f'?{nuts_query_param}={nuts_code}'
 
         url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}{query_params}"""
 
@@ -674,6 +711,7 @@ class ApiClient:
                 nuts2 = result['nuts2'],
                 nuts1 = result['nuts1'],
                 nuts0 = result['nuts0'],
+                lau = result['lau'],
             )
             buildings.append(building)
 
