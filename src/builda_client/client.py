@@ -682,7 +682,8 @@ class ApiClient:
 
         query_params: str = ''
         if geom is not None and nuts_code:
-            query_params = f'?geom={geom}&nuts={nuts_code}'
+            nuts_query_param: str = determine_nuts_query_param(nuts_code)
+            query_params = f'?geom={geom}&{nuts_query_param}={nuts_code}'
         elif geom is not None:
             query_params = f'?geom={geom}'
         elif nuts_code:
