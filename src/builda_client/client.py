@@ -453,7 +453,9 @@ class ApiClient:
 
     def get_building_energy_characteristics(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None):
         logging.debug(f"ApiClient: get_building_energy_characteristics(nuts_code = {nuts_code}, type = {type})")
-        url: str = f"""{self.base_url}{self.BUILDINGS_ENERGY_CHARACTERISTICS_URL}?nuts={nuts_code}&type={type}"""
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+
+        url: str = f"""{self.base_url}{self.BUILDINGS_ENERGY_CHARACTERISTICS_URL}?{nuts_query_param}={nuts_code}&type={type}"""
         if geom:
             url += f"&geom={geom}"
 
