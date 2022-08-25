@@ -451,7 +451,18 @@ class ApiClient:
             else:
                 raise ServerException('An unexpected error occurred', err)
 
-    def get_building_energy_characteristics(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None):
+    def get_building_energy_characteristics(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingEnergyCharacteristics]:
+        """Get energy related building information (heat demand, pv generation) for each building that fulfills the query parameters.
+
+        Args:
+            nuts_code (str | None, optional): The NUTS or LAU code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+            type (str): The type of building e.g. 'residential'
+        Raises:
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingEnergyCharacteristics]: A list of building objects with energy characteristics.
+        """
         logging.debug(f"ApiClient: get_building_energy_characteristics(nuts_code = {nuts_code}, type = {type})")
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
 
@@ -527,7 +538,7 @@ class ApiClient:
         return statistics
 
     def get_heat_demand_statistics(self, nuts_level: Optional[int] = None, nuts_code: Optional[str] = None) -> list[HeatDemandStatistics]:
-        """Get the heat demand statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+        """Get the heat demand statistics in MWh for the given NUTS level or NUTS/LAU code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
             nuts_level (int | None, optional): The NUTS level. Defaults to None.
@@ -538,7 +549,7 @@ class ApiClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[HeatDemandStatistics]: A list of objects per NUTS region with statistical info about buildings.
+            list[HeatDemandStatistics]: A list of objects per NUTS/LAU region with statistical info about heat demand [MWh].
         """
         if nuts_level is not None and nuts_code is not None:
             raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
