@@ -88,6 +88,11 @@ class TestApiClient:
         with pytest.raises(MissingCredentialsException):
             self.__when_post_building_stock([])
 
+    def test_get_building_energy_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        bu_energy = self.testee.get_building_energy_characteristics(nuts_code='DE80N')
+        bu_energy
+        
     # TODO comment in once test db is in place
     # def test_post_nuts_succeeds(self):
     #     self.__given_client_authenticated()

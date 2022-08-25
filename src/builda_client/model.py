@@ -27,6 +27,8 @@ class Building:
     area: float
     height: float
     type: str
+    heat_demand: float
+    pv_generation: float
     household_count: int
     heating_commodity: str
     cooling_commodity: str
@@ -49,6 +51,13 @@ class BuildingParcel:
     centroid: Point
     type: str
     parcel: Optional[ParcelMinimalDto]
+
+@dataclass
+class BuildingEnergyCharacteristics:
+    id: str
+    type: str
+    heat_demand: float
+    pv_generation: float
 
 @dataclass
 class NutsRegion:
@@ -110,6 +119,12 @@ class EnergyConsumption(Info):
 @dataclass
 class HeatDemandInfo(Info):
     value: float
+
+
+@dataclass
+class PvGenerationInfo(Info):
+    value: float
+    
 
 @dataclass
 class BuildingStatistics:
