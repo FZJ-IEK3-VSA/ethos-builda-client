@@ -522,8 +522,7 @@ class ApiClient:
         except requests.HTTPError as e:
             raise ServerException('An unexpected exception occurred.')
 
-        response_content: Dict = json.loads(response.content)
-        results: list = response_content['results']
+        results: list = json.loads(response.content)
         statistics: list[BuildingStatistics] = []
         for res in results:
             statistic = BuildingStatistics(
@@ -567,8 +566,7 @@ class ApiClient:
         except requests.HTTPError as e:
             raise ServerException('An unexpected exception occurred.')
 
-        response_content: Dict = json.loads(response.content)
-        results: list = response_content['results']
+        results: list = json.loads(response.content)
         statistics: list[HeatDemandStatistics] = []
         for res in results:
             statistic = HeatDemandStatistics(
@@ -610,8 +608,7 @@ class ApiClient:
         except requests.HTTPError as e:
             raise ServerException('An unexpected exception occurred.')
 
-        response_content: Dict = json.loads(response.content)
-        results: list = response_content['results']
+        results: list = json.loads(response.content)
         statistics: list[EnergyConsumptionStatistics] = []
         for res in results:
             res_nuts_code: str = res['nuts_code']
@@ -661,8 +658,7 @@ class ApiClient:
         except requests.HTTPError as e:
             raise ServerException('An unexpected exception occurred.')
 
-        response_content: Dict = json.loads(response.content)
-        results: list = response_content['results']
+        results: list = json.loads(response.content)
         statistics: list[BuildingCommodityStatistics] = []
         for res in results:
             res_nuts_code: str = res['nuts_code']
