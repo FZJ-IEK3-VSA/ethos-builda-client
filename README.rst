@@ -37,22 +37,23 @@ builda-client
     Client for BUILDA, the European building database.
 
 
-This is an HTTP-client that provides methods for accessing the API endpoints (see http://134.94.116.65:8000/api/v1/swagger/) of the European building database (BUILDA).
+This is an HTTP-client that provides methods for accessing the API endpoints (see e.g. http://134.94.116.65:8000/api/v1_20220831/swagger/ for the first version) of the European building database (BUILDA).
 
 Installation
 ====
+You can install a specific release directly from remote repository via:
 
-For using the client, download the repo to a local folder, cd into it and install the client into an environment of your choice (e.g. conda) via:
+.. code-block:: console
+
+    pip install git+https://jugit.fz-juelich.de/iek-3/groups/urbanmodels/personal/dabrock/builda-client.git@v1_20220831 
+
+If you execute this command without specifying the tag/release, you will install the main branch. This branch is under development and will change based on the newest (not yet versioned) API and database modifications. It is not stable. 
+
+You can also install by downloading the repo to a local folder, checking out the tag/branch you need, cd-ing into it and installing the client into an environment of your choice (e.g. conda) via:
 
 .. code-block:: console
 
     pip install .
-
-Or install directly from remote repository via:
-
-.. code-block:: console
-
-    pip install git+https://jugit.fz-juelich.de/iek-3/groups/urbanmodels/personal/dabrock/builda-client.git 
 
 For development, install in editable mode with:
 
