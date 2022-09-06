@@ -53,6 +53,12 @@ class TestApiClientRead:
         self.__then_correct_number_returned(nuts_regions, 16)
 
 
+    def test_get_heat_demand_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        heat_demand = self.testee.get_heat_demand_statistics(nuts_level=1, country='DE')
+        self.__then_correct_number_returned(heat_demand, 16)
+
+
     # GIVEN
     def __given_client_unauthenticated(self) -> None:
         self.testee = ApiClient()

@@ -63,6 +63,13 @@ def determine_nuts_query_param(nuts_lau_code: str) -> str:
 
 class ApiClient:
 
+    # For read-only users of database
+    BUILDING_STATISTICS_URL = 'statistics/buildings'
+    HEAT_DEMAND_STATISTICS_URL = 'statistics/heat-demand'
+    BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
+    ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
+
+    # For developpers/ write users of database
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
     BUILDINGS_BASE_URL = 'buildings-base/'
@@ -70,10 +77,6 @@ class ApiClient:
     BUILDINGS_ENERGY_CHARACTERISTICS_URL = 'buildings-energy-characteristics/'
     BUILDINGS_ID_URL = 'buildings-id/'
     VIEW_REFRESH_URL = 'buildings/refresh'
-    ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
-    BUILDING_STATISTICS_URL = 'statistics/buildings'
-    HEAT_DEMAND_STATISTICS_URL = 'statistics/heat-demand'
-    BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
     NUTS_CODES_URL = 'nuts-codes/'
@@ -536,15 +539,18 @@ class ApiClient:
             statistics.append(statistic)
         return statistics
 
-    def get_heat_demand_statistics(self, nuts_level: Optional[int] = None, nuts_code: Optional[str] = None) -> list[HeatDemandStatistics]:
-        """Get the heat demand statistics in MWh for the given NUTS level or NUTS/LAU code. Only one of nuts_level and nuts_code may be specified.
+    def get_heat_demand_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None) -> list[HeatDemandStatistics]:
+        """Get the residential heat demand statistics in MWh for the given NUTS level or NUTS/LAU code. 
+        Results can be limited to a certain country by setting the country parameter.
+        Only one of nuts_level and nuts_code may be specified.
 
         Args:
-            nuts_level (int | None, optional): The NUTS level. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+            country (str | None, optional): The NUTS code for the country, e.g. 'DE' for Germany. Defaults to None.
+            nuts_level (int | None, optional): The NUTS level (0=NUTS-0, 1=NUTS-1, 2=NUTS-2, 3=NUTS-3, 4=LAU). Defaults to None.
+            nuts_code (str | None, optional): The NUTS or LAU code, e.g. 'DEA' for NRW in Germany according to the 2021 NUTS code and 2019 LAU code definitions. Defaults to None.
 
         Raises:
-            ValueError: If both nuts_level and nuts_code are specified.
+            ValueError: If both nuts_level and nuts_code are specified or the nuts_level is invalid.
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
@@ -552,12 +558,14 @@ class ApiClient:
         """
         if nuts_level is not None and nuts_code is not None:
             raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+        if nuts_level is not None and nuts_level not in range(0, 5):
+            raise ValueError('Invalid NUTS/LAU level provided; nuts_level must be in range [0,4].')
 
-        query_params = ""
+        query_params = f"?country={country}"
         if nuts_level is not None:
-            query_params = f"?nuts_level={nuts_level}"
+            query_params += f"&nuts_level={nuts_level}"
         elif nuts_code is not None:
-            query_params = f"?nuts_code={nuts_code}"
+            query_params += f"&nuts_code={nuts_code}"
 
         url: str = f"""{self.base_url}{self.HEAT_DEMAND_STATISTICS_URL}{query_params}"""
         try:
