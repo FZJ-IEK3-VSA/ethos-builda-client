@@ -545,7 +545,7 @@ class ApiClient:
         Only one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS code for the country, e.g. 'DE' for Germany. Defaults to None.
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level (0=NUTS-0, 1=NUTS-1, 2=NUTS-2, 3=NUTS-3, 4=LAU). Defaults to None.
             nuts_code (str | None, optional): The NUTS or LAU code, e.g. 'DEA' for NRW in Germany according to the 2021 NUTS code and 2019 LAU code definitions. Defaults to None.
 
@@ -579,7 +579,7 @@ class ApiClient:
         for res in results:
             statistic = HeatDemandStatistics(
                 nuts_code=res['nuts_code'], 
-                heat_demand=res['heat_demand'], 
+                heat_demand=res['heat_demand_mwh'], 
                 )
             statistics.append(statistic)
         return statistics
