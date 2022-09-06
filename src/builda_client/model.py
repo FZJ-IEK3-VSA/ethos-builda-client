@@ -44,10 +44,12 @@ class BuildingBase:
     centroid: Point
     type: str
 
+
 @dataclass
 class BuildingHouseholds:
     id: UUID
     household_count: int
+
 
 @dataclass
 class BuildingParcel:
@@ -57,10 +59,15 @@ class BuildingParcel:
     type: str
     parcel: Optional[ParcelMinimalDto]
 
+
 @dataclass
 class BuildingEnergyCharacteristics:
     id: str
     type: str
+    heating_commodity: str
+    cooling_commodity: str
+    water_heating_commodity: str
+    cooking_commodity: str
     heat_demand: float
     pv_generation: float
 

@@ -109,7 +109,7 @@ class ApiClient:
 
         HTTPConnection.debuglevel = 1
         requests_log = logging.getLogger("urllib3")
-        requests_log.setLevel(logging.DEBUG)
+        requests_log.setLevel(logging.WARN)
         requests_log.propagate = True
 
         self.config = self.__load_config()
@@ -278,7 +278,7 @@ class ApiClient:
         buildings = self.__deserialize(response.content)
         return buildings
 
-    def get_buildings_households(self, nuts_code: str = '') -> list[BuildingHouseholds]:
+    def get_buildings_households(self, nuts_code: str = '', heating_type: str = '') -> list[BuildingHouseholds]:
         """Gets residential buildings with household data within the specified NUTS region that fall into the provided type category.
 
         Args:
@@ -290,9 +290,9 @@ class ApiClient:
         Returns:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
-        logging.debug(f"ApiClient: get_buildings_households(nuts_code = {nuts_code})")
+        logging.debug(f"ApiClient: get_buildings_households(nuts_code={nuts_code}, heating_type={heating_type})")
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_HOUSEHOLDS_URL}?{nuts_query_param}={nuts_code}&type=residential"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_HOUSEHOLDS_URL}?{nuts_query_param}={nuts_code}&type=residential&heating_commodity={heating_type}"""
 
         try:
             response: requests.Response = requests.get(url)
@@ -489,8 +489,8 @@ class ApiClient:
             else:
                 raise ServerException('An unexpected error occurred', err)
 
-    def get_building_energy_characteristics(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingEnergyCharacteristics]:
-        """Get energy related building information (heat demand, pv generation) for each building that fulfills the query parameters.
+    def get_building_energy_characteristics(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None, heating_type: str = '') -> list[BuildingEnergyCharacteristics]:
+        """Get energy related building information (commodities, heat demand, pv generation) for each building that fulfills the query parameters.
 
         Args:
             nuts_code (str | None, optional): The NUTS or LAU code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
@@ -501,10 +501,10 @@ class ApiClient:
         Returns:
             list[BuildingEnergyCharacteristics]: A list of building objects with energy characteristics.
         """
-        logging.debug(f"ApiClient: get_building_energy_characteristics(nuts_code = {nuts_code}, type = {type})")
+        logging.debug(f"ApiClient: get_building_energy_characteristics(nuts_code={nuts_code}, type={type})")
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
 
-        url: str = f"""{self.base_url}{self.BUILDINGS_ENERGY_CHARACTERISTICS_URL}?{nuts_query_param}={nuts_code}&type={type}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_ENERGY_CHARACTERISTICS_URL}?{nuts_query_param}={nuts_code}&type={type}&heating_commodity={heating_type}"""
         if geom:
             url += f"&geom={geom}"
 
@@ -523,6 +523,10 @@ class ApiClient:
             building = BuildingEnergyCharacteristics(
                     id = res['id'],
                     type = res['type'],
+                    heating_commodity = res['heating_commodity'],
+                    cooling_commodity = res['cooling_commodity'],
+                    water_heating_commodity = res['water_heating_commodity'],
+                    cooking_commodity = res['cooking_commodity'],
                     heat_demand = res['heat_demand'],
                     pv_generation = res['pv_generation'],
                 )
