@@ -12,7 +12,7 @@ from builda_client.exceptions import (ClientException,
                                       ServerException, UnauthorizedException)
 from builda_client.model import (Building, BuildingBase, BuildingParcel, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
                                  CookingCommodityInfo, CoolingCommodityInfo,
-                                 EnergyConsumption,
+                                 EnergyConsumption, BuildingHouseholds,
                                  EnergyConsumptionStatistics,
                                  EnhancedJSONEncoder, HeatDemandInfo, HeatDemandStatistics, HeatingCommodityInfo,
                                  HouseholdInfo, NutsRegion, PvGenerationInfo, Parcel, ParcelInfo, ParcelMinimalDto, TypeInfo,
@@ -73,6 +73,7 @@ class ApiClient:
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
     BUILDINGS_BASE_URL = 'buildings-base/'
+    BUILDINGS_HOUSEHOLDS_URL = 'buildings-households/'
     BUILDINGS_PARCEL_URL = 'buildings-parcel/'
     BUILDINGS_ENERGY_CHARACTERISTICS_URL = 'buildings-energy-characteristics/'
     BUILDINGS_ID_URL = 'buildings-id/'
@@ -276,6 +277,40 @@ class ApiClient:
         logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
         buildings = self.__deserialize(response.content)
         return buildings
+
+    def get_buildings_households(self, nuts_code: str = '') -> list[BuildingHouseholds]:
+        """Gets residential buildings with household data within the specified NUTS region that fall into the provided type category.
+
+        Args:
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
+
+        Returns:
+            gpd.GeoDataFrame: A geodataframe with all buildings.
+        """
+        logging.debug(f"ApiClient: get_buildings_households(nuts_code = {nuts_code})")
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        url: str = f"""{self.base_url}{self.BUILDINGS_HOUSEHOLDS_URL}?{nuts_query_param}={nuts_code}&type=residential"""
+
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug('ApiClient: received response. Checking for errors.')
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        results: list[str] = json.loads(response.content)
+        buildings_households: list[BuildingHouseholds] = []
+        for res in results:
+            building_households = BuildingHouseholds(
+                    id = UUID(res['id']),
+                    household_count = res['household_count']
+                )
+            buildings_households.append(building_households)
+        return buildings_households
 
     def get_buildings_parcel(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingParcel]:
         """Gets buildings with reduced parameter set including parcel within the specified NUTS region that fall into the provided type category.
@@ -731,12 +766,12 @@ class ApiClient:
 
         query_params: str = ''
         if geom is not None and nuts_code:
-            nuts_query_param: str = determine_nuts_query_param(nuts_code)
+            nuts_query_param = determine_nuts_query_param(nuts_code)
             query_params = f'?geom={geom}&{nuts_query_param}={nuts_code}'
         elif geom is not None:
             query_params = f'?geom={geom}'
         elif nuts_code:
-            nuts_query_param: str = determine_nuts_query_param(nuts_code)
+            nuts_query_param = determine_nuts_query_param(nuts_code)
             query_params = f'?{nuts_query_param}={nuts_code}'
 
         url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}{query_params}"""

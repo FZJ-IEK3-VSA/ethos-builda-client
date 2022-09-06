@@ -45,6 +45,11 @@ class BuildingBase:
     type: str
 
 @dataclass
+class BuildingHouseholds:
+    id: UUID
+    household_count: int
+
+@dataclass
 class BuildingParcel:
     id: UUID
     footprint: MultiPolygon
