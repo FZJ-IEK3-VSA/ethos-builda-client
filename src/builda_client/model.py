@@ -62,7 +62,7 @@ class BuildingParcel:
 
 @dataclass
 class BuildingEnergyCharacteristics:
-    id: str
+    id: UUID
     type: str
     heating_commodity: str
     cooling_commodity: str

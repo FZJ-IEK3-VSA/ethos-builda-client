@@ -521,7 +521,7 @@ class ApiClient:
         buildings: list[BuildingEnergyCharacteristics] = []
         for res in results:
             building = BuildingEnergyCharacteristics(
-                    id = res['id'],
+                    id = UUID(res['id']),
                     type = res['type'],
                     heating_commodity = res['heating_commodity'],
                     cooling_commodity = res['cooling_commodity'],
