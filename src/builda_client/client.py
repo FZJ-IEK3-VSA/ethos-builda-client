@@ -227,7 +227,7 @@ class ApiClient:
                     id = result['id'],
                     footprint = ewkt_loads(result['footprint']),
                     centroid = ewkt_loads(result['centroid']),
-                    area = result['area'],
+                    footprint_area = result['footprint_area'],
                     height = result['height'],
                     type = result['type'],
                     heat_demand = result['heat_demand'],
