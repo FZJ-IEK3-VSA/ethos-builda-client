@@ -623,10 +623,11 @@ class ApiClient:
             statistics.append(statistic)
         return statistics
 
-    def get_energy_consumption_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[EnergyConsumptionStatistics]:
+    def get_energy_consumption_statistics(self,country: str = '', nuts_level: int | None = None, nuts_code: str | None = None) -> list[EnergyConsumptionStatistics]:
         """Get the energy consumption statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level for which to retrieve the statistics. Defaults to None.
             nuts_code (str | None, optional): The NUTS code of the region for which to retrieve the statistics according to the 2021 NUTS code definitions. Defaults to None.
 
@@ -642,7 +643,7 @@ class ApiClient:
         if nuts_level is not None and nuts_code is not None:
             raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
         
-        query_params = ""
+        query_params = f"?country={country}"
         if nuts_level is not None:
             query_params = f"?nuts_level={nuts_level}"
         elif nuts_code is not None:
