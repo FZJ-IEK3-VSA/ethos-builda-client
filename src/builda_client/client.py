@@ -17,7 +17,7 @@ from builda_client.model import (Building, BuildingBase, BuildingParcel, Buildin
                                  EnhancedJSONEncoder, HeatDemandInfo, HeatDemandStatistics, HeatingCommodityInfo,
                                  HouseholdInfo, NutsRegion, PvGenerationInfo, Parcel, ParcelInfo, ParcelMinimalDto, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
-                                 WaterHeatingCommodityInfo, BuildingEnergyCharacteristics)
+                                 WaterHeatingCommodityInfo, BuildingEnergyCharacteristics, HeightInfo)
 from shapely import wkt
 from shapely.geometry import shape
 from http.client import HTTPConnection
@@ -889,6 +889,35 @@ class ApiClient:
         type_infos_json = json.dumps(type_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(url, data=type_infos_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
+
+    def post_height_info(self, height_infos: list[HeightInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
+
+        Args:
+            household_infos (list[HeightInfo]): The household count data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """        
+        logging.debug("ApiClient: post_height_info")
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+
+        url: str = f"""{self.base_url}{self.HOUSEHOLD_COUNT_URL}"""
+        height_infos_json = json.dumps(height_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(url, data=height_infos_json, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:

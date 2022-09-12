@@ -101,6 +101,10 @@ class TypeInfo(Info):
     value: str
 
 @dataclass
+class HeightInfo(Info):
+    value: float
+
+@dataclass
 class ParcelInfo(Info):
     value: UUID
 
