@@ -645,9 +645,9 @@ class ApiClient:
         
         query_params = f"?country={country}"
         if nuts_level is not None:
-            query_params = f"&nuts_level={nuts_level}"
+            query_params += f"&nuts_level={nuts_level}"
         elif nuts_code is not None:
-            query_params = f"&nuts_code={nuts_code}"
+            query_params += f"&nuts_code={nuts_code}"
 
         url: str = f"""{self.base_url}{self.ENERGY_STATISTICS_URL}{query_params}"""
         try:
