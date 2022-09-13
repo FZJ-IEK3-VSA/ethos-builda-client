@@ -10,7 +10,7 @@ from shapely.geometry import Polygon
 from builda_client.exceptions import (ClientException,
                                       MissingCredentialsException,
                                       ServerException, UnauthorizedException)
-from builda_client.model import (Building, BuildingBase, BuildingParcel, BuildingCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
+from builda_client.model import (Building, BuildingBase, BuildingParcel, EnergyCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
                                  CookingCommodityInfo, CoolingCommodityInfo,
                                  EnergyConsumption, BuildingHouseholds,
                                  EnergyConsumptionStatistics,
@@ -670,10 +670,11 @@ class ApiClient:
             statistics.append(statistic)
         return statistics
 
-    def get_building_commodity_statistics(self,  nuts_level: int | None = None, nuts_code: str | None = None, commodity: str = ''):
-        """Get the building commodity statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+    def get_energy_commodity_statistics(self, country: str = '', nuts_level: int | None = None, nuts_code: str | None = None, commodity: str = '') -> list[EnergyCommodityStatistics]:
+        """Get the energy commodity statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level for which to retrieve the statistics. Defaults to None.
             nuts_code (str | None, optional): The NUTS code of the region for which to retrieve the statistics according to the 2021 NUTS code definitions. Defaults to None.
             commodity (str, optional): The commodity for which to get statistics
@@ -683,18 +684,18 @@ class ApiClient:
             ServerException: If an error occurrs on the server side.
 
         Returns:
-            list[BuildingCommodityStatistics]: A list of building commodity statistics. If just one nuts_code is queried, the list will only contain one element.
+            list[EnergyCommodityStatistics]: A list of building commodity statistics. If just one nuts_code is queried, the list will only contain one element.
         """        
-        logging.debug(f"ApiClient: get_building_commodity_statistics(nuts_level={nuts_level}, nuts_code={nuts_code}, commodity={commodity}")
+        logging.debug(f"ApiClient: get_energy_commodity_statistics(nuts_level={nuts_level}, nuts_code={nuts_code}, commodity={commodity}")
         
         if nuts_level is not None and nuts_code is not None:
             raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
         
-        query_params = "?"
+        query_params = f"?country={country}"
         if nuts_level is not None:
-            query_params = f"?nuts_level={nuts_level}"
+            query_params += f"&nuts_level={nuts_level}"
         elif nuts_code is not None:
-            query_params = f"?nuts_code={nuts_code}"
+            query_params += f"&nuts_code={nuts_code}"
 
         if commodity:
             query_params += f"&commodity={commodity}"
@@ -707,7 +708,7 @@ class ApiClient:
             raise ServerException('An unexpected exception occurred.')
 
         results: list = json.loads(response.content)
-        statistics: list[BuildingCommodityStatistics] = []
+        statistics: list[EnergyCommodityStatistics] = []
         for res in results:
             res_nuts_code: str = res['nuts_code']
             res_commodity: str = res['commodity']
@@ -716,7 +717,7 @@ class ApiClient:
             res_water_heating_commodity_count: int = int(res['commodity_count']['water_heating_commodity_count'])
             res_cooking_commodity_count: int = int(res['commodity_count']['cooking_commodity_count'])
 
-            statistic = BuildingCommodityStatistics(
+            statistic = EnergyCommodityStatistics(
                 nuts_code=res_nuts_code,
                 commodity_name=res_commodity,
                 building_count = CommodityCount(
