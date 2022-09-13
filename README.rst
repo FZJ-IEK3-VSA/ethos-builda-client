@@ -105,6 +105,18 @@ Now you can use the methods provided by the client, e.g.:
 Some methods require authentication. You can recognize those by the comment [REQUIRES AUTHENTICATION] at the beginning of the method's docstring.
 To use these methods the client has to be instantiated with a valid username and password.
 
+
+How to create new version
+====
+
+1. Set the base_url in config.yml to the new version of the API.
+2. Test if the client still works (test_client_read.py)
+3. Merge changes into main branch
+4. Tag with version (e.g. v1.0)
+5. Change base_url back to /api/v0 for further development and merge changes into main
+
+If you need to do changes to a version later, check out a new branch at the tag.
+
 .. _pyscaffold-notes:
 
 Note
