@@ -160,7 +160,7 @@ class CommodityCount:
     cooking_commodity_count: int
 
 @dataclass
-class BuildingCommodityStatistics:
+class EnergyCommodityStatistics:
     nuts_code: str
     commodity_name: str
     building_count: CommodityCount

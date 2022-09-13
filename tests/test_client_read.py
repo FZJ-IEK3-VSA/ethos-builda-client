@@ -1,5 +1,6 @@
 from builda_client.client import ApiClient
 from builda_client.model import (Building, BuildingEnergyCharacteristics, BuildingHouseholds, BuildingParcel, NutsRegion, BuildingStatistics)
+import pandas as pd
 
 __author__ = "k.dabrock"
 __copyright__ = "k.dabrock"
@@ -25,8 +26,8 @@ class TestApiClientRead:
 
     def test_get_buildings_heating_type_solids(self):
         self.__given_client_unauthenticated()
-        buildings = self.__when_get_buildings(heating_type='SLD')
-        self.__then_heating_type_buildings_returned(buildings, 'SLD', 0)
+        buildings = self.__when_get_buildings(heating_type='GEO')
+        self.__then_heating_type_buildings_returned(buildings, 'GEO', 0)
 
 
     def test_get_building_energy_statistics_succeeds(self):
@@ -63,6 +64,12 @@ class TestApiClientRead:
         self.__given_client_unauthenticated()
         heat_demand = self.testee.get_heat_demand_statistics(nuts_level=1, country='DE')
         self.__then_correct_number_returned(heat_demand, 16)
+
+
+    def test_get_energy_commodity_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        commodity_statistics = self.testee.get_energy_commodity_statistics(nuts_level=1, country='DE')
+        self.__then_commodity_statistics_for_correct_regions_returned(commodity_statistics, 16, 'DE')
 
 
     # GIVEN
@@ -122,3 +129,9 @@ class TestApiClientRead:
     def __then_building_energy_characteristics_returned(self, result):
         assert len(result) > 0
         assert isinstance(result[0], BuildingEnergyCharacteristics)
+
+    def __then_commodity_statistics_for_correct_regions_returned(self, result, expected_count, expected_region_prefix):
+        result_df = pd.DataFrame(result)
+        regions = set(result_df['nuts_code'])
+        assert len(regions) == expected_count
+        assert all(result_df['nuts_code'].str.startswith(expected_region_prefix))
