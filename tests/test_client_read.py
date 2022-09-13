@@ -1,5 +1,5 @@
 from builda_client.client import ApiClient
-from builda_client.model import (Building, BuildingEnergyCharacteristics, BuildingParcel, NutsRegion, BuildingStatistics)
+from builda_client.model import (Building, BuildingEnergyCharacteristics, BuildingHouseholds, BuildingParcel, NutsRegion, BuildingStatistics)
 
 __author__ = "k.dabrock"
 __copyright__ = "k.dabrock"
@@ -39,6 +39,12 @@ class TestApiClientRead:
         self.__given_client_unauthenticated()
         result = self.__when_get_nuts_region('DE')
         self.__then_nuts_region_with_code_returned(result, 'DE')
+
+
+    def test_get_buildings_households(self):
+        self.__given_client_unauthenticated()
+        buildings_households = self.testee.get_buildings_households(nuts_code='DE80N')
+        self.__then_buildings_with_households_returned(buildings_households)
 
 
     def test_get_building_parcel_succeeds(self):
@@ -101,6 +107,11 @@ class TestApiClientRead:
     def __then_nuts_region_with_code_returned(self, result, code):
         assert isinstance(result, NutsRegion)
         assert result.code == code
+
+
+    def __then_buildings_with_households_returned(self, result):
+        assert len(result) > 0
+        assert isinstance(result[0], BuildingHouseholds)
 
 
     def __then_buildings_with_parcel_returned(self, result):
