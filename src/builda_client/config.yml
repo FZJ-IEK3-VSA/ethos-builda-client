@@ -12,4 +12,4 @@ staging:
     host: 134.94.116.65
     port: 8000
 
-base_url: /api/v2_20220913/
+base_url: /api/v0/
