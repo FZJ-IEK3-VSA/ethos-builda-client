@@ -82,6 +82,7 @@ class ApiClient:
     NUTS_URL = 'nuts'
     NUTS_CODES_URL = 'nuts-codes/'
     TYPE_URL = 'type'
+    HEIGHT_URL = 'height/'
     HOUSEHOLD_COUNT_URL = 'household-count'
     HEATING_COMMODITY_URL = 'heating-commodity'
     COOLING_COMMODITY_URL = 'cooling-commodity'
@@ -914,7 +915,7 @@ class ApiClient:
         if not self.api_token:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
-        url: str = f"""{self.base_url}{self.HOUSEHOLD_COUNT_URL}"""
+        url: str = f"""{self.base_url}{self.HEIGHT_URL}"""
         height_infos_json = json.dumps(height_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(url, data=height_infos_json, headers=self.__construct_authorization_header())
