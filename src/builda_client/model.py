@@ -95,11 +95,11 @@ class BuildingStockEntry:
 class Info:
     building_id: UUID
     source: str
-    priority: Optional[int] # TODO use metadata table reference instead
 
 @dataclass
 class TypeInfo(Info):
     value: str
+    priority: int # TODO use metadata table reference instead
 
 @dataclass
 class HeightInfo(Info):
