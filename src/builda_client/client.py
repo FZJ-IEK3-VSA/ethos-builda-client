@@ -797,6 +797,7 @@ class ApiClient:
                 building_id = result['building_id'],
                 footprint = ewkt_loads(result['footprint']),
                 centroid = ewkt_loads(result['centroid']),
+                footprint_area= result['footprint_area'],
                 nuts3 = result['nuts3'],
                 nuts2 = result['nuts2'],
                 nuts1 = result['nuts1'],
