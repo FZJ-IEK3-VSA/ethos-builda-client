@@ -24,7 +24,7 @@ class Building:
     id: str
     footprint: MultiPolygon
     centroid: Point
-    area: float
+    footprint_area: float
     height: float
     type: str
     heat_demand: float
@@ -83,6 +83,7 @@ class NutsRegion:
 class BuildingStockEntry:
     footprint: Polygon
     centroid: Point
+    footprint_area: float
     nuts3: str
     nuts2: str
     nuts1: str
@@ -98,6 +99,11 @@ class Info:
 @dataclass
 class TypeInfo(Info):
     value: str
+    priority: int # TODO use metadata table reference instead
+
+@dataclass
+class HeightInfo(Info):
+    value: float
 
 @dataclass
 class ParcelInfo(Info):
