@@ -17,7 +17,7 @@ from builda_client.model import (Building, BuildingBase, BuildingParcel, EnergyC
                                  EnhancedJSONEncoder, HeatDemandInfo, HeatDemandStatistics, HeatingCommodityInfo,
                                  HouseholdInfo, NutsRegion, PvGenerationInfo, Parcel, ParcelInfo, ParcelMinimalDto, TypeInfo,
                                  SectorEnergyConsumptionStatistics,
-                                 WaterHeatingCommodityInfo, BuildingEnergyCharacteristics, HeightInfo)
+                                 WaterHeatingCommodityInfo, BuildingEnergyCharacteristics, HeightInfo, Address)
 from shapely import wkt
 from shapely.geometry import shape
 from http.client import HTTPConnection
@@ -83,6 +83,7 @@ class ApiClient:
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
     BUILDINGS_BASE_URL = 'buildings-base/'
+    ADDRESS_URL = 'address/'
     BUILDINGS_HOUSEHOLDS_URL = 'buildings-households/'
     BUILDINGS_PARCEL_URL = 'buildings-parcel/'
     BUILDINGS_ENERGY_CHARACTERISTICS_URL = 'buildings-energy-characteristics/'
@@ -118,7 +119,6 @@ class ApiClient:
         """
         logging.basicConfig(level=logging.WARN)
 
-        HTTPConnection.debuglevel = 1
         requests_log = logging.getLogger("urllib3")
         requests_log.setLevel(logging.WARN)
         requests_log.propagate = True
@@ -869,6 +869,34 @@ class ApiClient:
             else:
                 raise ServerException('An unexpected error occurred', err)
   
+    def post_addresses(self, addresses: list[Address]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts addresses to the database.
+
+        Args:
+            addresses (list[Address]): The address data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """        
+        logging.debug("ApiClient: post_addresses")
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+
+        url: str = f"""{self.base_url}{self.ADDRESS_URL}"""
+        addresses_json = json.dumps(addresses, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(url, data=addresses_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
 
     def post_type_info(self, type_infos: list[TypeInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the type info data to the database.
