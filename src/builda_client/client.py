@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from uuid import UUID
 import requests
 import yaml
@@ -24,6 +24,16 @@ from http.client import HTTPConnection
 from uuid import UUID   
 import re
 
+def load_config() -> Dict:
+        """Loads the config file.
+
+        Returns:
+            dict: The configuration.
+        """
+        project_dir = Path(__file__).resolve().parents[0]
+        config_file_path = project_dir / 'config.yml'
+        with open(str(config_file_path), "r") as config_file:
+            return yaml.safe_load(config_file)
    
 def ewkt_loads(x):
     try:
@@ -113,7 +123,7 @@ class ApiClient:
         requests_log.setLevel(logging.WARN)
         requests_log.propagate = True
 
-        self.config = self.__load_config()
+        self.config = load_config()
         if proxy:
             host = self.config['proxy']['host']
             port = self.config['proxy']['port']
@@ -126,17 +136,6 @@ class ApiClient:
         self.username = username
         self.password = password
         self.api_token = self.__get_authentication_token()
-
-    def __load_config(self) -> Dict:
-        """Loads the config file.
-
-        Returns:
-            dict: The configuration.
-        """
-        project_dir = Path(__file__).resolve().parents[0]
-        config_file_path = project_dir / 'config.yml'
-        with open(str(config_file_path), "r") as config_file:
-            return yaml.safe_load(config_file)
 
     def __get_authentication_token(self) -> str:
         """Retrieves the authentication token for the given username and password from the token endpoint.
@@ -1221,3 +1220,49 @@ class ApiClient:
                 raise ServerException('An unexpected error occured.')
 
         return json.loads(response.content)
+
+
+class NominatimClient:
+
+    def __init__(self, proxy: bool = False):
+        """Constructor.
+
+        Args:
+            proxy (bool, optional): Whether to use a proxy or not. Proxy should be used when using client on cluster compute nodes. Defaults to False.
+            username (str | None, optional): Username for authentication. Only required when using client for accessing endpoints that are not open. Defaults to None.
+            password (str | None, optional): Password; see username. Defaults to None.
+            dev (boolean, optional): The 'phase' the client is used in, i.e. which databse to access. Possible options: 'dev', 'staging'. Defaults to 'staging'.
+        """
+        logging.basicConfig(level=logging.WARN)
+
+        self.config = load_config()
+        if proxy:
+            host = self.config['proxy']['host']
+            port = self.config['proxy']['port']
+        else:
+            host = self.config['nominatim']['host']
+            port = self.config['nominatim']['port']
+
+        self.address = f"""http://{host}:{port}"""
+
+    def get_address_from_location(self, lat: float, lon: float) -> Tuple[str, str, str, str]:
+        logging.debug(f'NominatimClient: get_address_from_location')
+        url: str = f"""{self.address}/reverse/?lat={lat}&lon={lon}&zoom=18&format=geocodejson"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation.')
+            else:
+                raise ServerException('An unexpected error occured.')
+
+        response_content: Dict = json.loads(response.content)
+        address_info = response_content['features'][0]['properties']['geocoding']
+
+        house_number: str = address_info['housenumber'] if 'housenumber' in address_info else ''
+        street: str = address_info['street'] if 'street' in address_info else ''
+        postcode: str = address_info['postcode'] if 'postcode' in address_info else ''
+        city: str = address_info['city'] if 'city' in address_info else ''
+
+        return (street, house_number, postcode, city)
