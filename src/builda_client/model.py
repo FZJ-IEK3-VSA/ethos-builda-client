@@ -89,6 +89,10 @@ class BuildingStockEntry:
     nuts1: str
     nuts0: str
     lau: str
+    street: str
+    house_number: str
+    postcode: str
+    city: str
     building_id: Optional[UUID] = None
 
 @dataclass
