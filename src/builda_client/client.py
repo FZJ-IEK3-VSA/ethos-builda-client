@@ -1,28 +1,34 @@
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 from uuid import UUID
+
 import requests
 import yaml
-from shapely.geometry import Polygon
-
-from builda_client.exceptions import (ClientException,
-                                      MissingCredentialsException,
-                                      ServerException, UnauthorizedException, GeocodeException)
-from builda_client.model import (Building, BuildingBase, BuildingParcel, EnergyCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
-                                 CookingCommodityInfo, CoolingCommodityInfo,
-                                 EnergyConsumption, BuildingHouseholds,
-                                 EnergyConsumptionStatistics,
-                                 EnhancedJSONEncoder, HeatDemandInfo, HeatDemandStatistics, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsRegion, PvGenerationInfo, Parcel, ParcelInfo, ParcelMinimalDto, TypeInfo,
-                                 SectorEnergyConsumptionStatistics,
-                                 WaterHeatingCommodityInfo, BuildingEnergyCharacteristics, HeightInfo, Address)
 from shapely import wkt
-from shapely.geometry import shape
-from http.client import HTTPConnection
-from uuid import UUID   
-import re
+from shapely.geometry import Polygon, shape
+
+from builda_client.exceptions import (ClientException, GeocodeException,
+                                      MissingCredentialsException,
+                                      ServerException, UnauthorizedException)
+from builda_client.model import (AddressInfo, Building, BuildingBase,
+                                 BuildingEnergyCharacteristics,
+                                 BuildingHouseholds, BuildingParcel,
+                                 BuildingStatistics, BuildingStockEntry,
+                                 CommodityCount, CookingCommodityInfo,
+                                 CoolingCommodityInfo,
+                                 EnergyCommodityStatistics, EnergyConsumption,
+                                 EnergyConsumptionStatistics,
+                                 EnhancedJSONEncoder, HeatDemandInfo,
+                                 HeatDemandStatistics, HeatingCommodityInfo,
+                                 HeightInfo, HouseholdInfo, NutsRegion, Parcel,
+                                 ParcelInfo, ParcelMinimalDto,
+                                 PvGenerationInfo,
+                                 SectorEnergyConsumptionStatistics, TypeInfo,
+                                 WaterHeatingCommodityInfo)
+
 
 def load_config() -> Dict:
         """Loads the config file.

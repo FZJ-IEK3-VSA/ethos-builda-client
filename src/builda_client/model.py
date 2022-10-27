@@ -9,6 +9,13 @@ from uuid import UUID
 from shapely.geometry import Polygon, MultiPolygon
 
 @dataclass
+class Address:
+    street: str
+    house_number: str
+    postcode: str
+    city: str
+
+@dataclass
 class Parcel:
     id: UUID
     shape: Polygon
@@ -92,19 +99,14 @@ class BuildingStockEntry:
     building_id: Optional[UUID] = None
 
 @dataclass
-class Address:
-    building_id: UUID
-    street: str
-    house_number: str
-    postcode: str
-    city: str
-    source: str
-    priority: int
-
-@dataclass
 class Info:
     building_id: UUID
     source: str
+
+@dataclass
+class AddressInfo:
+    address: Address
+    priority: int
 
 @dataclass
 class TypeInfo(Info):
