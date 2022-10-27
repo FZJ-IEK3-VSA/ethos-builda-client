@@ -1,5 +1,6 @@
 from typing import Tuple
 from builda_client.client import NominatimClient
+from builda_client.client import GeocodeException
 import pytest
 
 __author__ = "k.dabrock"
@@ -15,10 +16,16 @@ class TestNominatimClient:
         self.testee = NominatimClient()
 
     @pytest.mark.parametrize("city_test_case", ['Aachen', 'Arpsdorf'])
-    def test_get_address_aachen_succeeds(self, city_test_case):
+    def test_get_address_succeeds(self, city_test_case):
         lat, lon = self.__given_position(city_test_case)
         street, house_number, postcode, city = self.__when_get_address(lat, lon)
         self.__then_correct_address_returned(city_test_case, street, house_number, postcode, city)
+
+    def test_get_address_raises_exception(self):
+        lat = 47.4945827961842
+        lon = 9.987236950002425
+        with pytest.raises(GeocodeException):
+            self.__when_get_address(lat, lon)
 
     def __given_position(self, city) -> Tuple[float, float]:
         if city == 'Aachen':

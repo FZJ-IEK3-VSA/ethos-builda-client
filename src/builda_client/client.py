@@ -9,7 +9,7 @@ from shapely.geometry import Polygon
 
 from builda_client.exceptions import (ClientException,
                                       MissingCredentialsException,
-                                      ServerException, UnauthorizedException)
+                                      ServerException, UnauthorizedException, GeocodeException)
 from builda_client.model import (Building, BuildingBase, BuildingParcel, EnergyCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
                                  CookingCommodityInfo, CoolingCommodityInfo,
                                  EnergyConsumption, BuildingHouseholds,
@@ -1286,6 +1286,9 @@ class NominatimClient:
                 raise ServerException('An unexpected error occured.')
 
         response_content: Dict = json.loads(response.content)
+        if 'error' in response_content or not 'features' in response_content:
+            raise GeocodeException
+
         address_info = response_content['features'][0]['properties']['geocoding']
 
         house_number: str = address_info['housenumber'] if 'housenumber' in address_info else ''
