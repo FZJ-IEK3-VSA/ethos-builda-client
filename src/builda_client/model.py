@@ -26,11 +26,12 @@ class ParcelMinimalDto:
     id: UUID
     shape: Polygon
 
+
 @dataclass
 class Building:
     id: str
-    footprint: MultiPolygon
     centroid: Point
+    address: Address
     footprint_area: float
     height: float
     type: str
@@ -41,7 +42,6 @@ class Building:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
-    parcel: Optional[ParcelMinimalDto] = None
 
 
 @dataclass
@@ -104,8 +104,11 @@ class Info:
     source: str
 
 @dataclass
-class AddressInfo:
-    address: Address
+class AddressInfo(Info):
+    street: str
+    house_number: str
+    postcode: str
+    city: str
     priority: int
 
 @dataclass

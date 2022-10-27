@@ -875,7 +875,7 @@ class ApiClient:
             else:
                 raise ServerException('An unexpected error occurred', err)
   
-    def post_addresses(self, addresses: list[Address]) -> None:
+    def post_addresses(self, addresses: list[AddressInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts addresses to the database.
 
         Args:
