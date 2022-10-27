@@ -13,3 +13,7 @@ staging:
     port: 8000
 
 base_url: /api/v0/
+
+nominatim:
+  host: 134.94.116.65
+  port: 8080

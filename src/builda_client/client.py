@@ -1,29 +1,45 @@
 import json
 import logging
+import re
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from uuid import UUID
+
 import requests
 import yaml
-from shapely.geometry import Polygon
+from shapely import wkt
+from shapely.geometry import Polygon, shape
 
-from builda_client.exceptions import (ClientException,
+from builda_client.exceptions import (ClientException, GeocodeException,
                                       MissingCredentialsException,
                                       ServerException, UnauthorizedException)
-from builda_client.model import (Building, BuildingBase, BuildingParcel, EnergyCommodityStatistics, BuildingStatistics, BuildingStockEntry, CommodityCount,
-                                 CookingCommodityInfo, CoolingCommodityInfo,
-                                 EnergyConsumption, BuildingHouseholds,
+from builda_client.model import (Address, AddressInfo, Building, BuildingBase,
+                                 BuildingEnergyCharacteristics,
+                                 BuildingHouseholds, BuildingParcel,
+                                 BuildingStatistics, BuildingStockEntry,
+                                 CommodityCount, CookingCommodityInfo,
+                                 CoolingCommodityInfo,
+                                 EnergyCommodityStatistics, EnergyConsumption,
                                  EnergyConsumptionStatistics,
-                                 EnhancedJSONEncoder, HeatDemandInfo, HeatDemandStatistics, HeatingCommodityInfo,
-                                 HouseholdInfo, NutsRegion, PvGenerationInfo, Parcel, ParcelInfo, ParcelMinimalDto, TypeInfo,
-                                 SectorEnergyConsumptionStatistics,
-                                 WaterHeatingCommodityInfo, BuildingEnergyCharacteristics, HeightInfo)
-from shapely import wkt
-from shapely.geometry import shape
-from http.client import HTTPConnection
-from uuid import UUID   
-import re
+                                 EnhancedJSONEncoder, HeatDemandInfo,
+                                 HeatDemandStatistics, HeatingCommodityInfo,
+                                 HeightInfo, HouseholdInfo, NutsRegion, Parcel,
+                                 ParcelInfo, ParcelMinimalDto,
+                                 PvGenerationInfo,
+                                 SectorEnergyConsumptionStatistics, TypeInfo,
+                                 WaterHeatingCommodityInfo)
 
+
+def load_config() -> Dict:
+        """Loads the config file.
+
+        Returns:
+            dict: The configuration.
+        """
+        project_dir = Path(__file__).resolve().parents[0]
+        config_file_path = project_dir / 'config.yml'
+        with open(str(config_file_path), "r") as config_file:
+            return yaml.safe_load(config_file)
    
 def ewkt_loads(x):
     try:
@@ -73,6 +89,7 @@ class ApiClient:
     AUTH_URL = '/auth/api-token'
     BUILDINGS_URL = 'buildings'
     BUILDINGS_BASE_URL = 'buildings-base/'
+    ADDRESS_URL = 'address/'
     BUILDINGS_HOUSEHOLDS_URL = 'buildings-households/'
     BUILDINGS_PARCEL_URL = 'buildings-parcel/'
     BUILDINGS_ENERGY_CHARACTERISTICS_URL = 'buildings-energy-characteristics/'
@@ -108,12 +125,11 @@ class ApiClient:
         """
         logging.basicConfig(level=logging.WARN)
 
-        HTTPConnection.debuglevel = 1
         requests_log = logging.getLogger("urllib3")
         requests_log.setLevel(logging.WARN)
         requests_log.propagate = True
 
-        self.config = self.__load_config()
+        self.config = load_config()
         if proxy:
             host = self.config['proxy']['host']
             port = self.config['proxy']['port']
@@ -126,17 +142,6 @@ class ApiClient:
         self.username = username
         self.password = password
         self.api_token = self.__get_authentication_token()
-
-    def __load_config(self) -> Dict:
-        """Loads the config file.
-
-        Returns:
-            dict: The configuration.
-        """
-        project_dir = Path(__file__).resolve().parents[0]
-        config_file_path = project_dir / 'config.yml'
-        with open(str(config_file_path), "r") as config_file:
-            return yaml.safe_load(config_file)
 
     def __get_authentication_token(self) -> str:
         """Retrieves the authentication token for the given username and password from the token endpoint.
@@ -175,79 +180,61 @@ class ApiClient:
         else:
             return {'Authorization': f'Token {self.api_token}'}
 
-    def get_buildings(self, nuts_code: str = '', type: str = '', heating_type: str = '', page_size: int = 100) -> list[Building]:
-        """Gets all buildings within the specified NUTS region that fall into the provided type category
-        and are of the given heating type.
 
+    def get_buildings(self, street: str = '', housenumber: str = '', postcode: str = '', city: str = '', nuts_code: str = '', type: str = '', ):
+        """Gets all buildings that match the query parameters.
         Args:
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
-            type (str): The type of building ('residential', 'non-residential', 'irrelevant')
-            heating_type (str): Heating type of buildings.
+            street (str | None, optional): The name of the street. Defaults to None.
+            housenumber (str | None, optional): The house number. Defaults to None.
+            postcode (str | None, optional): The postcode. Defaults to None.
+            city (str | None, optional): The city. Defaults to None.
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions or 2019 LAU definition. Defaults to None.
+            type (str | None, optional): The type of building ('residential', 'non-residential', 'mixed')
 
         Raises:
-            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
+            ServerException: When an error occurs on the server side..
 
         Returns:
             list[Building]: A list of buildings.
         """
-        logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code})")
-        nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?{nuts_query_param}={nuts_code}&type={type}&heating_commodity={heating_type}&page_size={page_size}"""
-
-        buildings = self.__get_paginated_results_buildings(url)
-        ids: list[UUID] = [b.id for b in buildings]
-        if len(ids) > len(set(ids)):
-            raise ServerException('Multiple buildings with the same ID have been returned.')
-        return buildings
-
-
-    def __get_paginated_results_buildings(self, url: str, header: Dict | None = None) -> list[Building]:
-        has_next = True
-        buildings: list[Building] = []
-        while has_next:
-            try:
-                response: requests.Response = requests.get(url, headers=header)
-                response.raise_for_status()
-            except requests.HTTPError as e:
-                if e.response.status_code == 403:
-                    raise UnauthorizedException('You are not authorized to perform this operation.')
-                else:
-                    raise ServerException('An unexpected error occured.')
-                    
-            response_content: Dict = json.loads(response.content)
-            results: list = response_content['results']
-            for result in results:
-                parcel: Optional[ParcelMinimalDto] = None
-                if result['parcel']:
-                    parcel =  ParcelMinimalDto(
-                        id = result['parcel']['id'],
-                        shape = ewkt_loads(result['parcel']['shape']),
-                    )
-
-                building = Building(
-                    id = result['id'],
-                    footprint = ewkt_loads(result['footprint']),
-                    centroid = ewkt_loads(result['centroid']),
-                    footprint_area = result['footprint_area'],
-                    height = result['height'],
-                    type = result['type'],
-                    heat_demand = result['heat_demand'],
-                    pv_generation = result['pv_generation'],
-                    household_count = result['household_count'],
-                    heating_commodity = result['heating_commodity'],
-                    cooling_commodity = result['heating_commodity'],
-                    water_heating_commodity = result['heating_commodity'],
-                    cooking_commodity = result['heating_commodity'],
-                    parcel = parcel
-                )
-                buildings.append(building)
-           
-            if not response_content['next']:
-                has_next = False
-            else:
-                url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
         
+        logging.debug(f"ApiClient: get_buildings(street={street}, housenumber={housenumber}, postcode={postcode}, city={city}, nuts_code={nuts_code}, type={type})")
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={type}"""
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug('ApiClient: received response. Checking for errors.')
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        results: list[str] = json.loads(response.content)
+        buildings: list[Building] = []
+        for result in results:
+            address = Address(
+                street = result['street'],
+                house_number = result['house_number'],
+                postcode = result['postcode'],
+                city = result['city'],
+            )
+            building = Building(
+                id = result['id'],
+                address = address,
+                footprint_area = result['footprint_area'],
+                height = result['height'],
+                type = result['type'],
+                heat_demand = result['heat_demand'],
+                pv_generation = result['pv_generation'],
+                household_count = result['household_count'],
+                heating_commodity = result['heating_commodity'],
+                cooling_commodity = result['heating_commodity'],
+                water_heating_commodity = result['heating_commodity'],
+                cooking_commodity = result['heating_commodity'],
+                )
+            buildings.append(building)
         return buildings
+
 
     def get_buildings_base(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingBase]:
         """Gets buildings with reduced parameter set within the specified NUTS region that fall into the provided type category.
@@ -870,6 +857,34 @@ class ApiClient:
             else:
                 raise ServerException('An unexpected error occurred', err)
   
+    def post_addresses(self, addresses: list[AddressInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts addresses to the database.
+
+        Args:
+            addresses (list[Address]): The address data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """        
+        logging.debug("ApiClient: post_addresses")
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+
+        url: str = f"""{self.base_url}{self.ADDRESS_URL}"""
+        addresses_json = json.dumps(addresses, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(url, data=addresses_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
 
     def post_type_info(self, type_infos: list[TypeInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the type info data to the database.
@@ -1221,3 +1236,52 @@ class ApiClient:
                 raise ServerException('An unexpected error occured.')
 
         return json.loads(response.content)
+
+
+class NominatimClient:
+
+    def __init__(self, proxy: bool = False):
+        """Constructor.
+
+        Args:
+            proxy (bool, optional): Whether to use a proxy or not. Proxy should be used when using client on cluster compute nodes. Defaults to False.
+            username (str | None, optional): Username for authentication. Only required when using client for accessing endpoints that are not open. Defaults to None.
+            password (str | None, optional): Password; see username. Defaults to None.
+            dev (boolean, optional): The 'phase' the client is used in, i.e. which databse to access. Possible options: 'dev', 'staging'. Defaults to 'staging'.
+        """
+        logging.basicConfig(level=logging.WARN)
+
+        self.config = load_config()
+        if proxy:
+            host = self.config['proxy']['host']
+            port = self.config['proxy']['port']
+        else:
+            host = self.config['nominatim']['host']
+            port = self.config['nominatim']['port']
+
+        self.address = f"""http://{host}:{port}"""
+
+    def get_address_from_location(self, lat: float, lon: float) -> Tuple[str, str, str, str]:
+        logging.debug(f'NominatimClient: get_address_from_location')
+        url: str = f"""{self.address}/reverse/?lat={lat}&lon={lon}&zoom=18&format=geocodejson"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation.')
+            else:
+                raise ServerException('An unexpected error occured.')
+
+        response_content: Dict = json.loads(response.content)
+        if 'error' in response_content or not 'features' in response_content:
+            raise GeocodeException
+
+        address_info = response_content['features'][0]['properties']['geocoding']
+
+        house_number: str = address_info['housenumber'] if 'housenumber' in address_info else ''
+        street: str = address_info['street'] if 'street' in address_info else ''
+        postcode: str = address_info['postcode'] if 'postcode' in address_info else ''
+        city: str = address_info['city'] if 'city' in address_info else ''
+
+        return (street, house_number, postcode, city)

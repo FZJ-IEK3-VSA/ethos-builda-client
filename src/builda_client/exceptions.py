@@ -17,3 +17,8 @@ class UnauthorizedException(ClientException):
     """The client is not authorized to perform the operation, e.g. API token is invalid.
     """
     pass
+
+class GeocodeException(ServerException):
+    """Could not (reverse) geocode the data.
+    """
+    pass

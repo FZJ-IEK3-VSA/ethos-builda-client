@@ -2,7 +2,7 @@ from uuid import uuid4
 import pytest
 from builda_client.client import ApiClient
 from builda_client.exceptions import MissingCredentialsException
-from builda_client.model import (BuildingStockEntry, NutsRegion, Parcel)
+from builda_client.model import (AddressInfo, BuildingStockEntry, NutsRegion, Parcel)
 from shapely.geometry import Polygon
 
 __author__ = "k.dabrock"
@@ -45,6 +45,12 @@ class TestApiClientWrite:
         parcels = self.__given_valid_parcels()
         self.__when_add_parcels(parcels)
 
+    def test_post_addresses_succeeds(self):
+        self.__given_client_unauthenticated()
+        address_infos = self.__given_valid_addresses()
+        self.testee.post_addresses(address_infos)
+
+
 
     # GIVEN
     def __given_client_authenticated(self, proxy: bool = False) -> None:
@@ -67,6 +73,27 @@ class TestApiClientWrite:
             source = 'test'
         )
         return [parcel1, parcel2]
+
+    def __given_valid_addresses(self) -> list[AddressInfo]:
+        address_info1 = AddressInfo(
+            building_id = uuid4(),
+            street = 'Wüllnerstraße',
+            house_number = '9',
+            postcode = '52062',
+            city = 'Aachen',
+            priority = 1,
+            source = 'Test'
+        )
+        address_info2 = AddressInfo(
+            building_id = uuid4(),
+            street = 'Wüllnerstraße',
+            house_number = '10',
+            postcode = '52062',
+            city = 'Aachen',
+            priority = 1,
+            source = 'Test'
+        )
+        return [address_info1, address_info2]
 
     # WHEN
     def __when_refresh_view(self):
