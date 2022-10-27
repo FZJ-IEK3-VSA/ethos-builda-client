@@ -168,6 +168,20 @@ class BuildingStatistics:
     building_count_undefined: int
 
 @dataclass
+class FootprintAreaStatistics:
+    nuts_code: str
+    sum_footprint_area_total: float
+    avg_footprint_area_total: float
+    sum_footprint_area_residential: float
+    avg_footprint_area_residential: float
+    sum_footprint_area_non_residential: float
+    avg_footprint_area_non_residential: float
+    sum_footprint_area_irrelevant: float
+    avg_footprint_area_irrelevant: float
+    sum_footprint_area_undefined: float
+    avg_footprint_area_undefined: float
+
+@dataclass
 class HeatDemandStatistics:
     nuts_code: str
     heat_demand: float

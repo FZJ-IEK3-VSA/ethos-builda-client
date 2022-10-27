@@ -27,7 +27,7 @@ from builda_client.model import (Address, AddressInfo, Building, BuildingBase,
                                  ParcelInfo, ParcelMinimalDto,
                                  PvGenerationInfo,
                                  SectorEnergyConsumptionStatistics, TypeInfo,
-                                 WaterHeatingCommodityInfo)
+                                 WaterHeatingCommodityInfo, FootprintAreaStatistics)
 
 
 def load_config() -> Dict:
@@ -84,6 +84,7 @@ class ApiClient:
     HEAT_DEMAND_STATISTICS_URL = 'statistics/heat-demand'
     BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
     ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
+    FOOTPRINT_AREA_STATISTICS_URL = 'statistics/footprint-area'
 
     # For developpers/ write users of database
     AUTH_URL = '/auth/api-token'
@@ -522,10 +523,11 @@ class ApiClient:
 
         return buildings
 
-    def get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
+    def get_building_statistics(self, country: str = '', nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
         """Get the building statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level. Defaults to None.
             nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
 
@@ -539,11 +541,11 @@ class ApiClient:
         if nuts_level is not None and nuts_code is not None:
             raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
 
-        query_params = ""
+        query_params = f"?country={country}"
         if nuts_level is not None:
-            query_params = f"?nuts_level={nuts_level}"
+            query_params += f"&nuts_level={nuts_level}"
         elif nuts_code is not None:
-            query_params = f"?nuts_code={nuts_code}"
+            query_params += f"&nuts_code={nuts_code}"
 
         url: str = f"""{self.base_url}{self.BUILDING_STATISTICS_URL}{query_params}"""
         try:
@@ -562,6 +564,56 @@ class ApiClient:
                 building_count_non_residential=res['building_count_non_residential'],
                 building_count_irrelevant=res['building_count_irrelevant'],
                 building_count_undefined=res['building_count_undefined']
+                )
+            statistics.append(statistic)
+        return statistics
+
+    def get_footprint_area_statistics(self, country: str = '', nuts_level: int | None = None, nuts_code: str | None = None) -> list[FootprintAreaStatistics]:
+        """Get the footprint area statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical info about buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{self.FOOTPRINT_AREA_STATISTICS_URL}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        results: list = json.loads(response.content)
+        statistics: list[BuildingStatistics] = []
+        for res in results:
+            statistic = FootprintAreaStatistics(
+                nuts_code=res['nuts_code'], 
+                sum_footprint_area_total=res['sum_footprint_area_total'], 
+                avg_footprint_area_total=res['avg_footprint_area_total'], 
+                sum_footprint_area_residential=res['sum_footprint_area_residential'],
+                avg_footprint_area_residential=res['avg_footprint_area_residential'],
+                sum_footprint_area_non_residential=res['sum_footprint_area_non_residential'],
+                avg_footprint_area_non_residential=res['avg_footprint_area_non_residential'],
+                sum_footprint_area_irrelevant=res['sum_footprint_area_irrelevant'],
+                avg_footprint_area_irrelevant=res['avg_footprint_area_irrelevant'],
+                sum_footprint_area_undefined=res['sum_footprint_area_undefined'],
+                avg_footprint_area_undefined=res['avg_footprint_area_undefined']
                 )
             statistics.append(statistic)
         return statistics

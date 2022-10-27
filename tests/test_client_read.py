@@ -58,6 +58,10 @@ class TestApiClientRead:
         heat_demand = self.testee.get_heat_demand_statistics(nuts_level=1, country='DE')
         self.__then_correct_number_returned(heat_demand, 16)
 
+    def test_get_footprint_area_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        footprint_area_statistics = self.testee.get_footprint_area_statistics(nuts_level=1, country='DE')
+        self.__then_correct_number_returned(footprint_area_statistics, 16)
 
     def test_get_energy_commodity_statistics_succeeds(self):
         self.__given_client_unauthenticated()
