@@ -180,14 +180,19 @@ class ApiClient:
         else:
             return {'Authorization': f'Token {self.api_token}'}
 
+
     def get_buildings(self, street: str = '', housenumber: str = '', postcode: str = '', city: str = '', nuts_code: str = '', type: str = '', ):
         """Gets all buildings that match the query parameters.
         Args:
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
-            type (str): The type of building ('residential', 'non-residential', 'irrelevant')
+            street (str | None, optional): The name of the street. Defaults to None.
+            housenumber (str | None, optional): The house number. Defaults to None.
+            postcode (str | None, optional): The postcode. Defaults to None.
+            city (str | None, optional): The city. Defaults to None.
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions or 2019 LAU definition. Defaults to None.
+            type (str | None, optional): The type of building ('residential', 'non-residential', 'mixed')
 
         Raises:
-            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
+            ServerException: When an error occurs on the server side..
 
         Returns:
             list[Building]: A list of buildings.
