@@ -13,7 +13,7 @@ from shapely.geometry import Polygon, shape
 from builda_client.exceptions import (ClientException, GeocodeException,
                                       MissingCredentialsException,
                                       ServerException, UnauthorizedException)
-from builda_client.model import (AddressInfo, Building, BuildingBase,
+from builda_client.model import (Address, AddressInfo, Building, BuildingBase,
                                  BuildingEnergyCharacteristics,
                                  BuildingHouseholds, BuildingParcel,
                                  BuildingStatistics, BuildingStockEntry,
@@ -180,14 +180,11 @@ class ApiClient:
         else:
             return {'Authorization': f'Token {self.api_token}'}
 
-    def get_buildings(self, nuts_code: str = '', type: str = '', heating_type: str = '', page_size: int = 100) -> list[Building]:
-        """Gets all buildings within the specified NUTS region that fall into the provided type category
-        and are of the given heating type.
-
+    def get_buildings(self, street: str = '', housenumber: str = '', postcode: str = '', city: str = '', nuts_code: str = '', type: str = '', ):
+        """Gets all buildings that match the query parameters.
         Args:
             nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
             type (str): The type of building ('residential', 'non-residential', 'irrelevant')
-            heating_type (str): Heating type of buildings.
 
         Raises:
             ServerException: When the DB is inconsistent and more than one building with same ID is returned.
@@ -195,64 +192,44 @@ class ApiClient:
         Returns:
             list[Building]: A list of buildings.
         """
-        logging.debug(f"ApiClient: get_buildings(nuts_code = {nuts_code})")
-        nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?{nuts_query_param}={nuts_code}&type={type}&heating_commodity={heating_type}&page_size={page_size}"""
-
-        buildings = self.__get_paginated_results_buildings(url)
-        ids: list[UUID] = [b.id for b in buildings]
-        if len(ids) > len(set(ids)):
-            raise ServerException('Multiple buildings with the same ID have been returned.')
-        return buildings
-
-
-    def __get_paginated_results_buildings(self, url: str, header: Dict | None = None) -> list[Building]:
-        has_next = True
-        buildings: list[Building] = []
-        while has_next:
-            try:
-                response: requests.Response = requests.get(url, headers=header)
-                response.raise_for_status()
-            except requests.HTTPError as e:
-                if e.response.status_code == 403:
-                    raise UnauthorizedException('You are not authorized to perform this operation.')
-                else:
-                    raise ServerException('An unexpected error occured.')
-                    
-            response_content: Dict = json.loads(response.content)
-            results: list = response_content['results']
-            for result in results:
-                parcel: Optional[ParcelMinimalDto] = None
-                if result['parcel']:
-                    parcel =  ParcelMinimalDto(
-                        id = result['parcel']['id'],
-                        shape = ewkt_loads(result['parcel']['shape']),
-                    )
-
-                building = Building(
-                    id = result['id'],
-                    footprint = ewkt_loads(result['footprint']),
-                    centroid = ewkt_loads(result['centroid']),
-                    footprint_area = result['footprint_area'],
-                    height = result['height'],
-                    type = result['type'],
-                    heat_demand = result['heat_demand'],
-                    pv_generation = result['pv_generation'],
-                    household_count = result['household_count'],
-                    heating_commodity = result['heating_commodity'],
-                    cooling_commodity = result['heating_commodity'],
-                    water_heating_commodity = result['heating_commodity'],
-                    cooking_commodity = result['heating_commodity'],
-                    parcel = parcel
-                )
-                buildings.append(building)
-           
-            if not response_content['next']:
-                has_next = False
-            else:
-                url = url.split('?')[0] + '?' + response_content['next'].split('?')[-1]
         
+        logging.debug(f"ApiClient: get_buildings(street={street}, housenumber={housenumber}, postcode={postcode}, city={city}, nuts_code={nuts_code}, type={type})")
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={type}"""
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug('ApiClient: received response. Checking for errors.')
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException('An unexpected exception occurred.')
+
+        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        results: list[str] = json.loads(response.content)
+        buildings: list[Building] = []
+        for result in results:
+            address = Address(
+                street = result['street'],
+                house_number = result['house_number'],
+                postcode = result['postcode'],
+                city = result['city'],
+            )
+            building = Building(
+                id = result['id'],
+                address = address,
+                footprint_area = result['footprint_area'],
+                height = result['height'],
+                type = result['type'],
+                heat_demand = result['heat_demand'],
+                pv_generation = result['pv_generation'],
+                household_count = result['household_count'],
+                heating_commodity = result['heating_commodity'],
+                cooling_commodity = result['heating_commodity'],
+                water_heating_commodity = result['heating_commodity'],
+                cooking_commodity = result['heating_commodity'],
+                )
+            buildings.append(building)
         return buildings
+
 
     def get_buildings_base(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingBase]:
         """Gets buildings with reduced parameter set within the specified NUTS region that fall into the provided type category.

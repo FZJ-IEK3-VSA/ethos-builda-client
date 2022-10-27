@@ -18,17 +18,10 @@ class TestApiClientRead:
         self.__then_building_statistics_returned(building_statistic, 1)
 
 
-    def test_get_buildings_residential(self):
+    def test_get_buildings(self):
         self.__given_client_unauthenticated()
-        buildings = self.__when_get_buildings(type='residential', nuts_code = '12064340')
+        buildings = self.__when_get_buildings(type='residential', nuts_code = '09261000', street='Theaterstraße')
         self.__then_residential_buildings_returned(buildings)
-
-
-    def test_get_buildings_heating_type_solids(self):
-        self.__given_client_unauthenticated()
-        buildings = self.__when_get_buildings(heating_type='GEO')
-        self.__then_heating_type_buildings_returned(buildings, 'GEO', 0)
-
 
     def test_get_building_energy_statistics_succeeds(self):
         self.__given_client_unauthenticated()
@@ -81,8 +74,8 @@ class TestApiClientRead:
     def __when_get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
         return self.testee.get_building_statistics(nuts_level=nuts_level, nuts_code=nuts_code)
 
-    def __when_get_buildings(self, nuts_code: str = '', type: str = '', heating_type: str = ''):
-        return self.testee.get_buildings(nuts_code=nuts_code, type=type, heating_type=heating_type, page_size=100000)
+    def __when_get_buildings(self, nuts_code: str = '', type: str = '', street: str = ''):
+        return self.testee.get_buildings(nuts_code=nuts_code, type=type, street=street)
 
     def __when_get_nuts_region(self, code: str):
         return self.testee.get_nuts_region(code)

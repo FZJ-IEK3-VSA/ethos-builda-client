@@ -30,7 +30,6 @@ class ParcelMinimalDto:
 @dataclass
 class Building:
     id: str
-    centroid: Point
     address: Address
     footprint_area: float
     height: float
