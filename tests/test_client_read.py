@@ -14,7 +14,7 @@ class TestApiClientRead:
 
     def test_get_building_statistics_succeeds(self):
         self.__given_client_unauthenticated()
-        building_statistic = self.__when_get_building_statistics(nuts_code='DE')
+        building_statistic =   self.testee.get_building_statistics(nuts_level=1, country='DE')
         self.__then_building_statistics_returned(building_statistic, 1)
 
 
@@ -58,6 +58,10 @@ class TestApiClientRead:
         heat_demand = self.testee.get_heat_demand_statistics(nuts_level=1, country='DE')
         self.__then_correct_number_returned(heat_demand, 16)
 
+    def test_get_footprint_area_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        footprint_area_statistics = self.testee.get_footprint_area_statistics(nuts_level=1, country='DE')
+        self.__then_correct_number_returned(footprint_area_statistics, 16)
 
     def test_get_energy_commodity_statistics_succeeds(self):
         self.__given_client_unauthenticated()
@@ -71,8 +75,6 @@ class TestApiClientRead:
 
 
     # WHEN
-    def __when_get_building_statistics(self, nuts_level: int | None = None, nuts_code: str | None = None) -> list[BuildingStatistics]:
-        return self.testee.get_building_statistics(nuts_level=nuts_level, nuts_code=nuts_code)
 
     def __when_get_buildings(self, nuts_code: str = '', type: str = '', street: str = ''):
         return self.testee.get_buildings(nuts_code=nuts_code, type=type, street=street)
