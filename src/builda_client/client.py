@@ -988,7 +988,7 @@ class ApiClient:
         if not self.api_token:
             raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
 
-        url: str = f"""{self.base_url}{self.TYPE_URL}"""
+        url: str = f"""{self.base_url}{self.USE_URL}"""
 
         use_infos_json = json.dumps(use_infos, cls=EnhancedJSONEncoder)
         try:
