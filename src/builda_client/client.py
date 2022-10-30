@@ -563,7 +563,7 @@ class ApiClient:
                 building_count_total=res['building_count_total'], 
                 building_count_residential=res['building_count_residential'], 
                 building_count_non_residential=res['building_count_non_residential'],
-                building_count_irrelevant=res['building_count_irrelevant'],
+                building_count_mixed=res['building_count_mixed'],
                 building_count_undefined=res['building_count_undefined']
                 )
             statistics.append(statistic)
