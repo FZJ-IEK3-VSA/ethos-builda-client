@@ -116,6 +116,11 @@ class TypeInfo(Info):
     priority: int # TODO use metadata table reference instead
 
 @dataclass
+class UseInfo(Info):
+    value: str
+    priority: int # TODO use metadata table reference instead
+
+@dataclass
 class HeightInfo(Info):
     value: float
 

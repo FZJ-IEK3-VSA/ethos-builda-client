@@ -26,7 +26,7 @@ from builda_client.model import (Address, AddressInfo, Building, BuildingBase,
                                  HeightInfo, HouseholdInfo, NutsRegion, Parcel,
                                  ParcelInfo, ParcelMinimalDto,
                                  PvGenerationInfo,
-                                 SectorEnergyConsumptionStatistics, TypeInfo,
+                                 SectorEnergyConsumptionStatistics, TypeInfo, UseInfo,
                                  WaterHeatingCommodityInfo, FootprintAreaStatistics)
 
 
@@ -99,7 +99,8 @@ class ApiClient:
     BUILDING_STOCK_URL = 'building-stock'
     NUTS_URL = 'nuts'
     NUTS_CODES_URL = 'nuts-codes/'
-    TYPE_URL = 'type'
+    TYPE_URL = 'type/'
+    USE_URL = 'use/'
     HEIGHT_URL = 'height/'
     HOUSEHOLD_COUNT_URL = 'household-count'
     HEATING_COMMODITY_URL = 'heating-commodity'
@@ -968,6 +969,39 @@ class ApiClient:
                 raise ClientException('A client side error occured', err)
             else:
                 raise ServerException('An unexpected error occurred', err)
+
+
+    def post_use_info(self, use_infos: list[UseInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the use info data to the database.
+
+        Args:
+            use_infos (list[UseInfo]): The use info data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+
+        logging.debug("ApiClient: post_use_info")
+        if not self.api_token:
+            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+
+        url: str = f"""{self.base_url}{self.TYPE_URL}"""
+
+        use_infos_json = json.dumps(use_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(url, data=use_infos_json, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException('A client side error occured', err)
+            else:
+                raise ServerException('An unexpected error occurred', err)
+
 
     def post_height_info(self, height_infos: list[HeightInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
