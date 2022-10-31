@@ -17,7 +17,11 @@ class TestApiClientRead:
         building_statistic =   self.testee.get_building_statistics(nuts_level=1, country='DE')
         self.__then_building_statistics_returned(building_statistic, 1)
 
-
+    def test_get_building_use_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_use_statistic =   self.testee.get_building_use_statistics(nuts_level=1, country='DE')
+        building_use_statistic
+        
     def test_get_buildings(self):
         self.__given_client_unauthenticated()
         buildings = self.__when_get_buildings(type='residential', nuts_code = '09261000', street='Theaterstraße')

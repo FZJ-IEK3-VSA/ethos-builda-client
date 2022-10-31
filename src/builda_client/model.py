@@ -173,6 +173,13 @@ class BuildingStatistics:
     building_count_undefined: int
 
 @dataclass
+class BuildingUseStatistics:
+    nuts_code: str
+    type: str
+    use: str
+    building_count: int
+
+@dataclass
 class FootprintAreaStatistics:
     nuts_code: str
     sum_footprint_area_total: float
