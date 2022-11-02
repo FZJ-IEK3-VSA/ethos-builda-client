@@ -116,6 +116,11 @@ class TypeInfo(Info):
     priority: int # TODO use metadata table reference instead
 
 @dataclass
+class UseInfo(Info):
+    value: str
+    priority: int # TODO use metadata table reference instead
+
+@dataclass
 class HeightInfo(Info):
     value: float
 
@@ -164,8 +169,15 @@ class BuildingStatistics:
     building_count_total: int
     building_count_residential: int
     building_count_non_residential: int
-    building_count_irrelevant: int
+    building_count_mixed: int
     building_count_undefined: int
+
+@dataclass
+class BuildingUseStatistics:
+    nuts_code: str
+    type: str
+    use: str
+    building_count: int
 
 @dataclass
 class FootprintAreaStatistics:
