@@ -45,7 +45,7 @@ You can install a specific release directly from remote repository via:
 
 .. code-block:: console
 
-    pip install git+https://jugit.fz-juelich.de/iek-3/groups/urbanmodels/personal/dabrock/builda-client.git@v1.0 
+    pip install git+https://jugit.fz-juelich.de/iek-3/groups/urbanmodels/personal/dabrock/building-database-builda/builda-client.git@v1.0 
 
 If you execute this command without specifying the tag/release, you will install the main branch. This branch is under development and will change based on the newest (not yet versioned) API and database modifications. It is not stable. 
 
