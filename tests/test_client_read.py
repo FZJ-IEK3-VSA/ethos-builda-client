@@ -15,7 +15,7 @@ class TestApiClientRead:
     def test_get_building_statistics_succeeds(self):
         self.__given_client_unauthenticated()
         building_statistic =   self.testee.get_building_statistics(nuts_level=1, country='DE')
-        self.__then_building_statistics_returned(building_statistic, 1)
+        self.__then_building_statistics_returned(building_statistic, 16)
 
     def test_get_building_use_statistics_succeeds(self):
         self.__given_client_unauthenticated()
