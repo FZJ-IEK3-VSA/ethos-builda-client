@@ -12,7 +12,7 @@ staging:
     host: 134.94.116.65
     port: 8000
 
-base_url: /api/v0/
+base_url: /api/v3_20221107/
 
 nominatim:
   host: 134.94.116.65
