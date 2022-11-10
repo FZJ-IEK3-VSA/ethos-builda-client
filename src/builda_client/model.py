@@ -34,6 +34,7 @@ class Building:
     footprint_area: float
     height: float
     type: str
+    use: str
     heat_demand: float
     pv_generation: float
     household_count: int
@@ -152,6 +153,7 @@ class CookingCommodityInfo(Info):
 class EnergyConsumption(Info):
     commodity: str
     value: str
+    priority: int
 
 @dataclass
 class HeatDemandInfo(Info):

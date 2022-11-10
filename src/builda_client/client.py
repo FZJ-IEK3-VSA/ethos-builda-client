@@ -184,7 +184,7 @@ class ApiClient:
             return {'Authorization': f'Token {self.api_token}'}
 
 
-    def get_buildings(self, street: str = '', housenumber: str = '', postcode: str = '', city: str = '', nuts_code: str = '', type: str = '', ):
+    def get_buildings(self, street: str = '', housenumber: str = '', postcode: str = '', city: str = '', nuts_code: str = '', type: str = '', exclude_irrelevant: bool = False):
         """Gets all buildings that match the query parameters.
         Args:
             street (str | None, optional): The name of the street. Defaults to None.
@@ -203,7 +203,7 @@ class ApiClient:
         
         logging.debug(f"ApiClient: get_buildings(street={street}, housenumber={housenumber}, postcode={postcode}, city={city}, nuts_code={nuts_code}, type={type})")
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={type}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
         try:
             response: requests.Response = requests.get(url)
             logging.debug('ApiClient: received response. Checking for errors.')
@@ -227,6 +227,7 @@ class ApiClient:
                 footprint_area = result['footprint_area'],
                 height = result['height'],
                 type = result['type'],
+                use = result['use'],
                 heat_demand = result['heat_demand'],
                 pv_generation = result['pv_generation'],
                 household_count = result['household_count'],
