@@ -230,12 +230,12 @@ class ApiClient:
             building = Building(
                 id = result['id'],
                 address = address,
-                footprint_area = result['footprint_area'],
-                height = result['height'],
+                footprint_area = result['footprint_area_m2'],
+                height = result['height_m'],
                 type = result['type'],
                 use = result['use'],
-                heat_demand = result['heat_demand'],
-                pv_generation = result['pv_generation'],
+                heat_demand = result['heat_demand_MWh'],
+                pv_generation = result['pv_generation_kWh'],
                 household_count = result['household_count'],
                 heating_commodity = result['heating_commodity'],
                 cooling_commodity = result['heating_commodity'],
@@ -488,7 +488,7 @@ class ApiClient:
                 raise ServerException('An unexpected error occurred', err)
 
     def get_building_energy_characteristics(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None, heating_type: str = '') -> list[BuildingEnergyCharacteristics]:
-        """Get energy related building information (commodities, heat demand, pv generation) for each building that fulfills the query parameters.
+        """Get energy related building information (commodities, heat demand [MWh], pv generation [kWh]) for each building that fulfills the query parameters.
 
         Args:
             nuts_code (str | None, optional): The NUTS or LAU code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
@@ -525,8 +525,8 @@ class ApiClient:
                     cooling_commodity = res['cooling_commodity'],
                     water_heating_commodity = res['water_heating_commodity'],
                     cooking_commodity = res['cooking_commodity'],
-                    heat_demand = res['heat_demand'],
-                    pv_generation = res['pv_generation'],
+                    heat_demand = res['heat_demand_MWh'],
+                    pv_generation = res['pv_generation_kWh'],
                 )
             buildings.append(building)
 
@@ -639,7 +639,7 @@ class ApiClient:
 
 
     def get_footprint_area_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[FootprintAreaStatistics]:
-        """Get the footprint area statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+        """Get the footprint area statistics [m2] for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
             country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
@@ -683,22 +683,22 @@ class ApiClient:
         for res in results:
             statistic = FootprintAreaStatistics(
                 nuts_code=res['nuts_code'], 
-                sum_footprint_area_total=res['sum_footprint_area_total'], 
-                avg_footprint_area_total=res['avg_footprint_area_total'], 
-                sum_footprint_area_residential=res['sum_footprint_area_residential'],
-                avg_footprint_area_residential=res['avg_footprint_area_residential'],
-                sum_footprint_area_non_residential=res['sum_footprint_area_non_residential'],
-                avg_footprint_area_non_residential=res['avg_footprint_area_non_residential'],
-                sum_footprint_area_irrelevant=res['sum_footprint_area_irrelevant'],
-                avg_footprint_area_irrelevant=res['avg_footprint_area_irrelevant'],
-                sum_footprint_area_undefined=res['sum_footprint_area_undefined'],
-                avg_footprint_area_undefined=res['avg_footprint_area_undefined']
+                sum_footprint_area_total=res['sum_footprint_area_total_m2'], 
+                avg_footprint_area_total=res['avg_footprint_area_total_m2'], 
+                sum_footprint_area_residential=res['sum_footprint_area_residential_m2'],
+                avg_footprint_area_residential=res['avg_footprint_area_residential_m2'],
+                sum_footprint_area_non_residential=res['sum_footprint_area_non_residential_m2'],
+                avg_footprint_area_non_residential=res['avg_footprint_area_non_residential_m2'],
+                sum_footprint_area_irrelevant=res['sum_footprint_area_irrelevant_m2'],
+                avg_footprint_area_irrelevant=res['avg_footprint_area_irrelevant_m2'],
+                sum_footprint_area_undefined=res['sum_footprint_area_undefined_m2'],
+                avg_footprint_area_undefined=res['avg_footprint_area_undefined_m2']
                 )
             statistics.append(statistic)
         return statistics
 
     def get_heat_demand_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[HeatDemandStatistics]:
-        """Get the residential heat demand statistics in MWh for the given NUTS level or NUTS/LAU code. 
+        """Get the residential heat demand statistics [MWh] for the given NUTS level or NUTS/LAU code. 
         Results can be limited to a certain country by setting the country parameter.
         Only one of nuts_level and nuts_code may be specified.
 
@@ -746,13 +746,13 @@ class ApiClient:
         for res in results:
             statistic = HeatDemandStatistics(
                 nuts_code=res['nuts_code'], 
-                heat_demand=res['heat_demand_mwh'], 
+                heat_demand=res['heat_demand_MWh'], 
                 )
             statistics.append(statistic)
         return statistics
 
     def get_energy_consumption_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[EnergyConsumptionStatistics]:
-        """Get the energy consumption statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+        """Get the energy consumption statistics [MWh] for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
             country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
@@ -797,13 +797,13 @@ class ApiClient:
         statistics: list[EnergyConsumptionStatistics] = []
         for res in results:
             res_nuts_code: str = res['nuts_code']
-            energy_consumption: float = res['energy_consumption_kWh']
+            energy_consumption: float = res['energy_consumption_MWh']
 
-            energy_consumption_residential: float = res['residential']['energy_consumption_kWh']
+            energy_consumption_residential: float = res['residential']['energy_consumption_MWh']
             commodities_residential: Dict[str, float] = res['residential']['commodities']
             residential: SectorEnergyConsumptionStatistics = SectorEnergyConsumptionStatistics(energy_consumption_residential, commodities_residential)
 
-            energy_consumption_non_residential: float = res['non_residential']['energy_consumption_kWh']
+            energy_consumption_non_residential: float = res['non_residential']['energy_consumption_MWh']
             commodities_non_residential: Dict[str, float] = res['non_residential']['commodities']
             non_residential: SectorEnergyConsumptionStatistics = SectorEnergyConsumptionStatistics(energy_consumption_non_residential, commodities_non_residential)
 
