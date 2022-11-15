@@ -222,6 +222,7 @@ class SectorEnergyConsumptionStatistics:
 class EnergyConsumptionStatistics(Statistics):
     energy_consumption: float
     residential: SectorEnergyConsumptionStatistics
+    non_residential: SectorEnergyConsumptionStatistics
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):
