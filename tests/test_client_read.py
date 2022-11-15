@@ -1,6 +1,8 @@
+from typing import Any
 from builda_client.client import ApiClient
-from builda_client.model import (Building, BuildingEnergyCharacteristics, BuildingHouseholds, BuildingParcel, NutsRegion, BuildingStatistics)
+from builda_client.model import (Building, BuildingEnergyCharacteristics, BuildingHouseholds, BuildingParcel, NutsRegion, BuildingStatistics, Statistics)
 import pandas as pd
+from shapely.geometry import Polygon
 
 __author__ = "k.dabrock"
 __copyright__ = "k.dabrock"
@@ -14,13 +16,21 @@ class TestApiClientRead:
 
     def test_get_building_statistics_succeeds(self):
         self.__given_client_unauthenticated()
-        building_statistic =   self.testee.get_building_statistics(nuts_level=1, country='DE')
+        building_statistic = self.testee.get_building_type_statistics(nuts_level=1, country='DE')
         self.__then_building_statistics_returned(building_statistic, 16)
+
+    def test_get_building_statistics_custom_geom_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_statistic =   self.testee.get_building_type_statistics(geom=Polygon(((0., 0.), (1., 0.), (0., 1.), (0., 0.))))
+        self.__then_building_statistics_returned(building_statistic, 1)
 
     def test_get_building_use_statistics_succeeds(self):
         self.__given_client_unauthenticated()
-        building_use_statistic =   self.testee.get_building_use_statistics(nuts_level=1, country='DE')
-        building_use_statistic
+        building_use_statistic = self.testee.get_building_use_statistics(nuts_level=1, country='DE')
+
+    def test_get_building_use_statistics_by_geom_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_use_statistic = self.testee.get_building_use_statistics(geom=Polygon(((0., 0.), (1., 0.), (0., 1.), (0., 0.))))
         
     def test_get_buildings(self):
         self.__given_client_unauthenticated()
@@ -31,7 +41,6 @@ class TestApiClientRead:
         self.__given_client_unauthenticated()
         bu_energy = self.testee.get_building_energy_characteristics(nuts_code='DE80N')
         self.__then_building_energy_characteristics_returned(bu_energy)
-        
 
     def test_get_nuts_region(self):
         self.__given_client_unauthenticated()
@@ -88,7 +97,7 @@ class TestApiClientRead:
 
 
     # THEN
-    def __then_building_statistics_returned(self, result: list[BuildingStatistics], count: int):
+    def __then_building_statistics_returned(self, result: list[Any], count: int):
         assert result
         assert len(result) == count
 
