@@ -152,6 +152,7 @@ class CookingCommodityInfo(Info):
 
 @dataclass
 class EnergyConsumption(Info):
+    type: str
     commodity: str
     value: str
     priority: int
