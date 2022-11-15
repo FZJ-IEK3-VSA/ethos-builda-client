@@ -31,13 +31,18 @@ class TestApiClientRead:
     def test_get_building_use_statistics_by_geom_succeeds(self):
         self.__given_client_unauthenticated()
         building_use_statistic = self.testee.get_building_use_statistics(geom=Polygon(((0., 0.), (1., 0.), (0., 1.), (0., 0.))))
+
+    def test_get_energy_consumption_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        energy_consumption_statistics = self.testee.get_energy_consumption_statistics(nuts_level=1, country='DE')
+        energy_consumption_statistics
         
     def test_get_buildings(self):
         self.__given_client_unauthenticated()
         buildings = self.__when_get_buildings(type='residential', nuts_code = '09261000', street='Theaterstraße')
         self.__then_residential_buildings_returned(buildings)
 
-    def test_get_building_energy_statistics_succeeds(self):
+    def test_get_building_energy_characteristics_succeeds(self):
         self.__given_client_unauthenticated()
         bu_energy = self.testee.get_building_energy_characteristics(nuts_code='DE80N')
         self.__then_building_energy_characteristics_returned(bu_energy)

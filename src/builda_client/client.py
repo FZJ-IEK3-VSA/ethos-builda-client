@@ -803,7 +803,11 @@ class ApiClient:
             commodities_residential: Dict[str, float] = res['residential']['commodities']
             residential: SectorEnergyConsumptionStatistics = SectorEnergyConsumptionStatistics(energy_consumption_residential, commodities_residential)
 
-            statistic = EnergyConsumptionStatistics(nuts_code=res_nuts_code, energy_consumption=energy_consumption, residential=residential)
+            energy_consumption_non_residential: float = res['non_residential']['energy_consumption_kWh']
+            commodities_non_residential: Dict[str, float] = res['non_residential']['commodities']
+            non_residential: SectorEnergyConsumptionStatistics = SectorEnergyConsumptionStatistics(energy_consumption_non_residential, commodities_non_residential)
+
+            statistic = EnergyConsumptionStatistics(nuts_code=res_nuts_code, energy_consumption=energy_consumption, residential=residential, non_residential=non_residential)
             statistics.append(statistic)
         return statistics
 
