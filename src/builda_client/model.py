@@ -1,3 +1,4 @@
+from abc import ABC
 import dataclasses
 import json
 from dataclasses import dataclass
@@ -166,8 +167,11 @@ class PvGenerationInfo(Info):
     
 
 @dataclass
-class BuildingStatistics:
+class Statistics(ABC):
     nuts_code: str
+
+@dataclass
+class BuildingStatistics(Statistics):
     building_count_total: int
     building_count_residential: int
     building_count_non_residential: int
@@ -175,15 +179,13 @@ class BuildingStatistics:
     building_count_undefined: int
 
 @dataclass
-class BuildingUseStatistics:
-    nuts_code: str
+class BuildingUseStatistics(Statistics):
     type: str
     use: str
     building_count: int
 
 @dataclass
-class FootprintAreaStatistics:
-    nuts_code: str
+class FootprintAreaStatistics(Statistics):
     sum_footprint_area_total: float
     avg_footprint_area_total: float
     sum_footprint_area_residential: float
@@ -196,8 +198,7 @@ class FootprintAreaStatistics:
     avg_footprint_area_undefined: float
 
 @dataclass
-class HeatDemandStatistics:
-    nuts_code: str
+class HeatDemandStatistics(Statistics):
     heat_demand: float
 
 @dataclass
@@ -208,8 +209,7 @@ class CommodityCount:
     cooking_commodity_count: int
 
 @dataclass
-class EnergyCommodityStatistics:
-    nuts_code: str
+class EnergyCommodityStatistics(Statistics):
     commodity_name: str
     building_count: CommodityCount
 
@@ -219,8 +219,7 @@ class SectorEnergyConsumptionStatistics:
     commodities: Dict[str, float]
 
 @dataclass
-class EnergyConsumptionStatistics:
-    nuts_code: str
+class EnergyConsumptionStatistics(Statistics):
     energy_consumption: float
     residential: SectorEnergyConsumptionStatistics
 
