@@ -8,6 +8,7 @@ from shapely.geometry import MultiPolygon, Point, Polygon
 from uuid import UUID
 from shapely.geometry import Polygon, MultiPolygon
 
+
 @dataclass
 class Address:
     street: str
@@ -15,11 +16,13 @@ class Address:
     postcode: str
     city: str
 
+
 @dataclass
 class Parcel:
     id: UUID
     shape: Polygon
     source: str
+
 
 @dataclass
 class ParcelMinimalDto:
@@ -41,6 +44,7 @@ class Building:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
+    construction_year: int
 
 
 @dataclass
@@ -77,6 +81,7 @@ class BuildingEnergyCharacteristics:
     heat_demand: float
     pv_generation: float
 
+
 @dataclass
 class NutsRegion:
     code: str
@@ -84,6 +89,7 @@ class NutsRegion:
     level: int
     parent: Optional[str]
     geometry: MultiPolygon
+
 
 @dataclass
 class BuildingStockEntry:
@@ -97,10 +103,12 @@ class BuildingStockEntry:
     lau: str
     building_id: Optional[UUID] = None
 
+
 @dataclass
 class Info:
     building_id: UUID
     source: str
+
 
 @dataclass
 class AddressInfo(Info):
@@ -110,48 +118,59 @@ class AddressInfo(Info):
     city: str
     priority: int
 
+
 @dataclass
 class TypeInfo(Info):
     value: str
-    priority: int # TODO use metadata table reference instead
+    priority: int  # TODO use metadata table reference instead
+
 
 @dataclass
 class UseInfo(Info):
     value: str
-    priority: int # TODO use metadata table reference instead
+    priority: int  # TODO use metadata table reference instead
+
 
 @dataclass
 class HeightInfo(Info):
     value: float
 
+
 @dataclass
 class ParcelInfo(Info):
     value: UUID
+
 
 @dataclass
 class HouseholdInfo(Info):
     value: int
 
+
 @dataclass
 class HeatingCommodityInfo(Info):
     value: str
+
 
 @dataclass
 class CoolingCommodityInfo(Info):
     value: str
 
+
 @dataclass
 class WaterHeatingCommodityInfo(Info):
     value: str
+
 
 @dataclass
 class CookingCommodityInfo(Info):
     value: str
 
+
 @dataclass
 class EnergyConsumption(Info):
     commodity: str
     value: str
+
 
 @dataclass
 class HeatDemandInfo(Info):
@@ -161,7 +180,12 @@ class HeatDemandInfo(Info):
 @dataclass
 class PvGenerationInfo(Info):
     value: float
-    
+
+
+@dataclass
+class ConstructionYearInfo(Info):
+    value: int
+
 
 @dataclass
 class BuildingStatistics:
@@ -172,12 +196,14 @@ class BuildingStatistics:
     building_count_mixed: int
     building_count_undefined: int
 
+
 @dataclass
 class BuildingUseStatistics:
     nuts_code: str
     type: str
     use: str
     building_count: int
+
 
 @dataclass
 class FootprintAreaStatistics:
@@ -193,10 +219,12 @@ class FootprintAreaStatistics:
     sum_footprint_area_undefined: float
     avg_footprint_area_undefined: float
 
+
 @dataclass
 class HeatDemandStatistics:
     nuts_code: str
     heat_demand: float
+
 
 @dataclass
 class CommodityCount:
@@ -205,22 +233,26 @@ class CommodityCount:
     water_heating_commodity_count: int
     cooking_commodity_count: int
 
+
 @dataclass
 class EnergyCommodityStatistics:
     nuts_code: str
     commodity_name: str
     building_count: CommodityCount
 
+
 @dataclass
 class SectorEnergyConsumptionStatistics:
     energy_consumption: float
     commodities: Dict[str, float]
+
 
 @dataclass
 class EnergyConsumptionStatistics:
     nuts_code: str
     energy_consumption: float
     residential: SectorEnergyConsumptionStatistics
+
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):
