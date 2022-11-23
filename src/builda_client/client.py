@@ -46,7 +46,6 @@ from builda_client.model import (
     ParcelInfo,
     ParcelMinimalDto,
     PvGenerationInfo,
-   
     TypeInfo,
     UseInfo,
     WaterHeatingCommodityInfo,
@@ -108,19 +107,19 @@ def determine_nuts_query_param(nuts_lau_code: str) -> str:
 class ApiClient:
 
     # For read-only users of database
-    BUILDING_TYPE_STATISTICS_URL = 'statistics/building-type'
-    BUILDING_TYPE_STATISTICS_BY_GEOM_URL = 'statistics/building-type/geom'
+    BUILDING_TYPE_STATISTICS_URL = "statistics/building-type"
+    BUILDING_TYPE_STATISTICS_BY_GEOM_URL = "statistics/building-type/geom"
     BUILDING_USE_STATISTICS_URL = "statistics/building-use"
-    BUILDING_USE_STATISTICS_BY_GEOM_URL = 'statistics/building-use/geom'
+    BUILDING_USE_STATISTICS_BY_GEOM_URL = "statistics/building-use/geom"
     HEAT_DEMAND_STATISTICS_URL = "statistics/heat-demand"
-    HEAT_DEMAND_STATISTICS_BY_GEOM_URL = 'statistics/heat-demand/geom'
+    HEAT_DEMAND_STATISTICS_BY_GEOM_URL = "statistics/heat-demand/geom"
     BUILDING_COMMODITY_STATISTICS_URL = "statistics/building-commodities"
-    BUILDING_COMMODITY_STATISTICS_BY_GEOM_URL = 'statistics/building-commodities/geom'
+    BUILDING_COMMODITY_STATISTICS_BY_GEOM_URL = "statistics/building-commodities/geom"
     ENERGY_STATISTICS_URL = "statistics/energy-consumption"
-    ENERGY_STATISTICS_BY_GEOM_URL = 'statistics/energy-consumption/geom'
+    ENERGY_STATISTICS_BY_GEOM_URL = "statistics/energy-consumption/geom"
     FOOTPRINT_AREA_STATISTICS_URL = "statistics/footprint-area"
     CONSTRUCTION_YEAR_STATISTICS_URL = "statistics/construction-year"
-    FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL = 'statistics/footprint-area/geom'
+    FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL = "statistics/footprint-area/geom"
 
     # For developpers/ write users of database
     AUTH_URL = "/auth/api-token"
@@ -233,8 +232,16 @@ class ApiClient:
         else:
             return {"Authorization": f"Token {self.api_token}"}
 
-
-    def get_buildings(self, street: str = '', housenumber: str = '', postcode: str = '', city: str = '', nuts_code: str = '', type: str = '', exclude_irrelevant: bool = False):
+    def get_buildings(
+        self,
+        street: str = "",
+        housenumber: str = "",
+        postcode: str = "",
+        city: str = "",
+        nuts_code: str = "",
+        type: str = "",
+        exclude_irrelevant: bool = False,
+    ):
         """Gets all buildings that match the query parameters.
         Args:
             street (str | None, optional): The name of the street. Defaults to None.
@@ -282,7 +289,7 @@ class ApiClient:
                 height=result["height_m"],
                 type=result["type"],
                 construction_year=result["construction_year"],
-                use=result['use'],
+                use=result["use"],
                 heat_demand=result["heat_demand_MWh"],
                 pv_generation=result["pv_generation_kWh"],
                 household_count=result["household_count"],
@@ -405,9 +412,12 @@ class ApiClient:
         buildings = self.__deserialize_buildings_parcel(response.content)
         return buildings
 
-
-    def get_building_ids(self, nuts_code: str = '', type: str = '', exclude_irrelevant = False) -> list[UUID]:
-        logging.debug(f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})")
+    def get_building_ids(
+        self, nuts_code: str = "", type: str = "", exclude_irrelevant=False
+    ) -> list[UUID]:
+        logging.debug(
+            f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})"
+        )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
 
@@ -573,7 +583,13 @@ class ApiClient:
             else:
                 raise ServerException("An unexpected error occurred", err)
 
-    def get_building_energy_characteristics(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None, heating_type: str = '') -> list[BuildingEnergyCharacteristics]:
+    def get_building_energy_characteristics(
+        self,
+        nuts_code: str = "",
+        type: str = "",
+        geom: Optional[Polygon] = None,
+        heating_type: str = "",
+    ) -> list[BuildingEnergyCharacteristics]:
         """Get energy related building information (commodities, heat demand [MWh], pv generation [kWh]) for each building that fulfills the query parameters.
 
         Args:
@@ -609,20 +625,26 @@ class ApiClient:
         buildings: list[BuildingEnergyCharacteristics] = []
         for res in results:
             building = BuildingEnergyCharacteristics(
-                    id = UUID(res['id']),
-                    type = res['type'],
-                    heating_commodity = res['heating_commodity'],
-                    cooling_commodity = res['cooling_commodity'],
-                    water_heating_commodity = res['water_heating_commodity'],
-                    cooking_commodity = res['cooking_commodity'],
-                    heat_demand = res['heat_demand_MWh'],
-                    pv_generation = res['pv_generation_kWh'],
-                )
+                id=UUID(res["id"]),
+                type=res["type"],
+                heating_commodity=res["heating_commodity"],
+                cooling_commodity=res["cooling_commodity"],
+                water_heating_commodity=res["water_heating_commodity"],
+                cooking_commodity=res["cooking_commodity"],
+                heat_demand=res["heat_demand_MWh"],
+                pv_generation=res["pv_generation_kWh"],
+            )
             buildings.append(building)
 
         return buildings
 
-    def get_building_type_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[BuildingStatistics]:
+    def get_building_type_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[BuildingStatistics]:
         """Get the building type statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -643,7 +665,9 @@ class ApiClient:
             )
 
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.BUILDING_TYPE_STATISTICS_BY_GEOM_URL
@@ -677,7 +701,13 @@ class ApiClient:
             statistics.append(statistic)
         return statistics
 
-    def get_building_use_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[BuildingUseStatistics]:
+    def get_building_use_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[BuildingUseStatistics]:
         """Get the building use statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -699,7 +729,9 @@ class ApiClient:
             )
 
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.BUILDING_USE_STATISTICS_BY_GEOM_URL
@@ -739,7 +771,62 @@ class ApiClient:
     ) -> list[ConstructionYearStatistics]:
         """Get the construction year statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
-    def get_footprint_area_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[FootprintAreaStatistics]:
+        Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[ConstructionYearStatistics]: A list of objects per NUTS region with statistical info about buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
+
+        url: str = (
+            f"""{self.base_url}{self.CONSTRUCTION_YEAR_STATISTICS_URL}{query_params}"""
+        )
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.")
+
+        results: list = json.loads(response.content)
+        statistics: list[ConstructionYearStatistics] = []
+        for res in results:
+            statistic = ConstructionYearStatistics(
+                nuts_code=res["nuts_code"],
+                avg_construction_year=res["avg_construction_year"],
+                avg_construction_year_residential=res[
+                    "avg_construction_year_residential"
+                ],
+                avg_construction_year_non_residential=res[
+                    "avg_construction_year_non_residential"
+                ],
+                avg_construction_year_mixed=res["avg_construction_year_mixed"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+    def get_footprint_area_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[FootprintAreaStatistics]:
         """Get the footprint area statistics [m2] for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -753,7 +840,7 @@ class ApiClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[FootprintAreaStatistics]: A list of objects per NUTS region with statistical info about buildings.
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
             raise ValueError(
@@ -761,7 +848,9 @@ class ApiClient:
             )
 
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL
@@ -785,23 +874,33 @@ class ApiClient:
         statistics: list[FootprintAreaStatistics] = []
         for res in results:
             statistic = FootprintAreaStatistics(
-                nuts_code=res['nuts_code'], 
-                sum_footprint_area_total=res['sum_footprint_area_total_m2'], 
-                avg_footprint_area_total=res['avg_footprint_area_total_m2'], 
-                sum_footprint_area_residential=res['sum_footprint_area_residential_m2'],
-                avg_footprint_area_residential=res['avg_footprint_area_residential_m2'],
-                sum_footprint_area_non_residential=res['sum_footprint_area_non_residential_m2'],
-                avg_footprint_area_non_residential=res['avg_footprint_area_non_residential_m2'],
-                sum_footprint_area_irrelevant=res['sum_footprint_area_irrelevant_m2'],
-                avg_footprint_area_irrelevant=res['avg_footprint_area_irrelevant_m2'],
-                sum_footprint_area_undefined=res['sum_footprint_area_undefined_m2'],
-                avg_footprint_area_undefined=res['avg_footprint_area_undefined_m2']
-                )
+                nuts_code=res["nuts_code"],
+                sum_footprint_area_total=res["sum_footprint_area_total_m2"],
+                avg_footprint_area_total=res["avg_footprint_area_total_m2"],
+                sum_footprint_area_residential=res["sum_footprint_area_residential_m2"],
+                avg_footprint_area_residential=res["avg_footprint_area_residential_m2"],
+                sum_footprint_area_non_residential=res[
+                    "sum_footprint_area_non_residential_m2"
+                ],
+                avg_footprint_area_non_residential=res[
+                    "avg_footprint_area_non_residential_m2"
+                ],
+                sum_footprint_area_irrelevant=res["sum_footprint_area_irrelevant_m2"],
+                avg_footprint_area_irrelevant=res["avg_footprint_area_irrelevant_m2"],
+                sum_footprint_area_undefined=res["sum_footprint_area_undefined_m2"],
+                avg_footprint_area_undefined=res["avg_footprint_area_undefined_m2"],
+            )
             statistics.append(statistic)
         return statistics
 
-    def get_heat_demand_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[HeatDemandStatistics]:
-        """Get the residential heat demand statistics [MWh] for the given NUTS level or NUTS/LAU code. 
+    def get_heat_demand_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[HeatDemandStatistics]:
+        """Get the residential heat demand statistics [MWh] for the given NUTS level or NUTS/LAU code.
         Results can be limited to a certain country by setting the country parameter.
         Only one of nuts_level and nuts_code may be specified.
 
@@ -828,7 +927,9 @@ class ApiClient:
             )
 
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.HEAT_DEMAND_STATISTICS_BY_GEOM_URL
@@ -852,13 +953,22 @@ class ApiClient:
         statistics: list[HeatDemandStatistics] = []
         for res in results:
             statistic = HeatDemandStatistics(
-                nuts_code=res['nuts_code'], 
-                heat_demand=res['heat_demand_MWh'], 
-                )
+                nuts_code=res["nuts_code"],
+                heat_demand=res["heat_demand_MWh"],
+            )
             statistics.append(statistic)
         return statistics
 
-    def get_energy_consumption_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, type: Optional[str] = None, use: Optional[str] = None, commodity: Optional[str] = None, geom: Optional[Polygon] = None) -> list[EnergyConsumptionStatistics]:
+    def get_energy_consumption_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        type: Optional[str] = None,
+        use: Optional[str] = None,
+        commodity: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[EnergyConsumptionStatistics]:
         """Get the energy consumption statistics [MWh] for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -879,10 +989,14 @@ class ApiClient:
         )
 
         if nuts_level is not None and nuts_code is not None:
-            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
-        
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.ENERGY_STATISTICS_BY_GEOM_URL
@@ -912,22 +1026,30 @@ class ApiClient:
         results: list = json.loads(response.content)
         statistics: list[EnergyConsumptionStatistics] = []
         for res in results:
-            res_nuts_code: str = res['nuts_code']
-            res_type: str = res['type']
-            res_use: str = res['use']
-            res_commodity: str = res['commodity']
-            res_consumption_MWh: float = res['consumption_MWh']
+            res_nuts_code: str = res["nuts_code"]
+            res_type: str = res["type"]
+            res_use: str = res["use"]
+            res_commodity: str = res["commodity"]
+            res_consumption_MWh: float = res["consumption_MWh"]
 
             statistic = EnergyConsumptionStatistics(
-                nuts_code=res_nuts_code, 
+                nuts_code=res_nuts_code,
                 type=res_type,
                 use=res_use,
                 commodity=res_commodity,
-                consumption=res_consumption_MWh)
+                consumption=res_consumption_MWh,
+            )
             statistics.append(statistic)
         return statistics
 
-    def get_energy_commodity_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None, commodity: str = '') -> list[EnergyCommodityStatistics]:
+    def get_energy_commodity_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+        commodity: str = "",
+    ) -> list[EnergyCommodityStatistics]:
         """Get the energy commodity statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -949,10 +1071,14 @@ class ApiClient:
         )
 
         if nuts_level is not None and nuts_code is not None:
-            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
-        
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.BUILDING_COMMODITY_STATISTICS_BY_GEOM_URL
