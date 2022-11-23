@@ -152,6 +152,7 @@ class CookingCommodityInfo(Info):
 
 @dataclass
 class EnergyConsumption(Info):
+    type: str
     commodity: str
     value: str
     priority: int
@@ -213,16 +214,14 @@ class EnergyCommodityStatistics(Statistics):
     commodity_name: str
     building_count: CommodityCount
 
-@dataclass
-class SectorEnergyConsumptionStatistics:
-    energy_consumption: float
-    commodities: Dict[str, float]
+
 
 @dataclass
 class EnergyConsumptionStatistics(Statistics):
-    energy_consumption: float
-    residential: SectorEnergyConsumptionStatistics
-    non_residential: SectorEnergyConsumptionStatistics
+    type: str
+    use: str
+    commodity: str
+    consumption: float
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):

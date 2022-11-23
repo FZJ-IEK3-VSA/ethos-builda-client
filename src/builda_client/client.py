@@ -26,7 +26,7 @@ from builda_client.model import (Address, AddressInfo, Building, BuildingBase,
                                  HeightInfo, HouseholdInfo, NutsRegion, Parcel,
                                  ParcelInfo, ParcelMinimalDto,
                                  PvGenerationInfo,
-                                 SectorEnergyConsumptionStatistics, TypeInfo, UseInfo,
+                                 TypeInfo, UseInfo,
                                  WaterHeatingCommodityInfo, FootprintAreaStatistics, BuildingUseStatistics)
 
 
@@ -341,10 +341,10 @@ class ApiClient:
         return buildings
 
 
-    def get_building_ids(self, nuts_code: str = '', type: str = '') -> list[UUID]:
+    def get_building_ids(self, nuts_code: str = '', type: str = '', exclude_irrelevant = False) -> list[UUID]:
         logging.debug(f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})")
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
 
         try:
             response: requests.Response = requests.get(url)
@@ -751,7 +751,7 @@ class ApiClient:
             statistics.append(statistic)
         return statistics
 
-    def get_energy_consumption_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[EnergyConsumptionStatistics]:
+    def get_energy_consumption_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, type: Optional[str] = None, use: Optional[str] = None, commodity: Optional[str] = None, geom: Optional[Polygon] = None) -> list[EnergyConsumptionStatistics]:
         """Get the energy consumption statistics [MWh] for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -786,6 +786,13 @@ class ApiClient:
             elif nuts_code is not None:
                 query_params += f"&nuts_code={nuts_code}"
 
+        if type is not None:
+            query_params += f"&type={type}"
+        if use is not None:
+            query_params += f"&use={use}"
+        if commodity is not None:
+            query_params += f"&commodity={commodity}"
+
         url: str = f"""{self.base_url}{statistics_url}{query_params}"""
         try:
             response: requests.Response = requests.get(url)
@@ -797,17 +804,17 @@ class ApiClient:
         statistics: list[EnergyConsumptionStatistics] = []
         for res in results:
             res_nuts_code: str = res['nuts_code']
-            energy_consumption: float = res['energy_consumption_MWh']
+            res_type: str = res['type']
+            res_use: str = res['use']
+            res_commodity: str = res['commodity']
+            res_consumption_MWh: float = res['consumption_MWh']
 
-            energy_consumption_residential: float = res['residential']['energy_consumption_MWh']
-            commodities_residential: Dict[str, float] = res['residential']['commodities']
-            residential: SectorEnergyConsumptionStatistics = SectorEnergyConsumptionStatistics(energy_consumption_residential, commodities_residential)
-
-            energy_consumption_non_residential: float = res['non_residential']['energy_consumption_MWh']
-            commodities_non_residential: Dict[str, float] = res['non_residential']['commodities']
-            non_residential: SectorEnergyConsumptionStatistics = SectorEnergyConsumptionStatistics(energy_consumption_non_residential, commodities_non_residential)
-
-            statistic = EnergyConsumptionStatistics(nuts_code=res_nuts_code, energy_consumption=energy_consumption, residential=residential, non_residential=non_residential)
+            statistic = EnergyConsumptionStatistics(
+                nuts_code=res_nuts_code, 
+                type=res_type,
+                use=res_use,
+                commodity=res_commodity,
+                consumption=res_consumption_MWh)
             statistics.append(statistic)
         return statistics
 
