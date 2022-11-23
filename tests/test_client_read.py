@@ -1,3 +1,4 @@
+from typing import Any
 from builda_client.client import ApiClient
 from builda_client.model import (
     Building,
@@ -7,8 +8,11 @@ from builda_client.model import (
     ConstructionYearStatistics,
     NutsRegion,
     BuildingStatistics,
+    Statistics,
 )
 import pandas as pd
+from shapely.geometry import Polygon
+from shapely import wkt
 
 __author__ = "k.dabrock"
 __copyright__ = "k.dabrock"
@@ -22,17 +26,49 @@ class TestApiClientRead:
 
     def test_get_building_statistics_succeeds(self):
         self.__given_client_unauthenticated()
-        building_statistic = self.testee.get_building_statistics(
+        building_statistic = self.testee.get_building_type_statistics(
             nuts_level=1, country="DE"
         )
         self.__then_building_statistics_returned(building_statistic, 16)
+
+    def test_get_building_statistics_custom_geom_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_statistic = self.testee.get_building_type_statistics(
+            geom=Polygon(((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (0.0, 0.0)))
+        )
+        self.__then_building_statistics_returned(building_statistic, 1)
 
     def test_get_building_use_statistics_succeeds(self):
         self.__given_client_unauthenticated()
         building_use_statistic = self.testee.get_building_use_statistics(
             nuts_level=1, country="DE"
         )
-        building_use_statistic
+
+    def test_get_building_use_statistics_by_geom_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_use_statistic = self.testee.get_building_use_statistics(
+            geom=Polygon(((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (0.0, 0.0)))
+        )
+
+    def test_get_energy_consumption_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        energy_consumption_statistics = self.testee.get_energy_consumption_statistics(
+            nuts_level=1,
+            country="DE",
+            type="non_residential",
+            use="1_crop_animal_production",
+        )
+        assert len(energy_consumption_statistics) > 0
+
+    def test_get_energy_consumption_statistics_by_geom_succeeds(self):
+        self.__given_client_unauthenticated()
+        custom_geom = wkt.loads(
+            "POLYGON((4031408.7239999995 2684074.9562,4031408.7239999995 3551421.7045,4672473.542199999 3551421.7045,4672473.542199999 2684074.9562,4031408.7239999995 2684074.9562))"
+        )
+        energy_consumption_statistics = self.testee.get_energy_consumption_statistics(
+            geom=custom_geom
+        )
+        assert len(energy_consumption_statistics) > 0
 
     def test_get_buildings(self):
         self.__given_client_unauthenticated()
@@ -41,7 +77,7 @@ class TestApiClientRead:
         )
         self.__then_residential_buildings_returned(buildings)
 
-    def test_get_building_energy_statistics_succeeds(self):
+    def test_get_building_energy_characteristics_succeeds(self):
         self.__given_client_unauthenticated()
         bu_energy = self.testee.get_building_energy_characteristics(nuts_code="DE80N")
         self.__then_building_energy_characteristics_returned(bu_energy)
@@ -109,9 +145,7 @@ class TestApiClientRead:
         return self.testee.get_nuts_region(code)
 
     # THEN
-    def __then_building_statistics_returned(
-        self, result: list[BuildingStatistics], count: int
-    ):
+    def __then_building_statistics_returned(self, result: list[Any], count: int):
         assert result
         assert len(result) == count
 
