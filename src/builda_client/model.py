@@ -213,6 +213,14 @@ class BuildingUseStatistics(Statistics):
 
 
 @dataclass
+class ConstructionYearStatistics(Statistics):
+    avg_construction_year: int
+    avg_construction_year_residential: int
+    avg_construction_year_non_residential: int
+    avg_construction_year_mixed: int
+
+
+@dataclass
 class FootprintAreaStatistics(Statistics):
     sum_footprint_area_total: float
     avg_footprint_area_total: float
