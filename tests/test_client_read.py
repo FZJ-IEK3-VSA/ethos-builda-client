@@ -34,8 +34,8 @@ class TestApiClientRead:
 
     def test_get_energy_consumption_statistics_succeeds(self):
         self.__given_client_unauthenticated()
-        energy_consumption_statistics = self.testee.get_energy_consumption_statistics(nuts_level=1, country='DE')
-        energy_consumption_statistics
+        energy_consumption_statistics = self.testee.get_energy_consumption_statistics(nuts_level=1, country='DE', type='non_residential', use='1_crop_animal_production')
+        assert len(energy_consumption_statistics) > 0
         
     def test_get_buildings(self):
         self.__given_client_unauthenticated()
