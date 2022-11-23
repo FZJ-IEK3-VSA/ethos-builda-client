@@ -3,6 +3,7 @@ from builda_client.client import ApiClient
 from builda_client.model import (Building, BuildingEnergyCharacteristics, BuildingHouseholds, BuildingParcel, NutsRegion, BuildingStatistics, Statistics)
 import pandas as pd
 from shapely.geometry import Polygon
+from shapely import wkt
 
 __author__ = "k.dabrock"
 __copyright__ = "k.dabrock"
@@ -35,6 +36,12 @@ class TestApiClientRead:
     def test_get_energy_consumption_statistics_succeeds(self):
         self.__given_client_unauthenticated()
         energy_consumption_statistics = self.testee.get_energy_consumption_statistics(nuts_level=1, country='DE', type='non_residential', use='1_crop_animal_production')
+        assert len(energy_consumption_statistics) > 0
+
+    def test_get_energy_consumption_statistics_by_geom_succeeds(self):
+        self.__given_client_unauthenticated()
+        custom_geom = wkt.loads('POLYGON((4031408.7239999995 2684074.9562,4031408.7239999995 3551421.7045,4672473.542199999 3551421.7045,4672473.542199999 2684074.9562,4031408.7239999995 2684074.9562))')
+        energy_consumption_statistics = self.testee.get_energy_consumption_statistics(geom=custom_geom)
         assert len(energy_consumption_statistics) > 0
         
     def test_get_buildings(self):
