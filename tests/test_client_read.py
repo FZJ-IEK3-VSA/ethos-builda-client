@@ -5,6 +5,7 @@ from builda_client.model import (
     BuildingEnergyCharacteristics,
     BuildingHouseholds,
     BuildingParcel,
+    BuildingClassStatistics,
     ConstructionYearStatistics,
     NutsRegion,
     BuildingStatistics,
@@ -82,6 +83,13 @@ class TestApiClientRead:
         bu_energy = self.testee.get_building_energy_characteristics(nuts_code="DE80N")
         self.__then_building_energy_characteristics_returned(bu_energy)
 
+    def test_get_building_class_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_class_statistic = self.testee.get_building_class_statistics(
+            country="DE", nuts_level=4, nuts_code="05958048"
+        )
+        self.__then_building_class_statistics_returned(building_class_statistic)
+
     def test_get_construction_year_statistics_succeeds(self):
         self.__given_client_unauthenticated()
         construction_year_statistic = self.testee.get_construction_year_statistics(
@@ -148,6 +156,15 @@ class TestApiClientRead:
     def __then_building_statistics_returned(self, result: list[Any], count: int):
         assert result
         assert len(result) == count
+
+    def __then_building_class_statistics_returned(
+        self, result: list[BuildingClassStatistics]
+    ):
+        result_df = pd.DataFrame(result)
+        assert len(result_df["sum_SFH_building_class"].iat[0]) == 3
+        assert len(result_df["sum_TH_building_class"].iat[0]) == 2
+        assert len(result_df["sum_MFH_building_class"].iat[0]) == 3
+        assert len(result_df["sum_AB_building_class"].iat[0]) == 2
 
     def __then_construction_year_statistics_returned(
         self, result: list[ConstructionYearStatistics]

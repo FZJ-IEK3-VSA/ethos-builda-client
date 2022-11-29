@@ -47,6 +47,7 @@ class Building:
     water_heating_commodity: str
     cooking_commodity: str
     construction_year: int
+    building_class: str
 
 
 @dataclass
@@ -61,6 +62,13 @@ class BuildingBase:
 class BuildingHouseholds:
     id: UUID
     household_count: int
+
+
+@dataclass
+class BuildingCharacteristics:
+    id: UUID
+    footprint_area: float
+    construction_year: int
 
 
 @dataclass
@@ -192,6 +200,11 @@ class ConstructionYearInfo(Info):
 
 
 @dataclass
+class BuildingClassInfo(Info):
+    value: str
+
+
+@dataclass
 class Statistics(ABC):
     nuts_code: str
 
@@ -210,6 +223,14 @@ class BuildingUseStatistics(Statistics):
     type: str
     use: str
     building_count: int
+
+
+@dataclass
+class BuildingClassStatistics(Statistics):
+    sum_SFH_building_class: str
+    sum_TH_building_class: str
+    sum_MFH_building_class: str
+    sum_AB_building_class: str
 
 
 @dataclass

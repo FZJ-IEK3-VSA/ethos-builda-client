@@ -22,6 +22,9 @@ from builda_client.model import (
     AddressInfo,
     Building,
     BuildingBase,
+    BuildingClassInfo,
+    BuildingCharacteristics,
+    BuildingClassStatistics,
     BuildingEnergyCharacteristics,
     BuildingHouseholds,
     BuildingParcel,
@@ -111,6 +114,7 @@ class ApiClient:
     BUILDING_TYPE_STATISTICS_BY_GEOM_URL = "statistics/building-type/geom"
     BUILDING_USE_STATISTICS_URL = "statistics/building-use"
     BUILDING_USE_STATISTICS_BY_GEOM_URL = "statistics/building-use/geom"
+    BUILDING_CLASS_STATISTICS_URL = "statistics/building-class"
     HEAT_DEMAND_STATISTICS_URL = "statistics/heat-demand"
     HEAT_DEMAND_STATISTICS_BY_GEOM_URL = "statistics/heat-demand/geom"
     BUILDING_COMMODITY_STATISTICS_URL = "statistics/building-commodities"
@@ -128,8 +132,10 @@ class ApiClient:
     ADDRESS_URL = "address/"
     BUILDINGS_HOUSEHOLDS_URL = "buildings-households/"
     BUILDINGS_PARCEL_URL = "buildings-parcel/"
+    BUILDINGS_CHARACTERISTICS_URL = "buildings-characteristics/"
     BUILDINGS_ENERGY_CHARACTERISTICS_URL = "buildings-energy-characteristics/"
     BUILDINGS_ID_URL = "buildings-id/"
+    BUILDING_CLASS_URL = "building-class"
     VIEW_REFRESH_URL = "buildings/refresh"
     BUILDING_STOCK_URL = "building-stock"
     NUTS_URL = "nuts"
@@ -289,6 +295,7 @@ class ApiClient:
                 height=result["height_m"],
                 type=result["type"],
                 construction_year=result["construction_year"],
+                building_class=result["building_class"],
                 use=result["use"],
                 heat_demand=result["heat_demand_MWh"],
                 pv_generation=result["pv_generation_kWh"],
@@ -336,6 +343,48 @@ class ApiClient:
         )
         buildings = self.__deserialize(response.content)
         return buildings
+
+    def get_buildings_charateristics(
+        self, nuts_code: str = "", type: str = "", exclude_irrelevant=False
+    ) -> list[BuildingCharacteristics]:
+        """Gets buildings IDs, footprint area and construction year for specific nuts region.
+
+        Args:
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+            type (str): The type of building ('residential', 'non-residential', 'mixed').
+
+        Raises:
+            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
+
+        Returns:
+            Buildings Characteristics list.
+        """
+        logging.debug(
+            f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})"
+        )
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        url: str = f"""{self.base_url}{self.BUILDINGS_CHARACTERISTICS_URL}?{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
+
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug("ApiClient: received response. Checking for errors.")
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.")
+
+        logging.debug(
+            f"ApiClient: received ok response, proceeding with deserialization."
+        )
+        results: list[str] = json.loads(response.contents)
+        buildings_characteristics: list[BuildingCharacteristics] = []
+        for res in results:
+            building_characteristics = BuildingCharacteristics(
+                id=UUID(res["id"]),
+                footprint_area=res["footprint_area_m2"],
+                construction_year=res["construction_year"],
+            )
+            buildings_characteristics.append(building_characteristics)
+        return buildings_characteristics
 
     def get_buildings_households(
         self, nuts_code: str = "", heating_type: str = ""
@@ -759,6 +808,59 @@ class ApiClient:
                 type=res["type"],
                 use=res["use"],
                 building_count=res["building_count"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+    def get_building_class_statistics(
+        self,
+        country: str = "",
+        nuts_level: int | None = None,
+        nuts_code: str | None = None,
+    ) -> list[BuildingClassStatistics]:
+        """Get the building class statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingClassStatistics]: A list of objects per NUTS region with statistical info about buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
+
+        url: str = (
+            f"""{self.base_url}{self.BUILDING_CLASS_STATISTICS_URL}{query_params}"""
+        )
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.")
+
+        results: list = json.loads(response.content)
+        statistics: list[BuildingClassStatistics] = []
+        for res in results:
+            statistic = BuildingClassStatistics(
+                nuts_code=res["nuts_code"],
+                sum_SFH_building_class=res["sum_SFH_building_class"],
+                sum_TH_building_class=res["sum_TH_building_class"],
+                sum_MFH_building_class=res["sum_MFH_building_class"],
+                sum_AB_building_class=res["sum_AB_building_class"],
             )
             statistics.append(statistic)
         return statistics
@@ -1793,6 +1895,45 @@ class ApiClient:
             response: requests.Response = requests.post(
                 url,
                 data=construction_year_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException("A client side error occured", err)
+            else:
+                raise ServerException("An unexpected error occurred", err)
+
+    def post_building_class(
+        self, building_class_infos: list[BuildingClassInfo]
+    ) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the building size class data to the database.
+
+        Args:
+            building_class_infos (list[BuildingClassInfo]): The building size class data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_building_class")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.BUILDING_CLASS_URL}"""
+        building_class_json = json.dumps(building_class_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=building_class_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()
