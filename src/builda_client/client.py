@@ -10,43 +10,69 @@ import yaml
 from shapely import wkt
 from shapely.geometry import Polygon, shape
 
-from builda_client.exceptions import (ClientException, GeocodeException,
-                                      MissingCredentialsException,
-                                      ServerException, UnauthorizedException)
-from builda_client.model import (Address, AddressInfo, Building, BuildingBase,
-                                 BuildingEnergyCharacteristics,
-                                 BuildingHouseholds, BuildingParcel,
-                                 BuildingStatistics, BuildingStockEntry,
-                                 CommodityCount, CookingCommodityInfo,
-                                 CoolingCommodityInfo,
-                                 EnergyCommodityStatistics, EnergyConsumption,
-                                 EnergyConsumptionStatistics,
-                                 EnhancedJSONEncoder, HeatDemandInfo,
-                                 HeatDemandStatistics, HeatingCommodityInfo,
-                                 HeightInfo, HouseholdInfo, NutsRegion, Parcel,
-                                 ParcelInfo, ParcelMinimalDto,
-                                 PvGenerationInfo,
-                                 TypeInfo, UseInfo,
-                                 WaterHeatingCommodityInfo, FootprintAreaStatistics, BuildingUseStatistics)
+from builda_client.exceptions import (
+    ClientException,
+    GeocodeException,
+    MissingCredentialsException,
+    ServerException,
+    UnauthorizedException,
+)
+from builda_client.model import (
+    Address,
+    AddressInfo,
+    Building,
+    BuildingBase,
+    BuildingEnergyCharacteristics,
+    BuildingHeatDemandCharacteristics,
+    BuildingHouseholds,
+    BuildingParcel,
+    BuildingStatistics,
+    BuildingStockEntry,
+    CommodityCount,
+    CookingCommodityInfo,
+    CoolingCommodityInfo,
+    EnergyCommodityStatistics,
+    EnergyConsumption,
+    EnergyConsumptionStatistics,
+    EnhancedJSONEncoder,
+    HeatDemandInfo,
+    HeatDemandStatistics,
+    HeatingCommodityInfo,
+    HeightInfo,
+    HouseholdInfo,
+    NutsRegion,
+    Parcel,
+    ParcelInfo,
+    ParcelMinimalDto,
+    RefurbishmentStateInfo,
+    PvGenerationInfo,
+    TypeInfo,
+    UseInfo,
+    WaterHeatingCommodityInfo,
+    FootprintAreaStatistics,
+    BuildingUseStatistics,
+)
 
 
 def load_config() -> Dict:
-        """Loads the config file.
+    """Loads the config file.
 
-        Returns:
-            dict: The configuration.
-        """
-        project_dir = Path(__file__).resolve().parents[0]
-        config_file_path = project_dir / 'config.yml'
-        with open(str(config_file_path), "r") as config_file:
-            return yaml.safe_load(config_file)
-   
+    Returns:
+        dict: The configuration.
+    """
+    project_dir = Path(__file__).resolve().parents[0]
+    config_file_path = project_dir / "config.yml"
+    with open(str(config_file_path), "r") as config_file:
+        return yaml.safe_load(config_file)
+
+
 def ewkt_loads(x):
     try:
-        wkt_str = x.split(';')[1]
+        wkt_str = x.split(";")[1]
         return wkt.loads(wkt_str)
     except Exception:
         return None
+
 
 def determine_nuts_query_param(nuts_lau_code: str) -> str:
     """Determines the correct query parameter based on the given NUTS or LAU code.
@@ -64,66 +90,75 @@ def determine_nuts_query_param(nuts_lau_code: str) -> str:
     if pattern.match(nuts_lau_code):
         # Probably NUTS code
         if len(nuts_lau_code) == 2:
-            return 'nuts0'
+            return "nuts0"
         elif len(nuts_lau_code) == 3:
-            return 'nuts1'
+            return "nuts1"
         elif len(nuts_lau_code) == 4:
-            return 'nuts2'
+            return "nuts2"
         elif len(nuts_lau_code) == 5:
-            return 'nuts3'
+            return "nuts3"
         else:
-            raise ValueError('NUTS region code too long.')
+            raise ValueError("NUTS region code too long.")
     else:
         # Maybe LAU code
-        return 'lau'
+        return "lau"
+
 
 class ApiClient:
 
     # For read-only users of database
-    BUILDING_TYPE_STATISTICS_URL = 'statistics/building-type'
-    BUILDING_TYPE_STATISTICS_BY_GEOM_URL = 'statistics/building-type/geom'
-    BUILDING_USE_STATISTICS_URL = 'statistics/building-use'
-    BUILDING_USE_STATISTICS_BY_GEOM_URL = 'statistics/building-use/geom'
-    HEAT_DEMAND_STATISTICS_URL = 'statistics/heat-demand'
-    HEAT_DEMAND_STATISTICS_BY_GEOM_URL = 'statistics/heat-demand/geom'
-    BUILDING_COMMODITY_STATISTICS_URL = 'statistics/building-commodities'
-    BUILDING_COMMODITY_STATISTICS_BY_GEOM_URL = 'statistics/building-commodities/geom'
-    ENERGY_STATISTICS_URL = 'statistics/energy-consumption'
-    ENERGY_STATISTICS_BY_GEOM_URL = 'statistics/energy-consumption/geom'
-    FOOTPRINT_AREA_STATISTICS_URL = 'statistics/footprint-area'
-    FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL = 'statistics/footprint-area/geom'
+    BUILDING_TYPE_STATISTICS_URL = "statistics/building-type"
+    BUILDING_TYPE_STATISTICS_BY_GEOM_URL = "statistics/building-type/geom"
+    BUILDING_USE_STATISTICS_URL = "statistics/building-use"
+    BUILDING_USE_STATISTICS_BY_GEOM_URL = "statistics/building-use/geom"
+    HEAT_DEMAND_STATISTICS_URL = "statistics/heat-demand"
+    HEAT_DEMAND_STATISTICS_BY_GEOM_URL = "statistics/heat-demand/geom"
+    BUILDING_COMMODITY_STATISTICS_URL = "statistics/building-commodities"
+    BUILDING_COMMODITY_STATISTICS_BY_GEOM_URL = "statistics/building-commodities/geom"
+    ENERGY_STATISTICS_URL = "statistics/energy-consumption"
+    ENERGY_STATISTICS_BY_GEOM_URL = "statistics/energy-consumption/geom"
+    FOOTPRINT_AREA_STATISTICS_URL = "statistics/footprint-area"
+    FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL = "statistics/footprint-area/geom"
 
     # For developpers/ write users of database
-    AUTH_URL = '/auth/api-token'
-    BUILDINGS_URL = 'buildings'
-    BUILDINGS_BASE_URL = 'buildings-base/'
-    ADDRESS_URL = 'address/'
-    BUILDINGS_HOUSEHOLDS_URL = 'buildings-households/'
-    BUILDINGS_PARCEL_URL = 'buildings-parcel/'
-    BUILDINGS_ENERGY_CHARACTERISTICS_URL = 'buildings-energy-characteristics/'
-    BUILDINGS_ID_URL = 'buildings-id/'
-    VIEW_REFRESH_URL = 'buildings/refresh'
-    BUILDING_STOCK_URL = 'building-stock'
-    NUTS_URL = 'nuts'
-    NUTS_CODES_URL = 'nuts-codes/'
-    TYPE_URL = 'type/'
-    USE_URL = 'use/'
-    HEIGHT_URL = 'height/'
-    HOUSEHOLD_COUNT_URL = 'household-count'
-    HEATING_COMMODITY_URL = 'heating-commodity'
-    COOLING_COMMODITY_URL = 'cooling-commodity'
-    WARM_WATER_COMMODITY_URL = 'water-heating-commodity'
-    COOKING_COMMODITY_URL = 'cooking-commodity'
-    ENERGY_CONSUMPTION_URL = 'energy-consumption'
-    HEAT_DEMAND_URL = 'heat-demand'
-    PV_GENERATION_URL = 'pv-generation/'
-    TIMING_LOG_URL = 'admin/timing-log'
-    NUTS_URL = 'nuts'
-    PARCEL_URL = 'parcels'
-    PARCEL_INFO_URL = 'parcel-info'
+    AUTH_URL = "/auth/api-token"
+    BUILDINGS_URL = "buildings"
+    BUILDINGS_BASE_URL = "buildings-base/"
+    ADDRESS_URL = "address/"
+    BUILDINGS_HOUSEHOLDS_URL = "buildings-households/"
+    BUILDINGS_PARCEL_URL = "buildings-parcel/"
+    BUILDINGS_ENERGY_CHARACTERISTICS_URL = "buildings-energy-characteristics/"
+    BUILDINGS_HEAT_DEMAND_CHARACTERISTICS_URL = "buildings-heat-demand-characteristics/"
+    BUILDINGS_ID_URL = "buildings-id/"
+    VIEW_REFRESH_URL = "buildings/refresh"
+    BUILDING_STOCK_URL = "building-stock"
+    NUTS_URL = "nuts"
+    NUTS_CODES_URL = "nuts-codes/"
+    TYPE_URL = "type/"
+    USE_URL = "use/"
+    HEIGHT_URL = "height/"
+    HOUSEHOLD_COUNT_URL = "household-count"
+    HEATING_COMMODITY_URL = "heating-commodity"
+    COOLING_COMMODITY_URL = "cooling-commodity"
+    WARM_WATER_COMMODITY_URL = "water-heating-commodity"
+    COOKING_COMMODITY_URL = "cooking-commodity"
+    ENERGY_CONSUMPTION_URL = "energy-consumption"
+    HEAT_DEMAND_URL = "heat-demand"
+    PV_GENERATION_URL = "pv-generation/"
+    REFURBISHMENT_STATE_URL = "refurbishment-state"
+    TIMING_LOG_URL = "admin/timing-log"
+    NUTS_URL = "nuts"
+    PARCEL_URL = "parcels"
+    PARCEL_INFO_URL = "parcel-info"
     base_url: str
 
-    def __init__(self, proxy: bool = False, username: str | None = None, password: str | None = None, phase = 'staging'):
+    def __init__(
+        self,
+        proxy: bool = False,
+        username: str | None = None,
+        password: str | None = None,
+        phase="staging",
+    ):
         """Constructor.
 
         Args:
@@ -140,11 +175,11 @@ class ApiClient:
 
         self.config = load_config()
         if proxy:
-            host = self.config['proxy']['host']
-            port = self.config['proxy']['port']
+            host = self.config["proxy"]["host"]
+            port = self.config["proxy"]["port"]
         else:
-            host = self.config[phase]['api']['host']
-            port = self.config[phase]['api']['port']
+            host = self.config[phase]["api"]["host"]
+            port = self.config[phase]["api"]["port"]
 
         self.authentication_url = f"""http://{host}:{port}{self.AUTH_URL}"""
         self.base_url = f"""http://{host}:{port}{self.config['base_url']}"""
@@ -160,22 +195,28 @@ class ApiClient:
             ServerException: If an error on the server side occurrs.
 
         Returns:
-            str: The authentication token if username and password were successfully authenticated. 
+            str: The authentication token if username and password were successfully authenticated.
             Empty string if username and/or password are empty.
-        """        
+        """
         if self.username is None or self.password is None:
-            logging.info('Username and/or password not provided. Proceeding in unauthenticated mode.')
-            return ''
+            logging.info(
+                "Username and/or password not provided. Proceeding in unauthenticated mode."
+            )
+            return ""
         url: str = f"""{self.authentication_url}"""
         try:
-            response: requests.Response = requests.post(url, data={'username': self.username, 'password': self.password})
+            response: requests.Response = requests.post(
+                url, data={"username": self.username, "password": self.password}
+            )
             response.raise_for_status()
-            return json.loads(response.content)['token']
+            return json.loads(response.content)["token"]
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 400:
-                raise ClientException('Could not retrieve api token. Probably the provided username and password are incorrect.')
+                raise ClientException(
+                    "Could not retrieve api token. Probably the provided username and password are incorrect."
+                )
             else:
-                raise ServerException('An unexpected error occurred.')
+                raise ServerException("An unexpected error occurred.")
 
     def __construct_authorization_header(self, json=True) -> Dict[str, str]:
         """Constructs the header for authorization including the API token.
@@ -183,14 +224,24 @@ class ApiClient:
         Returns:
             Dict[str, str]: The authorization header.
         """
-        if json==True:
-            return {'Authorization': f'Token {self.api_token}',
-            'Content-Type': 'application/json'}
+        if json == True:
+            return {
+                "Authorization": f"Token {self.api_token}",
+                "Content-Type": "application/json",
+            }
         else:
-            return {'Authorization': f'Token {self.api_token}'}
+            return {"Authorization": f"Token {self.api_token}"}
 
-
-    def get_buildings(self, street: str = '', housenumber: str = '', postcode: str = '', city: str = '', nuts_code: str = '', type: str = '', exclude_irrelevant: bool = False):
+    def get_buildings(
+        self,
+        street: str = "",
+        housenumber: str = "",
+        postcode: str = "",
+        city: str = "",
+        nuts_code: str = "",
+        type: str = "",
+        exclude_irrelevant: bool = False,
+    ):
         """Gets all buildings that match the query parameters.
         Args:
             street (str | None, optional): The name of the street. Defaults to None.
@@ -206,47 +257,52 @@ class ApiClient:
         Returns:
             list[Building]: A list of buildings.
         """
-        
-        logging.debug(f"ApiClient: get_buildings(street={street}, housenumber={housenumber}, postcode={postcode}, city={city}, nuts_code={nuts_code}, type={type})")
+
+        logging.debug(
+            f"ApiClient: get_buildings(street={street}, housenumber={housenumber}, postcode={postcode}, city={city}, nuts_code={nuts_code}, type={type})"
+        )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
         try:
             response: requests.Response = requests.get(url)
-            logging.debug('ApiClient: received response. Checking for errors.')
+            logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
-        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        logging.debug(
+            f"ApiClient: received ok response, proceeding with deserialization."
+        )
         results: list[str] = json.loads(response.content)
         buildings: list[Building] = []
         for result in results:
             address = Address(
-                street = result['street'],
-                house_number = result['house_number'],
-                postcode = result['postcode'],
-                city = result['city'],
+                street=result["street"],
+                house_number=result["house_number"],
+                postcode=result["postcode"],
+                city=result["city"],
             )
             building = Building(
-                id = result['id'],
-                address = address,
-                footprint_area = result['footprint_area_m2'],
-                height = result['height_m'],
-                type = result['type'],
-                use = result['use'],
-                heat_demand = result['heat_demand_MWh'],
-                pv_generation = result['pv_generation_kWh'],
-                household_count = result['household_count'],
-                heating_commodity = result['heating_commodity'],
-                cooling_commodity = result['heating_commodity'],
-                water_heating_commodity = result['heating_commodity'],
-                cooking_commodity = result['heating_commodity'],
-                )
+                id=result["id"],
+                address=address,
+                footprint_area=result["footprint_area_m2"],
+                height=result["height_m"],
+                type=result["type"],
+                use=result["use"],
+                heat_demand=result["heat_demand_MWh"],
+                pv_generation=result["pv_generation_kWh"],
+                household_count=result["household_count"],
+                heating_commodity=result["heating_commodity"],
+                cooling_commodity=result["heating_commodity"],
+                water_heating_commodity=result["heating_commodity"],
+                cooking_commodity=result["heating_commodity"],
+            )
             buildings.append(building)
         return buildings
 
-
-    def get_buildings_base(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingBase]:
+    def get_buildings_base(
+        self, nuts_code: str = "", type: str = "", geom: Optional[Polygon] = None
+    ) -> list[BuildingBase]:
         """Gets buildings with reduced parameter set within the specified NUTS region that fall into the provided type category.
 
         Args:
@@ -259,7 +315,9 @@ class ApiClient:
         Returns:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
-        logging.debug(f"ApiClient: get_buildings_base(nuts_code = {nuts_code}, type = {type})")
+        logging.debug(
+            f"ApiClient: get_buildings_base(nuts_code = {nuts_code}, type = {type})"
+        )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?{nuts_query_param}={nuts_code}&type={type}"""
         if geom:
@@ -267,16 +325,20 @@ class ApiClient:
 
         try:
             response: requests.Response = requests.get(url)
-            logging.debug('ApiClient: received response. Checking for errors.')
+            logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
-        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        logging.debug(
+            f"ApiClient: received ok response, proceeding with deserialization."
+        )
         buildings = self.__deserialize(response.content)
         return buildings
 
-    def get_buildings_households(self, nuts_code: str = '', heating_type: str = '') -> list[BuildingHouseholds]:
+    def get_buildings_households(
+        self, nuts_code: str = "", heating_type: str = ""
+    ) -> list[BuildingHouseholds]:
         """Gets residential buildings with household data within the specified NUTS region that fall into the provided type category.
 
         Args:
@@ -288,29 +350,34 @@ class ApiClient:
         Returns:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
-        logging.debug(f"ApiClient: get_buildings_households(nuts_code={nuts_code}, heating_type={heating_type})")
+        logging.debug(
+            f"ApiClient: get_buildings_households(nuts_code={nuts_code}, heating_type={heating_type})"
+        )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         url: str = f"""{self.base_url}{self.BUILDINGS_HOUSEHOLDS_URL}?{nuts_query_param}={nuts_code}&type=residential&heating_commodity={heating_type}"""
 
         try:
             response: requests.Response = requests.get(url)
-            logging.debug('ApiClient: received response. Checking for errors.')
+            logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
-        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        logging.debug(
+            f"ApiClient: received ok response, proceeding with deserialization."
+        )
         results: list[str] = json.loads(response.content)
         buildings_households: list[BuildingHouseholds] = []
         for res in results:
             building_households = BuildingHouseholds(
-                    id = UUID(res['id']),
-                    household_count = res['household_count']
-                )
+                id=UUID(res["id"]), household_count=res["household_count"]
+            )
             buildings_households.append(building_households)
         return buildings_households
 
-    def get_buildings_parcel(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None) -> list[BuildingParcel]:
+    def get_buildings_parcel(
+        self, nuts_code: str = "", type: str = "", geom: Optional[Polygon] = None
+    ) -> list[BuildingParcel]:
         """Gets buildings with reduced parameter set including parcel within the specified NUTS region that fall into the provided type category.
 
         Args:
@@ -323,7 +390,9 @@ class ApiClient:
         Returns:
             gpd.GeoDataFrame: A geodataframe with all buildings.
         """
-        logging.debug(f"ApiClient: get_buildings_parcel(nuts_code = {nuts_code}, type = {type})")
+        logging.debug(
+            f"ApiClient: get_buildings_parcel(nuts_code = {nuts_code}, type = {type})"
+        )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         url: str = f"""{self.base_url}{self.BUILDINGS_PARCEL_URL}?{nuts_query_param}={nuts_code}&type={type}"""
         if geom:
@@ -331,32 +400,86 @@ class ApiClient:
 
         try:
             response: requests.Response = requests.get(url)
-            logging.debug('ApiClient: received response. Checking for errors.')
+            logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
-        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        logging.debug(
+            f"ApiClient: received ok response, proceeding with deserialization."
+        )
         buildings = self.__deserialize_buildings_parcel(response.content)
         return buildings
 
-
-    def get_building_ids(self, nuts_code: str = '', type: str = '', exclude_irrelevant = False) -> list[UUID]:
-        logging.debug(f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})")
+    def get_building_ids(
+        self, nuts_code: str = "", type: str = "", exclude_irrelevant=False
+    ) -> list[UUID]:
+        logging.debug(
+            f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})"
+        )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
 
         try:
             response: requests.Response = requests.get(url)
-            logging.debug('ApiClient: received response. Checking for errors.')
+            logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
-        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
+        logging.debug(
+            f"ApiClient: received ok response, proceeding with deserialization."
+        )
         building_ids: list[UUID] = json.loads(response.content)
 
         return building_ids
+
+    def get_buildings_heat_demand_characteristics(
+        self, nuts_code: str = "", type: str = "", exclude_irrelevant=False
+    ) -> list[BuildingHeatDemandCharacteristics]:
+        """Gets residential buildings with household data within the specified NUTS region that fall into the provided type category.
+
+        Args:
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
+
+        Returns:
+            gpd.GeoDataFrame: A geodataframe with all buildings.
+        """
+        logging.debug(
+            f"ApiClient: get_buildings_heat_demand_characteristics(nuts_code={nuts_code}, type={type})"
+        )
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        url: str = f"""{self.base_url}{self.BUILDINGS_HEAT_DEMAND_CHARACTERISTICS_URL}?{nuts_query_param}={nuts_code}&type={type}&&exclude_irrelevant={exclude_irrelevant}"""
+
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug("ApiClient: received response. Checking for errors.")
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.")
+
+        logging.debug(
+            f"ApiClient: received ok response, proceeding with deserialization."
+        )
+        results: list[str] = json.loads(response.content)
+        buildings_heat_demand_characteristics: list[
+            BuildingHeatDemandCharacteristics
+        ] = []
+        for res in results:
+            building_heat_demand_characteristics = BuildingHeatDemandCharacteristics(
+                id=UUID(res["id"]),
+                heat_demand=res["heat_demand_MWh"],
+                footprint_area=res["footprint_area_m2"],
+                construction_year=res["construction_year"],
+                building_class=res["building_class"],
+            )
+            buildings_heat_demand_characteristics.append(
+                building_heat_demand_characteristics
+            )
+        return buildings_heat_demand_characteristics
 
     def __deserialize(self, response_content):
         results: list[str] = json.loads(response_content)
@@ -364,11 +487,11 @@ class ApiClient:
         for res_json in results:
             res = json.loads(res_json)
             building = BuildingBase(
-                    id = res['id'],
-                    footprint = shape(res['footprint']),
-                    centroid = shape(res['centroid']),
-                    type = res['type'],
-                )
+                id=res["id"],
+                footprint=shape(res["footprint"]),
+                centroid=shape(res["centroid"]),
+                type=res["type"],
+            )
             buildings.append(building)
         return buildings
 
@@ -378,18 +501,17 @@ class ApiClient:
         for res_json in results:
             res = json.loads(res_json)
             parcel: ParcelMinimalDto | None = None
-            if res['parcel_id'] != 'None' and res['parcel_geom'] != 'None':
+            if res["parcel_id"] != "None" and res["parcel_geom"] != "None":
                 parcel = ParcelMinimalDto(
-                    id = UUID(res['parcel_id']),
-                    shape = shape(res['parcel_geom'])
+                    id=UUID(res["parcel_id"]), shape=shape(res["parcel_geom"])
                 )
             building = BuildingParcel(
-                    id = UUID(res['id']),
-                    footprint = shape(res['footprint']),
-                    centroid = shape(res['centroid']),
-                    type = res['type'],
-                    parcel = parcel
-                )
+                id=UUID(res["id"]),
+                footprint=shape(res["footprint"]),
+                centroid=shape(res["centroid"]),
+                type=res["type"],
+                parcel=parcel,
+            )
             buildings.append(building)
         return buildings
 
@@ -403,50 +525,58 @@ class ApiClient:
         logging.debug(f"ApiClient: get_parcels()")
         url: str = f"""{self.base_url}{self.PARCEL_URL}"""
         if ids:
-            id_str = ','.join([str(id) for id in ids])
-            url += f'?ids={id_str}'
+            id_str = ",".join([str(id) for id in ids])
+            url += f"?ids={id_str}"
 
         try:
-            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.get(
+                url, headers=self.__construct_authorization_header()
+            )
             response.raise_for_status()
         except requests.HTTPError as e:
             if e.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation.')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation."
+                )
             else:
-                raise ServerException('An unexpected error occured.')
-                
+                raise ServerException("An unexpected error occured.")
+
         results: Dict = json.loads(response.content)
         parcels: list[Parcel] = []
 
         for result in results:
             parcel = Parcel(
-                id = UUID(result['id']),
-                shape = ewkt_loads(result['shape']),
-                source = 'test'
+                id=UUID(result["id"]), shape=ewkt_loads(result["shape"]), source="test"
             )
             parcels.append(parcel)
         return parcels
 
-
     def post_parcel_infos(self, parcel_infos: list[ParcelInfo]):
         logging.debug("ApiClient: post_parcel_infos")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.PARCEL_INFO_URL}"""
 
         parcel_infos_json = json.dumps(parcel_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=parcel_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=parcel_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
-
+                raise ServerException("An unexpected error occurred", err)
 
     def add_parcels(self, parcels: list[Parcel]):
         """
@@ -456,38 +586,56 @@ class ApiClient:
             parcels (list[Parcel]): A list of parcels.
         """
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
         url: str = f"""{self.base_url}{self.PARCEL_URL}"""
 
         parcels_json = json.dumps(parcels, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=parcels_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url, data=parcels_json, headers=self.__construct_authorization_header()
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
+                raise ServerException("An unexpected error occurred", err)
 
     def modify_building(self, building_id: UUID, building_data: Dict):
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
         url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}/{building_id}"""
         building_json = json.dumps(building_data)
         try:
-            response: requests.Response = requests.put(url, data=building_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.put(
+                url, data=building_json, headers=self.__construct_authorization_header()
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
+                raise ServerException("An unexpected error occurred", err)
 
-    def get_building_energy_characteristics(self, nuts_code: str = '', type: str = '', geom: Optional[Polygon] = None, heating_type: str = '') -> list[BuildingEnergyCharacteristics]:
+    def get_building_energy_characteristics(
+        self,
+        nuts_code: str = "",
+        type: str = "",
+        geom: Optional[Polygon] = None,
+        heating_type: str = "",
+    ) -> list[BuildingEnergyCharacteristics]:
         """Get energy related building information (commodities, heat demand [MWh], pv generation [kWh]) for each building that fulfills the query parameters.
 
         Args:
@@ -499,7 +647,9 @@ class ApiClient:
         Returns:
             list[BuildingEnergyCharacteristics]: A list of building objects with energy characteristics.
         """
-        logging.debug(f"ApiClient: get_building_energy_characteristics(nuts_code={nuts_code}, type={type})")
+        logging.debug(
+            f"ApiClient: get_building_energy_characteristics(nuts_code={nuts_code}, type={type})"
+        )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
 
         url: str = f"""{self.base_url}{self.BUILDINGS_ENERGY_CHARACTERISTICS_URL}?{nuts_query_param}={nuts_code}&type={type}&heating_commodity={heating_type}"""
@@ -508,31 +658,39 @@ class ApiClient:
 
         try:
             response: requests.Response = requests.get(url)
-            logging.debug('ApiClient: received response. Checking for errors.')
+            logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
-        logging.debug(f"ApiClient: received ok response, proceeding with deserialization.")
-        
+        logging.debug(
+            f"ApiClient: received ok response, proceeding with deserialization."
+        )
+
         results: list[Dict] = json.loads(response.content)
         buildings: list[BuildingEnergyCharacteristics] = []
         for res in results:
             building = BuildingEnergyCharacteristics(
-                    id = UUID(res['id']),
-                    type = res['type'],
-                    heating_commodity = res['heating_commodity'],
-                    cooling_commodity = res['cooling_commodity'],
-                    water_heating_commodity = res['water_heating_commodity'],
-                    cooking_commodity = res['cooking_commodity'],
-                    heat_demand = res['heat_demand_MWh'],
-                    pv_generation = res['pv_generation_kWh'],
-                )
+                id=UUID(res["id"]),
+                type=res["type"],
+                heating_commodity=res["heating_commodity"],
+                cooling_commodity=res["cooling_commodity"],
+                water_heating_commodity=res["water_heating_commodity"],
+                cooking_commodity=res["cooking_commodity"],
+                heat_demand=res["heat_demand_MWh"],
+                pv_generation=res["pv_generation_kWh"],
+            )
             buildings.append(building)
 
         return buildings
 
-    def get_building_type_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[BuildingStatistics]:
+    def get_building_type_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[BuildingStatistics]:
         """Get the building type statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -548,10 +706,14 @@ class ApiClient:
             list[BuildingStatistics]: A list of objects per NUTS region or custom geometry with statistical info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
-            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
 
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.BUILDING_TYPE_STATISTICS_BY_GEOM_URL
@@ -569,23 +731,29 @@ class ApiClient:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
         results: list = json.loads(response.content)
         statistics: list[BuildingStatistics] = []
         for res in results:
             statistic = BuildingStatistics(
-                nuts_code=res['nuts_code'], 
-                building_count_total=res['building_count_total'], 
-                building_count_residential=res['building_count_residential'], 
-                building_count_non_residential=res['building_count_non_residential'],
-                building_count_mixed=res['building_count_mixed'],
-                building_count_undefined=res['building_count_undefined']
-                )
+                nuts_code=res["nuts_code"],
+                building_count_total=res["building_count_total"],
+                building_count_residential=res["building_count_residential"],
+                building_count_non_residential=res["building_count_non_residential"],
+                building_count_mixed=res["building_count_mixed"],
+                building_count_undefined=res["building_count_undefined"],
+            )
             statistics.append(statistic)
         return statistics
 
-    def get_building_use_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[BuildingUseStatistics]:
+    def get_building_use_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[BuildingUseStatistics]:
         """Get the building use statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -602,10 +770,14 @@ class ApiClient:
             list[BuildingStatistics]: A list of objects per NUTS region with statistical info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
-            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
 
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.BUILDING_USE_STATISTICS_BY_GEOM_URL
@@ -623,22 +795,27 @@ class ApiClient:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
         results: list = json.loads(response.content)
         statistics: list[BuildingUseStatistics] = []
         for res in results:
             statistic = BuildingUseStatistics(
-                nuts_code=res['nuts_code'], 
-                type=res['type'], 
-                use=res['use'], 
-                building_count=res['building_count'], 
-                )
+                nuts_code=res["nuts_code"],
+                type=res["type"],
+                use=res["use"],
+                building_count=res["building_count"],
+            )
             statistics.append(statistic)
         return statistics
 
-
-    def get_footprint_area_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[FootprintAreaStatistics]:
+    def get_footprint_area_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[FootprintAreaStatistics]:
         """Get the footprint area statistics [m2] for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -655,10 +832,14 @@ class ApiClient:
             list[BuildingStatistics]: A list of objects per NUTS region with statistical info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
-            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
 
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL
@@ -676,29 +857,39 @@ class ApiClient:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
         results: list = json.loads(response.content)
         statistics: list[FootprintAreaStatistics] = []
         for res in results:
             statistic = FootprintAreaStatistics(
-                nuts_code=res['nuts_code'], 
-                sum_footprint_area_total=res['sum_footprint_area_total_m2'], 
-                avg_footprint_area_total=res['avg_footprint_area_total_m2'], 
-                sum_footprint_area_residential=res['sum_footprint_area_residential_m2'],
-                avg_footprint_area_residential=res['avg_footprint_area_residential_m2'],
-                sum_footprint_area_non_residential=res['sum_footprint_area_non_residential_m2'],
-                avg_footprint_area_non_residential=res['avg_footprint_area_non_residential_m2'],
-                sum_footprint_area_irrelevant=res['sum_footprint_area_irrelevant_m2'],
-                avg_footprint_area_irrelevant=res['avg_footprint_area_irrelevant_m2'],
-                sum_footprint_area_undefined=res['sum_footprint_area_undefined_m2'],
-                avg_footprint_area_undefined=res['avg_footprint_area_undefined_m2']
-                )
+                nuts_code=res["nuts_code"],
+                sum_footprint_area_total=res["sum_footprint_area_total_m2"],
+                avg_footprint_area_total=res["avg_footprint_area_total_m2"],
+                sum_footprint_area_residential=res["sum_footprint_area_residential_m2"],
+                avg_footprint_area_residential=res["avg_footprint_area_residential_m2"],
+                sum_footprint_area_non_residential=res[
+                    "sum_footprint_area_non_residential_m2"
+                ],
+                avg_footprint_area_non_residential=res[
+                    "avg_footprint_area_non_residential_m2"
+                ],
+                sum_footprint_area_irrelevant=res["sum_footprint_area_irrelevant_m2"],
+                avg_footprint_area_irrelevant=res["avg_footprint_area_irrelevant_m2"],
+                sum_footprint_area_undefined=res["sum_footprint_area_undefined_m2"],
+                avg_footprint_area_undefined=res["avg_footprint_area_undefined_m2"],
+            )
             statistics.append(statistic)
         return statistics
 
-    def get_heat_demand_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None) -> list[HeatDemandStatistics]:
-        """Get the residential heat demand statistics [MWh] for the given NUTS level or NUTS/LAU code. 
+    def get_heat_demand_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[HeatDemandStatistics]:
+        """Get the residential heat demand statistics [MWh] for the given NUTS level or NUTS/LAU code.
         Results can be limited to a certain country by setting the country parameter.
         Only one of nuts_level and nuts_code may be specified.
 
@@ -716,12 +907,18 @@ class ApiClient:
             list[HeatDemandStatistics]: A list of objects per NUTS/LAU region with statistical info about heat demand [MWh].
         """
         if nuts_level is not None and nuts_code is not None:
-            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
         if nuts_level is not None and nuts_level not in range(0, 5):
-            raise ValueError('Invalid NUTS/LAU level provided; nuts_level must be in range [0,4].')
+            raise ValueError(
+                "Invalid NUTS/LAU level provided; nuts_level must be in range [0,4]."
+            )
 
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.HEAT_DEMAND_STATISTICS_BY_GEOM_URL
@@ -739,19 +936,28 @@ class ApiClient:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
         results: list = json.loads(response.content)
         statistics: list[HeatDemandStatistics] = []
         for res in results:
             statistic = HeatDemandStatistics(
-                nuts_code=res['nuts_code'], 
-                heat_demand=res['heat_demand_MWh'], 
-                )
+                nuts_code=res["nuts_code"],
+                heat_demand=res["heat_demand_MWh"],
+            )
             statistics.append(statistic)
         return statistics
 
-    def get_energy_consumption_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, type: Optional[str] = None, use: Optional[str] = None, commodity: Optional[str] = None, geom: Optional[Polygon] = None) -> list[EnergyConsumptionStatistics]:
+    def get_energy_consumption_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        type: Optional[str] = None,
+        use: Optional[str] = None,
+        commodity: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[EnergyConsumptionStatistics]:
         """Get the energy consumption statistics [MWh] for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -766,14 +972,20 @@ class ApiClient:
 
         Returns:
             list[EnergyConsumptionStatistics]: A list of energy consumption statistics. If just one nuts_code is queried, the list will only contain one element.
-        """        
-        logging.debug(f"ApiClient: get_energy_consumption_statistics(nuts_level={nuts_level}, nuts_code={nuts_code}")
-        
+        """
+        logging.debug(
+            f"ApiClient: get_energy_consumption_statistics(nuts_level={nuts_level}, nuts_code={nuts_code}"
+        )
+
         if nuts_level is not None and nuts_code is not None:
-            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
-        
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.ENERGY_STATISTICS_BY_GEOM_URL
@@ -798,27 +1010,35 @@ class ApiClient:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
         results: list = json.loads(response.content)
         statistics: list[EnergyConsumptionStatistics] = []
         for res in results:
-            res_nuts_code: str = res['nuts_code']
-            res_type: str = res['type']
-            res_use: str = res['use']
-            res_commodity: str = res['commodity']
-            res_consumption_MWh: float = res['consumption_MWh']
+            res_nuts_code: str = res["nuts_code"]
+            res_type: str = res["type"]
+            res_use: str = res["use"]
+            res_commodity: str = res["commodity"]
+            res_consumption_MWh: float = res["consumption_MWh"]
 
             statistic = EnergyConsumptionStatistics(
-                nuts_code=res_nuts_code, 
+                nuts_code=res_nuts_code,
                 type=res_type,
                 use=res_use,
                 commodity=res_commodity,
-                consumption=res_consumption_MWh)
+                consumption=res_consumption_MWh,
+            )
             statistics.append(statistic)
         return statistics
 
-    def get_energy_commodity_statistics(self, country: str = '', nuts_level: Optional[int] = None, nuts_code: Optional[str] = None, geom: Optional[Polygon] = None, commodity: str = '') -> list[EnergyCommodityStatistics]:
+    def get_energy_commodity_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+        commodity: str = "",
+    ) -> list[EnergyCommodityStatistics]:
         """Get the energy commodity statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -834,14 +1054,20 @@ class ApiClient:
 
         Returns:
             list[EnergyCommodityStatistics]: A list of building commodity statistics. If just one nuts_code is queried, the list will only contain one element.
-        """        
-        logging.debug(f"ApiClient: get_energy_commodity_statistics(nuts_level={nuts_level}, nuts_code={nuts_code}, commodity={commodity}")
-        
+        """
+        logging.debug(
+            f"ApiClient: get_energy_commodity_statistics(nuts_level={nuts_level}, nuts_code={nuts_code}, commodity={commodity}"
+        )
+
         if nuts_level is not None and nuts_code is not None:
-            raise ValueError('Either nuts_level or nuts_code can be specified, not both.')
-        
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
         if (nuts_level or nuts_code or country) and geom:
-            raise ValueError('You can query either by NUTS or by custom geometry, not both.')
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
 
         if geom is not None:
             statistics_url = self.BUILDING_COMMODITY_STATISTICS_BY_GEOM_URL
@@ -859,27 +1085,35 @@ class ApiClient:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException('An unexpected exception occurred.')
+            raise ServerException("An unexpected exception occurred.")
 
         results: list = json.loads(response.content)
         statistics: list[EnergyCommodityStatistics] = []
         for res in results:
-            res_nuts_code: str = res['nuts_code']
-            res_commodity: str = res['commodity']
-            res_heating_commodity_count: int = int(res['commodity_count']['heating_commodity_count'])
-            res_cooling_commodity_count: int = int(res['commodity_count']['cooling_commodity_count'])
-            res_water_heating_commodity_count: int = int(res['commodity_count']['water_heating_commodity_count'])
-            res_cooking_commodity_count: int = int(res['commodity_count']['cooking_commodity_count'])
+            res_nuts_code: str = res["nuts_code"]
+            res_commodity: str = res["commodity"]
+            res_heating_commodity_count: int = int(
+                res["commodity_count"]["heating_commodity_count"]
+            )
+            res_cooling_commodity_count: int = int(
+                res["commodity_count"]["cooling_commodity_count"]
+            )
+            res_water_heating_commodity_count: int = int(
+                res["commodity_count"]["water_heating_commodity_count"]
+            )
+            res_cooking_commodity_count: int = int(
+                res["commodity_count"]["cooking_commodity_count"]
+            )
 
             statistic = EnergyCommodityStatistics(
                 nuts_code=res_nuts_code,
                 commodity_name=res_commodity,
-                building_count = CommodityCount(
+                building_count=CommodityCount(
                     heating_commodity_count=res_heating_commodity_count,
                     cooling_commodity_count=res_cooling_commodity_count,
                     water_heating_commodity_count=res_water_heating_commodity_count,
-                    cooking_commodity_count=res_cooking_commodity_count
-                )
+                    cooking_commodity_count=res_cooking_commodity_count,
+                ),
             )
             statistics.append(statistic)
 
@@ -890,23 +1124,30 @@ class ApiClient:
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
-        """        
+        """
         logging.debug("ApiClient: refresh_buildings")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}"""
         try:
-            response: requests.Response = requests.post(url, headers=self.__construct_authorization_header(json=False))
+            response: requests.Response = requests.post(
+                url, headers=self.__construct_authorization_header(json=False)
+            )
             response.raise_for_status()
         except requests.HTTPError as e:
             if e.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             else:
-                raise ServerException('An unexpected error occured.')
-            
+                raise ServerException("An unexpected error occured.")
 
-    def get_building_stock(self, geom: Polygon | None = None, nuts_code: str = '') -> list[BuildingStockEntry]:
+    def get_building_stock(
+        self, geom: Polygon | None = None, nuts_code: str = ""
+    ) -> list[BuildingStockEntry]:
         """[REQUIRES AUTHENTICATION]  Gets all entries of the building stock within the specified geometry.
 
         Args:
@@ -919,50 +1160,55 @@ class ApiClient:
         Returns:
             list[BuildingStockEntry]: All building stock entries that lie within the given polygon.
         """
-        logging.debug(f'ApiClient: get_building_stock')
+        logging.debug(f"ApiClient: get_building_stock")
 
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
-        query_params: str = ''
+        query_params: str = ""
         if geom is not None and nuts_code:
             nuts_query_param = determine_nuts_query_param(nuts_code)
-            query_params = f'?geom={geom}&{nuts_query_param}={nuts_code}'
+            query_params = f"?geom={geom}&{nuts_query_param}={nuts_code}"
         elif geom is not None:
-            query_params = f'?geom={geom}'
+            query_params = f"?geom={geom}"
         elif nuts_code:
             nuts_query_param = determine_nuts_query_param(nuts_code)
-            query_params = f'?{nuts_query_param}={nuts_code}'
+            query_params = f"?{nuts_query_param}={nuts_code}"
 
         url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}{query_params}"""
 
         try:
-            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.get(
+                url, headers=self.__construct_authorization_header()
+            )
             response.raise_for_status()
         except requests.HTTPError as e:
             if e.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation.')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation."
+                )
             else:
-                raise ServerException('An unexpected error occured.')
+                raise ServerException("An unexpected error occured.")
 
         buildings: list[BuildingStockEntry] = []
         results: Dict = json.loads(response.content)
         for result in results:
             building = BuildingStockEntry(
-                building_id = result['building_id'],
-                footprint = ewkt_loads(result['footprint']),
-                centroid = ewkt_loads(result['centroid']),
-                footprint_area= result['footprint_area'],
-                nuts3 = result['nuts3'],
-                nuts2 = result['nuts2'],
-                nuts1 = result['nuts1'],
-                nuts0 = result['nuts0'],
-                lau = result['lau'],
+                building_id=result["building_id"],
+                footprint=ewkt_loads(result["footprint"]),
+                centroid=ewkt_loads(result["centroid"]),
+                footprint_area=result["footprint_area"],
+                nuts3=result["nuts3"],
+                nuts2=result["nuts2"],
+                nuts1=result["nuts1"],
+                nuts0=result["nuts0"],
+                lau=result["lau"],
             )
             buildings.append(building)
 
         return buildings
-
 
     def post_building_stock(self, buildings: list[BuildingStockEntry]) -> None:
         """[REQUIRES AUTHENTICATION]  Posts the building_stock data to the database.
@@ -978,21 +1224,28 @@ class ApiClient:
         """
 
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
         url: str = f"""{self.base_url}{self.BUILDING_STOCK_URL}"""
 
         buildings_json = json.dumps(buildings, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=buildings_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=buildings_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
-
+                raise ServerException("An unexpected error occurred", err)
 
     def post_nuts(self, nuts_regions: list[NutsRegion]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the nuts data to the database. Private endpoint: requires client to have credentials.
@@ -1002,27 +1255,35 @@ class ApiClient:
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
-        """        
+        """
         logging.debug("ApiClient: post_nuts")
 
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.NUTS_URL}"""
 
         nuts_regions_json = json.dumps(nuts_regions, cls=EnhancedJSONEncoder)
 
         try:
-            response: requests.Response = requests.post(url, data=nuts_regions_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=nuts_regions_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
-  
+                raise ServerException("An unexpected error occurred", err)
+
     def post_addresses(self, addresses: list[AddressInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts addresses to the database.
 
@@ -1034,23 +1295,31 @@ class ApiClient:
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
-        """        
+        """
         logging.debug("ApiClient: post_addresses")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.ADDRESS_URL}"""
         addresses_json = json.dumps(addresses, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=addresses_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=addresses_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
+                raise ServerException("An unexpected error occurred", err)
 
     def post_type_info(self, type_infos: list[TypeInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the type info data to the database.
@@ -1067,22 +1336,29 @@ class ApiClient:
 
         logging.debug("ApiClient: post_type_info")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.TYPE_URL}"""
 
         type_infos_json = json.dumps(type_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=type_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=type_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
-
+                raise ServerException("An unexpected error occurred", err)
 
     def post_use_info(self, use_infos: list[UseInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the use info data to the database.
@@ -1099,22 +1375,29 @@ class ApiClient:
 
         logging.debug("ApiClient: post_use_info")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.USE_URL}"""
 
         use_infos_json = json.dumps(use_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=use_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=use_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
-
+                raise ServerException("An unexpected error occurred", err)
 
     def post_height_info(self, height_infos: list[HeightInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
@@ -1127,24 +1410,31 @@ class ApiClient:
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
-        """        
+        """
         logging.debug("ApiClient: post_height_info")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.HEIGHT_URL}"""
         height_infos_json = json.dumps(height_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=height_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=height_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
-
+                raise ServerException("An unexpected error occurred", err)
 
     def post_household_count(self, household_infos: list[HouseholdInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
@@ -1157,26 +1447,35 @@ class ApiClient:
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
-        """        
+        """
         logging.debug("ApiClient: post_household_count")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.HOUSEHOLD_COUNT_URL}"""
         household_infos_json = json.dumps(household_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=household_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=household_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
+                raise ServerException("An unexpected error occurred", err)
 
-
-    def post_heating_commodity(self, heating_commodity_infos: list[HeatingCommodityInfo]) -> None:
+    def post_heating_commodity(
+        self, heating_commodity_infos: list[HeatingCommodityInfo]
+    ) -> None:
         """[REQUIRES AUTHENTICATION]  Posts the heating commodity data to the database.
 
         Args:
@@ -1190,22 +1489,34 @@ class ApiClient:
         """
         logging.debug("ApiClient: post_heating_commodity")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.HEATING_COMMODITY_URL}"""
-        heating_commodity_infos_json = json.dumps(heating_commodity_infos, cls=EnhancedJSONEncoder)
+        heating_commodity_infos_json = json.dumps(
+            heating_commodity_infos, cls=EnhancedJSONEncoder
+        )
         try:
-            response: requests.Response = requests.post(url, data=heating_commodity_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=heating_commodity_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
+                raise ServerException("An unexpected error occurred", err)
 
-    def post_cooling_commodity(self, cooling_commodity_infos: list[CoolingCommodityInfo]) -> None:
+    def post_cooling_commodity(
+        self, cooling_commodity_infos: list[CoolingCommodityInfo]
+    ) -> None:
         """[REQUIRES AUTHENTICATION] Posts the cooling commodity data to the database.
 
         Args:
@@ -1219,22 +1530,34 @@ class ApiClient:
         """
         logging.debug("ApiClient: post_cooling_commodity")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.COOLING_COMMODITY_URL}"""
-        cooling_commodity_infos_json = json.dumps(cooling_commodity_infos, cls=EnhancedJSONEncoder)
+        cooling_commodity_infos_json = json.dumps(
+            cooling_commodity_infos, cls=EnhancedJSONEncoder
+        )
         try:
-            response: requests.Response = requests.post(url, data=cooling_commodity_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=cooling_commodity_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
-    
-    def post_water_heating_commodity(self, water_heating_commodity_infos: list[WaterHeatingCommodityInfo]) -> None:
+                raise ServerException("An unexpected error occurred", err)
+
+    def post_water_heating_commodity(
+        self, water_heating_commodity_infos: list[WaterHeatingCommodityInfo]
+    ) -> None:
         """[REQUIRES AUTHENTICATION] Posts the water heating commodity data to the database.
 
         Args:
@@ -1245,25 +1568,37 @@ class ApiClient:
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
-        """        
+        """
         logging.debug("ApiClient: post_water_heating_commodity")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.WARM_WATER_COMMODITY_URL}"""
-        water_heating_commodity_infos_json = json.dumps(water_heating_commodity_infos, cls=EnhancedJSONEncoder)
+        water_heating_commodity_infos_json = json.dumps(
+            water_heating_commodity_infos, cls=EnhancedJSONEncoder
+        )
         try:
-            response: requests.Response = requests.post(url, data=water_heating_commodity_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=water_heating_commodity_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
-            
-    def post_cooking_commodity(self, cooking_commodity_infos: list[CookingCommodityInfo]) -> None:
+                raise ServerException("An unexpected error occurred", err)
+
+    def post_cooking_commodity(
+        self, cooking_commodity_infos: list[CookingCommodityInfo]
+    ) -> None:
         """[REQUIRES AUTHENTICATION] Posts the cooking commodity data to the database.
 
         Args:
@@ -1277,22 +1612,34 @@ class ApiClient:
         """
         logging.debug("ApiClient: post_cooking_commodity")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.COOKING_COMMODITY_URL}"""
-        cooking_commodity_infos_json = json.dumps(cooking_commodity_infos, cls=EnhancedJSONEncoder)
+        cooking_commodity_infos_json = json.dumps(
+            cooking_commodity_infos, cls=EnhancedJSONEncoder
+        )
         try:
-            response: requests.Response = requests.post(url, data=cooking_commodity_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=cooking_commodity_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
+                raise ServerException("An unexpected error occurred", err)
 
-    def post_energy_consumption(self, energy_consumption_infos: list[EnergyConsumption]) -> None:
+    def post_energy_consumption(
+        self, energy_consumption_infos: list[EnergyConsumption]
+    ) -> None:
         """[REQUIRES AUTHENTICATION] Posts the energy consumption data to the database.
 
         Args:
@@ -1303,23 +1650,33 @@ class ApiClient:
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
-        """        
+        """
         logging.debug("ApiClient: post_energy_consumption_commodity")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.ENERGY_CONSUMPTION_URL}"""
-        energy_consumption_infos_json = json.dumps(energy_consumption_infos, cls=EnhancedJSONEncoder)
+        energy_consumption_infos_json = json.dumps(
+            energy_consumption_infos, cls=EnhancedJSONEncoder
+        )
         try:
-            response: requests.Response = requests.post(url, data=energy_consumption_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=energy_consumption_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
+                raise ServerException("An unexpected error occurred", err)
 
     def post_heat_demand(self, heat_demand_infos: list[HeatDemandInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the heat demand data to the database.
@@ -1332,23 +1689,31 @@ class ApiClient:
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
-        """        
+        """
         logging.debug("ApiClient: post_heat_demand")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.HEAT_DEMAND_URL}"""
         heat_demand_infos_json = json.dumps(heat_demand_infos, cls=EnhancedJSONEncoder)
         try:
-            response: requests.Response = requests.post(url, data=heat_demand_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=heat_demand_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
+                raise ServerException("An unexpected error occurred", err)
 
     def post_pv_generation(self, pv_generation_infos: list[PvGenerationInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the pv generation data to the database.
@@ -1361,84 +1726,149 @@ class ApiClient:
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
-        """        
+        """
         logging.debug("ApiClient: post_pv_generation")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.PV_GENERATION_URL}"""
-        pv_generation_infos_json = json.dumps(pv_generation_infos, cls=EnhancedJSONEncoder)
+        pv_generation_infos_json = json.dumps(
+            pv_generation_infos, cls=EnhancedJSONEncoder
+        )
         try:
-            response: requests.Response = requests.post(url, data=pv_generation_infos_json, headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=pv_generation_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
+                raise ServerException("An unexpected error occurred", err)
 
+    def post_refurbishment_state(
+        self, refurbishment_state_infos: list[RefurbishmentStateInfo]
+    ) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the refurbishment state data to the database.
+
+        Args:
+            refurbishment_state_infos (list[RefurbishmentStateInfo]): The refurbishment state infos to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_refurbishment_state")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.REFURBISHMENT_STATE_URL}"""
+        refurbishment_state_infos_json = json.dumps(
+            refurbishment_state_infos, cls=EnhancedJSONEncoder
+        )
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=refurbishment_state_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException("A client side error occured", err)
+            else:
+                raise ServerException("An unexpected error occurred", err)
 
     def post_timing_log(self, function_name: str, measured_time: float):
         logging.debug("ApiClient: post_timing_log")
         if not self.api_token:
-            raise MissingCredentialsException('This endpoint is private. You need to provide username and password when initializing the client.')
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
 
         url: str = f"""{self.base_url}{self.TIMING_LOG_URL}"""
 
         try:
-            response: requests.Response = requests.post(url, data=json.dumps({'function_name': function_name, 'measured_time': measured_time}), headers=self.__construct_authorization_header())
+            response: requests.Response = requests.post(
+                url,
+                data=json.dumps(
+                    {"function_name": function_name, "measured_time": measured_time}
+                ),
+                headers=self.__construct_authorization_header(),
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation. Perhaps wrong username and password given?')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
             elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException('A client side error occured', err)
+                raise ClientException("A client side error occured", err)
             else:
-                raise ServerException('An unexpected error occurred', err)
+                raise ServerException("An unexpected error occurred", err)
 
     def get_nuts_region(self, nuts_code: str):
-        logging.debug(f'ApiClient: get_nuts_region')
+        logging.debug(f"ApiClient: get_nuts_region")
         url: str = f"""{self.base_url}{self.NUTS_URL}/{nuts_code}"""
         try:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
         except requests.HTTPError as e:
             if e.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation.')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation."
+                )
             else:
-                raise ServerException('An unexpected error occured.')
+                raise ServerException("An unexpected error occured.")
 
         response_content: Dict = json.loads(response.content)
 
         nuts_region = NutsRegion(
-            code = response_content['code'],
-            name = response_content['name'],
-            level = response_content['level'],
-            parent = response_content['parent'],
-            geometry = ewkt_loads(response_content['geometry']),
+            code=response_content["code"],
+            name=response_content["name"],
+            level=response_content["level"],
+            parent=response_content["parent"],
+            geometry=ewkt_loads(response_content["geometry"]),
         )
 
         return nuts_region
 
     def get_children_nuts_codes(self, parent_region_code: str = "") -> list[str]:
-        logging.debug(f'ApiClient: get_nuts_region')
-        url: str = f"""{self.base_url}{self.NUTS_CODES_URL}?parent={parent_region_code}"""
+        logging.debug(f"ApiClient: get_nuts_region")
+        url: str = (
+            f"""{self.base_url}{self.NUTS_CODES_URL}?parent={parent_region_code}"""
+        )
         try:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
         except requests.HTTPError as e:
             if e.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation.')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation."
+                )
             else:
-                raise ServerException('An unexpected error occured.')
+                raise ServerException("An unexpected error occured.")
 
         return json.loads(response.content)
 
 
 class NominatimClient:
-
     def __init__(self, proxy: bool = False):
         """Constructor.
 
@@ -1452,35 +1882,41 @@ class NominatimClient:
 
         self.config = load_config()
         if proxy:
-            host = self.config['proxy']['host']
-            port = self.config['proxy']['port']
+            host = self.config["proxy"]["host"]
+            port = self.config["proxy"]["port"]
         else:
-            host = self.config['nominatim']['host']
-            port = self.config['nominatim']['port']
+            host = self.config["nominatim"]["host"]
+            port = self.config["nominatim"]["port"]
 
         self.address = f"""http://{host}:{port}"""
 
-    def get_address_from_location(self, lat: float, lon: float) -> Tuple[str, str, str, str]:
-        logging.debug(f'NominatimClient: get_address_from_location')
+    def get_address_from_location(
+        self, lat: float, lon: float
+    ) -> Tuple[str, str, str, str]:
+        logging.debug(f"NominatimClient: get_address_from_location")
         url: str = f"""{self.address}/reverse/?lat={lat}&lon={lon}&zoom=18&format=geocodejson"""
         try:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
         except requests.HTTPError as e:
             if e.response.status_code == 403:
-                raise UnauthorizedException('You are not authorized to perform this operation.')
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation."
+                )
             else:
-                raise ServerException('An unexpected error occured.')
+                raise ServerException("An unexpected error occured.")
 
         response_content: Dict = json.loads(response.content)
-        if 'error' in response_content or not 'features' in response_content:
+        if "error" in response_content or not "features" in response_content:
             raise GeocodeException
 
-        address_info = response_content['features'][0]['properties']['geocoding']
+        address_info = response_content["features"][0]["properties"]["geocoding"]
 
-        house_number: str = address_info['housenumber'] if 'housenumber' in address_info else ''
-        street: str = address_info['street'] if 'street' in address_info else ''
-        postcode: str = address_info['postcode'] if 'postcode' in address_info else ''
-        city: str = address_info['city'] if 'city' in address_info else ''
+        house_number: str = (
+            address_info["housenumber"] if "housenumber" in address_info else ""
+        )
+        street: str = address_info["street"] if "street" in address_info else ""
+        postcode: str = address_info["postcode"] if "postcode" in address_info else ""
+        city: str = address_info["city"] if "city" in address_info else ""
 
         return (street, house_number, postcode, city)
