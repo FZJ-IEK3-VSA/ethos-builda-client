@@ -65,13 +65,6 @@ class BuildingHouseholds:
 
 
 @dataclass
-class BuildingCharacteristics:
-    id: UUID
-    footprint_area: float
-    construction_year: int
-
-
-@dataclass
 class BuildingParcel:
     id: UUID
     footprint: MultiPolygon

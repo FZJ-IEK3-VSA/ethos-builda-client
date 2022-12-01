@@ -23,7 +23,6 @@ from builda_client.model import (
     Building,
     BuildingBase,
     BuildingClassInfo,
-    BuildingCharacteristics,
     BuildingClassStatistics,
     BuildingEnergyCharacteristics,
     BuildingHouseholds,
@@ -132,7 +131,6 @@ class ApiClient:
     ADDRESS_URL = "address/"
     BUILDINGS_HOUSEHOLDS_URL = "buildings-households/"
     BUILDINGS_PARCEL_URL = "buildings-parcel/"
-    BUILDINGS_CHARACTERISTICS_URL = "buildings-characteristics/"
     BUILDINGS_ENERGY_CHARACTERISTICS_URL = "buildings-energy-characteristics/"
     BUILDINGS_ID_URL = "buildings-id/"
     BUILDING_CLASS_URL = "building-class"
@@ -343,48 +341,6 @@ class ApiClient:
         )
         buildings = self.__deserialize(response.content)
         return buildings
-
-    def get_buildings_charateristics(
-        self, nuts_code: str = "", type: str = "", exclude_irrelevant=False
-    ) -> list[BuildingCharacteristics]:
-        """Gets buildings IDs, footprint area and construction year for specific nuts region.
-
-        Args:
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
-            type (str): The type of building ('residential', 'non-residential', 'mixed').
-
-        Raises:
-            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
-
-        Returns:
-            Buildings Characteristics list.
-        """
-        logging.debug(
-            f"ApiClient: get_buildings_charateristics(nuts_code = {nuts_code}, type = {type})"
-        )
-        nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_CHARACTERISTICS_URL}?{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
-
-        try:
-            response: requests.Response = requests.get(url)
-            logging.debug("ApiClient: received response. Checking for errors.")
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.")
-
-        logging.debug(
-            f"ApiClient: received ok response, proceeding with deserialization."
-        )
-        results: list[str] = json.loads(response.contents)
-        buildings_characteristics: list[BuildingCharacteristics] = []
-        for res in results:
-            building_characteristics = BuildingCharacteristics(
-                id=UUID(res["id"]),
-                footprint_area=res["footprint_area_m2"],
-                construction_year=res["construction_year"],
-            )
-            buildings_characteristics.append(building_characteristics)
-        return buildings_characteristics
 
     def get_buildings_households(
         self, nuts_code: str = "", heating_type: str = ""
