@@ -437,7 +437,7 @@ class ApiClient:
     def get_buildings_heat_demand_characteristics(
         self, nuts_code: str = "", type: str = "", exclude_irrelevant=False
     ) -> list[BuildingHeatDemandCharacteristics]:
-        """Gets residential buildings with household data within the specified NUTS region that fall into the provided type category.
+        """Gets buildings with heat demand characteristics (heat_demand, footprint_area, construction_year & building class) within the specified NUTS region that fall into the provided type category.
 
         Args:
             nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
@@ -446,7 +446,7 @@ class ApiClient:
             ServerException: When the DB is inconsistent and more than one building with same ID is returned.
 
         Returns:
-            gpd.GeoDataFrame: A geodataframe with all buildings.
+            List of objects.
         """
         logging.debug(
             f"ApiClient: get_buildings_heat_demand_characteristics(nuts_code={nuts_code}, type={type})"
