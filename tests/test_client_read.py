@@ -88,7 +88,7 @@ class TestApiClientRead:
         building_class_statistic = self.testee.get_building_class_statistics(
             country="DE", nuts_level=4, nuts_code="05958048"
         )
-        self.__then_building_class_statistics_returned(building_class_statistic)
+        self.__then_correct_number_returned(building_class_statistic, 1)
 
     def test_get_construction_year_statistics_succeeds(self):
         self.__given_client_unauthenticated()
@@ -156,15 +156,6 @@ class TestApiClientRead:
     def __then_building_statistics_returned(self, result: list[Any], count: int):
         assert result
         assert len(result) == count
-
-    def __then_building_class_statistics_returned(
-        self, result: list[BuildingClassStatistics]
-    ):
-        result_df = pd.DataFrame(result)
-        assert len(result_df["sum_SFH_building_class"].iat[0]) == 3
-        assert len(result_df["sum_TH_building_class"].iat[0]) == 2
-        assert len(result_df["sum_MFH_building_class"].iat[0]) == 3
-        assert len(result_df["sum_AB_building_class"].iat[0]) == 2
 
     def __then_construction_year_statistics_returned(
         self, result: list[ConstructionYearStatistics]
