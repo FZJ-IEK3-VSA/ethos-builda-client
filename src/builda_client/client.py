@@ -45,6 +45,7 @@ from builda_client.model import (
     ParcelInfo,
     ParcelMinimalDto,
     RefurbishmentStateInfo,
+    RefurbishmentStateStatistics,
     PvGenerationInfo,
     TypeInfo,
     UseInfo,
@@ -119,6 +120,7 @@ class ApiClient:
     ENERGY_STATISTICS_BY_GEOM_URL = "statistics/energy-consumption/geom"
     FOOTPRINT_AREA_STATISTICS_URL = "statistics/footprint-area"
     FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL = "statistics/footprint-area/geom"
+    REFURBISHMENT_STATE_STATISTICS_URL = "statistics/refurbishment-state"
 
     # For developpers/ write users of database
     AUTH_URL = "/auth/api-token"
@@ -878,6 +880,70 @@ class ApiClient:
                 avg_footprint_area_irrelevant=res["avg_footprint_area_irrelevant_m2"],
                 sum_footprint_area_undefined=res["sum_footprint_area_undefined_m2"],
                 avg_footprint_area_undefined=res["avg_footprint_area_undefined_m2"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+    def get_refurbishment_state_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[RefurbishmentStateStatistics]:
+        """Get the refurbishment state statistics [m2] for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[RefurbishmentStateStatistics]: A list of objects per NUTS region with statistical info about refurbishment state of buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        if (nuts_level or nuts_code or country) and geom:
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
+
+        if geom is not None:
+            statistics_url = self.REFURBISHMENT_STATE_STATISTICS_URL
+            query_params = f"?geom={geom.wkt}"
+        else:
+            statistics_url = self.REFURBISHMENT_STATE_STATISTICS_URL
+            query_params = f"?country={country}"
+            if nuts_level is not None:
+                query_params += f"&nuts_level={nuts_level}"
+            elif nuts_code is not None:
+                query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.")
+
+        results: list = json.loads(response.content)
+        statistics: list[RefurbishmentStateStatistics] = []
+        for res in results:
+            statistic = RefurbishmentStateStatistics(
+                nuts_code=res["nuts_code"],
+                sum_ES_refurbishment_state=res["sum_ES_refurbishment_state"],
+                sum_UR_refurbishment_state=res["sum_UR_refurbishment_state"],
+                sum_AR_refurbishment_state=res["sum_AR_refurbishment_state"],
+                sum_NR_refurbishment_state=res["sum_NR_refurbishment_state"],
+                sum_IS_refurbishment_state=res["sum_IS_refurbishment_state"],
+                sum_UR_refurbishment_state=res["sum_UR_refurbishment_state"],
             )
             statistics.append(statistic)
         return statistics

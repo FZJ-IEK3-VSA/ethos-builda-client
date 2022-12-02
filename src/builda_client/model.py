@@ -235,6 +235,16 @@ class FootprintAreaStatistics(Statistics):
 
 
 @dataclass
+class RefurbishmentStateStatistics(Statistics):
+    sum_ES_refurbishment_state: int
+    sum_UR_refurbishment_state: int
+    sum_AR_refurbishment_state: int
+    sum_NR_refurbishment_state: int
+    sum_IS_refurbishment_state: int
+    sum_UR_refurbishment_state: int
+
+
+@dataclass
 class HeatDemandStatistics(Statistics):
     heat_demand: float
 
