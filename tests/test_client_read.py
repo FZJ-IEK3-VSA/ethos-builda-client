@@ -119,7 +119,7 @@ class TestApiClientRead:
         refurbishment_state_statistics = self.testee.get_refurbishment_state_statistics(
             nuts_code="05958048", country="DE"
         )
-        self.__then_buildings_with_refurbishment_state_returned(building_parcel)
+        self.__then_correct_number_returned(refurbishment_state_statistics, 1)
 
     def test_get_energy_commodity_statistics_succeeds(self):
         self.__given_client_unauthenticated()
