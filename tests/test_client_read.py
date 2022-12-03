@@ -5,6 +5,7 @@ from builda_client.model import (
     BuildingEnergyCharacteristics,
     BuildingHouseholds,
     BuildingParcel,
+    BuildingClassStatistics,
     ConstructionYearStatistics,
     NutsRegion,
     BuildingStatistics,
@@ -81,6 +82,13 @@ class TestApiClientRead:
         self.__given_client_unauthenticated()
         bu_energy = self.testee.get_building_energy_characteristics(nuts_code="DE80N")
         self.__then_building_energy_characteristics_returned(bu_energy)
+
+    def test_get_building_class_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_class_statistic = self.testee.get_building_class_statistics(
+            country="DE", nuts_code="05958048"
+        )
+        self.__then_correct_number_returned(building_class_statistic, 1)
 
     def test_get_construction_year_statistics_succeeds(self):
         self.__given_client_unauthenticated()

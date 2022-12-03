@@ -47,6 +47,7 @@ class Building:
     water_heating_commodity: str
     cooking_commodity: str
     construction_year: int
+    building_class: str
 
 
 @dataclass
@@ -192,6 +193,11 @@ class ConstructionYearInfo(Info):
 
 
 @dataclass
+class BuildingClassInfo(Info):
+    value: str
+
+
+@dataclass
 class Statistics(ABC):
     nuts_code: str
 
@@ -210,6 +216,14 @@ class BuildingUseStatistics(Statistics):
     type: str
     use: str
     building_count: int
+
+
+@dataclass
+class BuildingClassStatistics(Statistics):
+    sum_sfh_building_class: str
+    sum_th_building_class: str
+    sum_mfh_building_class: str
+    sum_ab_building_class: str
 
 
 @dataclass
