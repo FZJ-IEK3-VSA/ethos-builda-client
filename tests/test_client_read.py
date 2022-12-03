@@ -86,7 +86,7 @@ class TestApiClientRead:
     def test_get_building_class_statistics_succeeds(self):
         self.__given_client_unauthenticated()
         building_class_statistic = self.testee.get_building_class_statistics(
-            country="DE", nuts_level=4, nuts_code="05958048"
+            country="DE", nuts_code="05958048"
         )
         self.__then_correct_number_returned(building_class_statistic, 1)
 

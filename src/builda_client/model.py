@@ -220,10 +220,10 @@ class BuildingUseStatistics(Statistics):
 
 @dataclass
 class BuildingClassStatistics(Statistics):
-    sum_SFH_building_class: str
-    sum_TH_building_class: str
-    sum_MFH_building_class: str
-    sum_AB_building_class: str
+    sum_sfh_building_class: str
+    sum_th_building_class: str
+    sum_mfh_building_class: str
+    sum_ab_building_class: str
 
 
 @dataclass

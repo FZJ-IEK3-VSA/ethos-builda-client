@@ -813,10 +813,10 @@ class ApiClient:
         for res in results:
             statistic = BuildingClassStatistics(
                 nuts_code=res["nuts_code"],
-                sum_SFH_building_class=res["sum_SFH_building_class"],
-                sum_TH_building_class=res["sum_TH_building_class"],
-                sum_MFH_building_class=res["sum_MFH_building_class"],
-                sum_AB_building_class=res["sum_AB_building_class"],
+                sum_sfh_building_class=res["sum_sfh_building_class"],
+                sum_th_building_class=res["sum_th_building_class"],
+                sum_mfh_building_class=res["sum_mfh_building_class"],
+                sum_ab_building_class=res["sum_ab_building_class"],
             )
             statistics.append(statistic)
         return statistics
