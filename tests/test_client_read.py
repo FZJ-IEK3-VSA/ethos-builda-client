@@ -85,7 +85,7 @@ class TestApiClientRead:
     def test_get_construction_year_statistics_succeeds(self):
         self.__given_client_unauthenticated()
         construction_year_statistic = self.testee.get_construction_year_statistics(
-            country="DE", nuts_level=4, nuts_code="05958048"
+            country="DE", nuts_code="05958048"
         )
         self.__then_construction_year_statistics_returned(construction_year_statistic)
 
@@ -153,7 +153,7 @@ class TestApiClientRead:
         self, result: list[ConstructionYearStatistics]
     ):
         result_df = pd.DataFrame(result)
-        assert len(result_df["avg_construction_year"].iat[0]) == 4
+        assert 0 <= result_df["avg_construction_year"].iat[0] <= 2022
 
     def __then_residential_buildings_returned(self, result: list[Building]):
         assert result
