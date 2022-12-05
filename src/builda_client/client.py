@@ -43,6 +43,7 @@ from builda_client.model import (
     HeatingCommodityInfo,
     HeightInfo,
     HouseholdInfo,
+    HeightStatistics,
     NutsRegion,
     Parcel,
     ParcelInfo,
@@ -121,8 +122,10 @@ class ApiClient:
     ENERGY_STATISTICS_URL = "statistics/energy-consumption"
     ENERGY_STATISTICS_BY_GEOM_URL = "statistics/energy-consumption/geom"
     FOOTPRINT_AREA_STATISTICS_URL = "statistics/footprint-area"
-    CONSTRUCTION_YEAR_STATISTICS_URL = "statistics/construction-year"
     FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL = "statistics/footprint-area/geom"
+    HEIGHT_STATISTICS_URL = "statistics/height"
+    HEIGHT_STATISTICS_BY_GEOM_URL = "statistics/height/geom"
+    CONSTRUCTION_YEAR_STATISTICS_URL = "statistics/construction-year"
 
     # For developpers/ write users of database
     AUTH_URL = "/auth/api-token"
@@ -947,6 +950,73 @@ class ApiClient:
                 avg_footprint_area_irrelevant=res["avg_footprint_area_irrelevant_m2"],
                 sum_footprint_area_undefined=res["sum_footprint_area_undefined_m2"],
                 avg_footprint_area_undefined=res["avg_footprint_area_undefined_m2"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+    def get_height_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[HeightStatistics]:
+        """Get the height statistics [m] for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+            geom (str | None, optional): A custom geometry.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical info about buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        if (nuts_level or nuts_code or country) and geom:
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
+
+        if geom is not None:
+            statistics_url = self.HEIGHT_STATISTICS_BY_GEOM_URL
+            query_params = f"?geom={geom.wkt}"
+        else:
+            statistics_url = self.HEIGHT_STATISTICS_URL
+            query_params = f"?country={country}"
+            if nuts_level is not None:
+                query_params += f"&nuts_level={nuts_level}"
+            elif nuts_code is not None:
+                query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.")
+
+        results: list = json.loads(response.content)
+        statistics: list[HeightStatistics] = []
+        for res in results:
+            statistic = HeightStatistics(
+                nuts_code=res["nuts_code"],
+                avg_height_total_m=res["avg_height_total_m"],
+                median_height_total_m=res["median_height_total_m"],
+                avg_height_residential_m=res["avg_height_residential_m"],
+                median_height_residential_m=res["median_height_residential_m"],
+                avg_height_non_residential_m=res["avg_height_non_residential_m"],
+                median_height_non_residential_m=res["median_height_non_residential_m"],
+                avg_height_mixed_m=res["avg_height_mixed_m"],
+                median_height_mixed_m=res["median_height_mixed_m"]
             )
             statistics.append(statistic)
         return statistics
