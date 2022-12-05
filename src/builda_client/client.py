@@ -1130,12 +1130,9 @@ class ApiClient:
         for res in results:
             statistic = RefurbishmentStateStatistics(
                 nuts_code=res["nuts_code"],
-                sum_ES_refurbishment_state=res["sum_ES_refurbishment_state"],
-                sum_UR_refurbishment_state=res["sum_UR_refurbishment_state"],
-                sum_AR_refurbishment_state=res["sum_AR_refurbishment_state"],
-                sum_NR_refurbishment_state=res["sum_NR_refurbishment_state"],
-                sum_IS_refurbishment_state=res["sum_IS_refurbishment_state"],
-                sum_UR_refurbishment_state=res["sum_UR_refurbishment_state"],
+                sum_ES_refurbishment_state=res["sum_1_refurbishment_state"],
+                sum_UR_refurbishment_state=res["sum_2_refurbishment_state"],
+                sum_AR_refurbishment_state=res["sum_3_refurbishment_state"],
             )
             statistics.append(statistic)
         return statistics
