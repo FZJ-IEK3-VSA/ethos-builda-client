@@ -256,6 +256,18 @@ class FootprintAreaStatistics(Statistics):
 
 
 @dataclass
+class HeightStatistics(Statistics):
+    avg_height_total_m: float
+    median_height_total_m: float
+    avg_height_residential_m: float
+    median_height_residential_m: float
+    avg_height_non_residential_m: float
+    median_height_non_residential_m: float
+    avg_height_mixed_m: float
+    median_height_mixed_m: float
+
+
+@dataclass
 class HeatDemandStatistics(Statistics):
     heat_demand: float
 
