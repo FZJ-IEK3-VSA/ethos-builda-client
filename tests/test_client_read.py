@@ -129,6 +129,13 @@ class TestApiClientRead:
         )
         self.__then_correct_number_returned(footprint_area_statistics, 16)
 
+    def test_get_height_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        height_statistics = self.testee.get_height_statistics(
+            nuts_level=1, country="DE"
+        )
+        self.__then_correct_number_returned(height_statistics, 16)
+
     def test_get_energy_commodity_statistics_succeeds(self):
         self.__given_client_unauthenticated()
         commodity_statistics = self.testee.get_energy_commodity_statistics(
