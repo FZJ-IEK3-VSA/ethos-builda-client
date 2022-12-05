@@ -936,20 +936,28 @@ class ApiClient:
         for res in results:
             statistic = FootprintAreaStatistics(
                 nuts_code=res["nuts_code"],
-                sum_footprint_area_total=res["sum_footprint_area_total_m2"],
-                avg_footprint_area_total=res["avg_footprint_area_total_m2"],
-                sum_footprint_area_residential=res["sum_footprint_area_residential_m2"],
-                avg_footprint_area_residential=res["avg_footprint_area_residential_m2"],
-                sum_footprint_area_non_residential=res[
-                    "sum_footprint_area_non_residential_m2"
+                
+                sum_footprint_area_total_m2=res["sum_footprint_area_total_m2"],
+                avg_footprint_area_total_m2=res["avg_footprint_area_total_m2"],
+                median_footprint_area_total_m2=res["median_footprint_area_total_m2"],
+                avg_footprint_area_total_irrelevant_m2=res["avg_footprint_area_total_irrelevant_m2"],
+                sum_footprint_area_total_irrelevant_m2=res[
+                    "sum_footprint_area_total_irrelevant_m2"
                 ],
-                avg_footprint_area_non_residential=res[
-                    "avg_footprint_area_non_residential_m2"
+                median_footprint_area_total_irrelevant_m2=res[
+                    "median_footprint_area_total_irrelevant_m2"
                 ],
-                sum_footprint_area_irrelevant=res["sum_footprint_area_irrelevant_m2"],
-                avg_footprint_area_irrelevant=res["avg_footprint_area_irrelevant_m2"],
-                sum_footprint_area_undefined=res["sum_footprint_area_undefined_m2"],
-                avg_footprint_area_undefined=res["avg_footprint_area_undefined_m2"],
+                sum_footprint_area_residential_m2=res["sum_footprint_area_residential_m2"],
+                avg_footprint_area_residential_m2=res["avg_footprint_area_residential_m2"],
+                median_footprint_area_residential_m2=res["median_footprint_area_residential_m2"],
+                sum_footprint_area_non_residential_m2=res["sum_footprint_area_non_residential_m2"],
+                avg_footprint_area_non_residential_m2=res["avg_footprint_area_non_residential_m2"],
+                median_footprint_area_non_residential_m2=res["median_footprint_area_non_residential_m2"],
+                sum_footprint_area_mixed_m2=res["sum_footprint_area_mixed_m2"],
+                avg_footprint_area_mixed_m2=res["avg_footprint_area_mixed_m2"],
+                median_footprint_area_mixed_m2=res["median_footprint_area_mixed_m2"],
+                sum_footprint_area_undefined_m2=res["sum_footprint_area_undefined_m2"],
+                sum_footprint_area_undefined_irrelevant_m2=res["sum_footprint_area_undefined_irrelevant_m2"],
             )
             statistics.append(statistic)
         return statistics

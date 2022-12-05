@@ -126,6 +126,14 @@ class TestApiClientRead:
             nuts_level=1, country="DE"
         )
         self.__then_correct_number_returned(footprint_area_statistics, 16)
+    
+    def test_get_footprint_area_statistics_by_custom_geom_succeeds(self):
+        self.__given_client_unauthenticated()
+        custom_geom = self.__given_valid_custom_geom()
+        footprint_area_statistics = self.testee.get_footprint_area_statistics(
+            geom=custom_geom
+        )
+        self.__then_correct_number_returned(footprint_area_statistics, 1)
 
     def test_get_height_statistics_succeeds(self):
         self.__given_client_unauthenticated()
