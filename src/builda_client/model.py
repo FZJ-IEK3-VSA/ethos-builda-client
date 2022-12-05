@@ -46,6 +46,9 @@ class Building:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
+    construction_year: int
+    building_class: str
+    refurbishment_state: str
 
 
 @dataclass
@@ -195,6 +198,16 @@ class PvGenerationInfo(Info):
 
 
 @dataclass
+class ConstructionYearInfo(Info):
+    value: int
+
+
+@dataclass
+class BuildingClassInfo(Info):
+    value: str
+
+
+@dataclass
 class RefurbishmentStateInfo(Info):
     value: str
 
@@ -221,6 +234,22 @@ class BuildingUseStatistics(Statistics):
 
 
 @dataclass
+class BuildingClassStatistics(Statistics):
+    sum_sfh_building_class: str
+    sum_th_building_class: str
+    sum_mfh_building_class: str
+    sum_ab_building_class: str
+
+
+@dataclass
+class ConstructionYearStatistics(Statistics):
+    avg_construction_year: int
+    avg_construction_year_residential: int
+    avg_construction_year_non_residential: int
+    avg_construction_year_mixed: int
+
+
+@dataclass
 class FootprintAreaStatistics(Statistics):
     sum_footprint_area_total: float
     avg_footprint_area_total: float
@@ -235,13 +264,22 @@ class FootprintAreaStatistics(Statistics):
 
 
 @dataclass
+class HeightStatistics(Statistics):
+    avg_height_total_m: float
+    median_height_total_m: float
+    avg_height_residential_m: float
+    median_height_residential_m: float
+    avg_height_non_residential_m: float
+    median_height_non_residential_m: float
+    avg_height_mixed_m: float
+    median_height_mixed_m: float
+
+
+@dataclass
 class RefurbishmentStateStatistics(Statistics):
-    sum_ES_refurbishment_state: int
-    sum_UR_refurbishment_state: int
-    sum_AR_refurbishment_state: int
-    sum_NR_refurbishment_state: int
-    sum_IS_refurbishment_state: int
-    sum_UR_refurbishment_state: int
+    sum_1_refurbishment_state: int
+    sum_2_refurbishment_state: int
+    sum_3_refurbishment_state: int
 
 
 @dataclass

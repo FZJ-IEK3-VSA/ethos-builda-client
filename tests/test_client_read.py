@@ -5,6 +5,8 @@ from builda_client.model import (
     BuildingEnergyCharacteristics,
     BuildingHouseholds,
     BuildingParcel,
+    BuildingClassStatistics,
+    ConstructionYearStatistics,
     NutsRegion,
     BuildingStatistics,
     Statistics,
@@ -62,9 +64,7 @@ class TestApiClientRead:
 
     def test_get_energy_consumption_statistics_by_geom_succeeds(self):
         self.__given_client_unauthenticated()
-        custom_geom = wkt.loads(
-            "POLYGON((4031408.7239999995 2684074.9562,4031408.7239999995 3551421.7045,4672473.542199999 3551421.7045,4672473.542199999 2684074.9562,4031408.7239999995 2684074.9562))"
-        )
+        custom_geom = self.__given_valid_custom_geom()
         energy_consumption_statistics = self.testee.get_energy_consumption_statistics(
             geom=custom_geom
         )
@@ -81,6 +81,20 @@ class TestApiClientRead:
         self.__given_client_unauthenticated()
         bu_energy = self.testee.get_building_energy_characteristics(nuts_code="DE80N")
         self.__then_building_energy_characteristics_returned(bu_energy)
+
+    def test_get_building_class_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        building_class_statistic = self.testee.get_building_class_statistics(
+            country="DE", nuts_code="05958048"
+        )
+        self.__then_correct_number_returned(building_class_statistic, 1)
+
+    def test_get_construction_year_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        construction_year_statistic = self.testee.get_construction_year_statistics(
+            country="DE", nuts_code="05958048"
+        )
+        self.__then_construction_year_statistics_returned(construction_year_statistic)
 
     def test_get_nuts_region(self):
         self.__given_client_unauthenticated()
@@ -114,6 +128,19 @@ class TestApiClientRead:
         )
         self.__then_correct_number_returned(footprint_area_statistics, 16)
 
+    def test_get_height_statistics_succeeds(self):
+        self.__given_client_unauthenticated()
+        height_statistics = self.testee.get_height_statistics(
+            nuts_level=1, country="DE"
+        )
+        self.__then_correct_number_returned(height_statistics, 16)
+
+    def test_get_height_statistics_by_custom_geom_succeeds(self):
+        self.__given_client_unauthenticated()
+        custom_geom = self.__given_valid_custom_geom()
+        height_statistics = self.testee.get_height_statistics(geom=custom_geom)
+        self.__then_correct_number_returned(height_statistics, 1)
+
     def test_get_refurbishment_state_statistics_succeeds(self):
         self.__given_client_unauthenticated()
         refurbishment_state_statistics = self.testee.get_refurbishment_state_statistics(
@@ -134,6 +161,13 @@ class TestApiClientRead:
     def __given_client_unauthenticated(self) -> None:
         self.testee = ApiClient()
 
+    def __given_valid_custom_geom(self) -> Polygon:
+        return Polygon(
+            wkt.loads(
+                "POLYGON((4031408.7239999995 2684074.9562,4031408.7239999995 3551421.7045,4672473.542199999 3551421.7045,4672473.542199999 2684074.9562,4031408.7239999995 2684074.9562))"
+            )
+        )
+
     # WHEN
 
     def __when_get_buildings(
@@ -148,6 +182,12 @@ class TestApiClientRead:
     def __then_building_statistics_returned(self, result: list[Any], count: int):
         assert result
         assert len(result) == count
+
+    def __then_construction_year_statistics_returned(
+        self, result: list[ConstructionYearStatistics]
+    ):
+        result_df = pd.DataFrame(result)
+        assert 0 <= result_df["avg_construction_year"].iat[0] <= 2022
 
     def __then_residential_buildings_returned(self, result: list[Building]):
         assert result

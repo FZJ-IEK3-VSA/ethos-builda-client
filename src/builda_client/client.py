@@ -22,6 +22,8 @@ from builda_client.model import (
     AddressInfo,
     Building,
     BuildingBase,
+    BuildingClassInfo,
+    BuildingClassStatistics,
     BuildingEnergyCharacteristics,
     BuildingHeatDemandCharacteristics,
     BuildingHouseholds,
@@ -31,6 +33,8 @@ from builda_client.model import (
     CommodityCount,
     CookingCommodityInfo,
     CoolingCommodityInfo,
+    ConstructionYearInfo,
+    ConstructionYearStatistics,
     EnergyCommodityStatistics,
     EnergyConsumption,
     EnergyConsumptionStatistics,
@@ -40,6 +44,7 @@ from builda_client.model import (
     HeatingCommodityInfo,
     HeightInfo,
     HouseholdInfo,
+    HeightStatistics,
     NutsRegion,
     Parcel,
     ParcelInfo,
@@ -112,6 +117,7 @@ class ApiClient:
     BUILDING_TYPE_STATISTICS_BY_GEOM_URL = "statistics/building-type/geom"
     BUILDING_USE_STATISTICS_URL = "statistics/building-use"
     BUILDING_USE_STATISTICS_BY_GEOM_URL = "statistics/building-use/geom"
+    BUILDING_CLASS_STATISTICS_URL = "statistics/building-class"
     HEAT_DEMAND_STATISTICS_URL = "statistics/heat-demand"
     HEAT_DEMAND_STATISTICS_BY_GEOM_URL = "statistics/heat-demand/geom"
     BUILDING_COMMODITY_STATISTICS_URL = "statistics/building-commodities"
@@ -120,6 +126,9 @@ class ApiClient:
     ENERGY_STATISTICS_BY_GEOM_URL = "statistics/energy-consumption/geom"
     FOOTPRINT_AREA_STATISTICS_URL = "statistics/footprint-area"
     FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL = "statistics/footprint-area/geom"
+    HEIGHT_STATISTICS_URL = "statistics/height"
+    HEIGHT_STATISTICS_BY_GEOM_URL = "statistics/height/geom"
+    CONSTRUCTION_YEAR_STATISTICS_URL = "statistics/construction-year"
     REFURBISHMENT_STATE_STATISTICS_URL = "statistics/refurbishment-state"
 
     # For developpers/ write users of database
@@ -132,6 +141,8 @@ class ApiClient:
     BUILDINGS_ENERGY_CHARACTERISTICS_URL = "buildings-energy-characteristics/"
     BUILDINGS_HEAT_DEMAND_CHARACTERISTICS_URL = "buildings-heat-demand-characteristics/"
     BUILDINGS_ID_URL = "buildings-id/"
+    BUILDINGS_ID_URL = "buildings-id/"
+    BUILDING_CLASS_URL = "building-class"
     VIEW_REFRESH_URL = "buildings/refresh"
     BUILDING_STOCK_URL = "building-stock"
     NUTS_URL = "nuts"
@@ -148,6 +159,7 @@ class ApiClient:
     HEAT_DEMAND_URL = "heat-demand"
     PV_GENERATION_URL = "pv-generation/"
     REFURBISHMENT_STATE_URL = "refurbishment-state"
+    CONSTRUCTION_YEAR_URL = "construction-year"
     TIMING_LOG_URL = "admin/timing-log"
     NUTS_URL = "nuts"
     PARCEL_URL = "parcels"
@@ -290,6 +302,8 @@ class ApiClient:
                 footprint_area=result["footprint_area_m2"],
                 height=result["height_m"],
                 type=result["type"],
+                construction_year=result["construction_year"],
+                building_class=result["building_class"],
                 use=result["use"],
                 heat_demand=result["heat_demand_MWh"],
                 pv_generation=result["pv_generation_kWh"],
@@ -298,6 +312,7 @@ class ApiClient:
                 cooling_commodity=result["heating_commodity"],
                 water_heating_commodity=result["heating_commodity"],
                 cooking_commodity=result["heating_commodity"],
+                refurbishment_state=result["refurbishment_state"],
             )
             buildings.append(building)
         return buildings
@@ -811,6 +826,116 @@ class ApiClient:
             statistics.append(statistic)
         return statistics
 
+    def get_building_class_statistics(
+        self,
+        country: str = "",
+        nuts_level: int | None = None,
+        nuts_code: str | None = None,
+    ) -> list[BuildingClassStatistics]:
+        """Get the building class statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingClassStatistics]: A list of objects per NUTS region with statistical info about buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
+
+        url: str = (
+            f"""{self.base_url}{self.BUILDING_CLASS_STATISTICS_URL}{query_params}"""
+        )
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.")
+
+        results: list = json.loads(response.content)
+        statistics: list[BuildingClassStatistics] = []
+        for res in results:
+            statistic = BuildingClassStatistics(
+                nuts_code=res["nuts_code"],
+                sum_sfh_building_class=res["sum_sfh_building_class"],
+                sum_th_building_class=res["sum_th_building_class"],
+                sum_mfh_building_class=res["sum_mfh_building_class"],
+                sum_ab_building_class=res["sum_ab_building_class"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+    def get_construction_year_statistics(
+        self,
+        country: str = "",
+        nuts_level: int | None = None,
+        nuts_code: str | None = None,
+    ) -> list[ConstructionYearStatistics]:
+        """Get the construction year statistics for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[ConstructionYearStatistics]: A list of objects per NUTS region with statistical info about buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
+
+        url: str = (
+            f"""{self.base_url}{self.CONSTRUCTION_YEAR_STATISTICS_URL}{query_params}"""
+        )
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.")
+
+        results: list = json.loads(response.content)
+        statistics: list[ConstructionYearStatistics] = []
+        for res in results:
+            statistic = ConstructionYearStatistics(
+                nuts_code=res["nuts_code"],
+                avg_construction_year=res["avg_construction_year"],
+                avg_construction_year_residential=res[
+                    "avg_construction_year_residential"
+                ],
+                avg_construction_year_non_residential=res[
+                    "avg_construction_year_non_residential"
+                ],
+                avg_construction_year_mixed=res["avg_construction_year_mixed"],
+            )
+            statistics.append(statistic)
+        return statistics
+
     def get_footprint_area_statistics(
         self,
         country: str = "",
@@ -880,6 +1005,73 @@ class ApiClient:
                 avg_footprint_area_irrelevant=res["avg_footprint_area_irrelevant_m2"],
                 sum_footprint_area_undefined=res["sum_footprint_area_undefined_m2"],
                 avg_footprint_area_undefined=res["avg_footprint_area_undefined_m2"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+    def get_height_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[HeightStatistics]:
+        """Get the height statistics [m] for the given nuts level or nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' for Germany. Defaults to None.
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
+            geom (str | None, optional): A custom geometry.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical info about buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        if (nuts_level or nuts_code or country) and geom:
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
+
+        if geom is not None:
+            statistics_url = self.HEIGHT_STATISTICS_BY_GEOM_URL
+            query_params = f"?geom={geom.wkt}"
+        else:
+            statistics_url = self.HEIGHT_STATISTICS_URL
+            query_params = f"?country={country}"
+            if nuts_level is not None:
+                query_params += f"&nuts_level={nuts_level}"
+            elif nuts_code is not None:
+                query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.")
+
+        results: list = json.loads(response.content)
+        statistics: list[HeightStatistics] = []
+        for res in results:
+            statistic = HeightStatistics(
+                nuts_code=res["nuts_code"],
+                avg_height_total_m=res["avg_height_total_m"],
+                median_height_total_m=res["median_height_total_m"],
+                avg_height_residential_m=res["avg_height_residential_m"],
+                median_height_residential_m=res["median_height_residential_m"],
+                avg_height_non_residential_m=res["avg_height_non_residential_m"],
+                median_height_non_residential_m=res["median_height_non_residential_m"],
+                avg_height_mixed_m=res["avg_height_mixed_m"],
+                median_height_mixed_m=res["median_height_mixed_m"],
             )
             statistics.append(statistic)
         return statistics
@@ -1807,6 +1999,86 @@ class ApiClient:
             response: requests.Response = requests.post(
                 url,
                 data=pv_generation_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException("A client side error occured", err)
+            else:
+                raise ServerException("An unexpected error occurred", err)
+
+    def post_construction_year(
+        self, construction_year_infos: list[ConstructionYearInfo]
+    ) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the construction year data to the database.
+
+        Args:
+            construction_year_infos (list[ConstructionYearInfo]): The construction year data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_construction_year")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.CONSTRUCTION_YEAR_URL}"""
+        construction_year_json = json.dumps(
+            construction_year_infos, cls=EnhancedJSONEncoder
+        )
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=construction_year_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 403:
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
+                )
+            elif err.response.status_code >= 400 and err.response.status_code >= 499:
+                raise ClientException("A client side error occured", err)
+            else:
+                raise ServerException("An unexpected error occurred", err)
+
+    def post_building_class(
+        self, building_class_infos: list[BuildingClassInfo]
+    ) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the building size class data to the database.
+
+        Args:
+            building_class_infos (list[BuildingClassInfo]): The building size class data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_building_class")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.BUILDING_CLASS_URL}"""
+        building_class_json = json.dumps(building_class_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=building_class_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()
