@@ -236,16 +236,23 @@ class ConstructionYearStatistics(Statistics):
 
 @dataclass
 class FootprintAreaStatistics(Statistics):
-    sum_footprint_area_total: float
-    avg_footprint_area_total: float
-    sum_footprint_area_residential: float
-    avg_footprint_area_residential: float
-    sum_footprint_area_non_residential: float
-    avg_footprint_area_non_residential: float
-    sum_footprint_area_irrelevant: float
-    avg_footprint_area_irrelevant: float
-    sum_footprint_area_undefined: float
-    avg_footprint_area_undefined: float
+    sum_footprint_area_total_m2: float
+    avg_footprint_area_total_m2: float
+    median_footprint_area_total_m2: float
+    avg_footprint_area_total_irrelevant_m2: float
+    sum_footprint_area_total_irrelevant_m2: float
+    median_footprint_area_total_irrelevant_m2: float
+    sum_footprint_area_residential_m2: float
+    avg_footprint_area_residential_m2: float
+    median_footprint_area_residential_m2: float
+    sum_footprint_area_non_residential_m2: float
+    avg_footprint_area_non_residential_m2: float
+    median_footprint_area_non_residential_m2: float
+    sum_footprint_area_mixed_m2: float
+    avg_footprint_area_mixed_m2: float
+    median_footprint_area_mixed_m2: float
+    sum_footprint_area_undefined_m2: float
+    sum_footprint_area_undefined_irrelevant_m2: float
 
 
 @dataclass
