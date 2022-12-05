@@ -63,9 +63,7 @@ class TestApiClientRead:
 
     def test_get_energy_consumption_statistics_by_geom_succeeds(self):
         self.__given_client_unauthenticated()
-        custom_geom = wkt.loads(
-            "POLYGON((4031408.7239999995 2684074.9562,4031408.7239999995 3551421.7045,4672473.542199999 3551421.7045,4672473.542199999 2684074.9562,4031408.7239999995 2684074.9562))"
-        )
+        custom_geom = self.__given_valid_custom_geom()
         energy_consumption_statistics = self.testee.get_energy_consumption_statistics(
             geom=custom_geom
         )
@@ -136,6 +134,14 @@ class TestApiClientRead:
         )
         self.__then_correct_number_returned(height_statistics, 16)
 
+    def test_get_height_statistics_by_custom_geom_succeeds(self):
+        self.__given_client_unauthenticated()
+        custom_geom = self.__given_valid_custom_geom()
+        height_statistics = self.testee.get_height_statistics(
+            geom=custom_geom
+        )
+        self.__then_correct_number_returned(height_statistics, 1)
+
     def test_get_energy_commodity_statistics_succeeds(self):
         self.__given_client_unauthenticated()
         commodity_statistics = self.testee.get_energy_commodity_statistics(
@@ -148,6 +154,11 @@ class TestApiClientRead:
     # GIVEN
     def __given_client_unauthenticated(self) -> None:
         self.testee = ApiClient()
+
+    def __given_valid_custom_geom(self) -> Polygon:
+        return Polygon(wkt.loads(
+            "POLYGON((4031408.7239999995 2684074.9562,4031408.7239999995 3551421.7045,4672473.542199999 3551421.7045,4672473.542199999 2684074.9562,4031408.7239999995 2684074.9562))"
+        ))
 
     # WHEN
 
