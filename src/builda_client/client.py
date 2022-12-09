@@ -246,7 +246,7 @@ class ApiClient:
         postcode: str = "",
         city: str = "",
         nuts_code: str = "",
-        type: str = "",
+        type: str | None = "",
         exclude_irrelevant: bool = False,
     ):
         """Gets all buildings that match the query parameters.
@@ -256,7 +256,7 @@ class ApiClient:
             postcode (str | None, optional): The postcode. Defaults to None.
             city (str | None, optional): The city. Defaults to None.
             nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions or 2019 LAU definition. Defaults to None.
-            type (str | None, optional): The type of building ('residential', 'non-residential', 'mixed')
+            type (str | None, optional): The type of building ('residential', 'non-residential', 'mixed') 
 
         Raises:
             ServerException: When an error occurs on the server side..
@@ -269,7 +269,12 @@ class ApiClient:
             f"ApiClient: get_buildings(street={street}, housenumber={housenumber}, postcode={postcode}, city={city}, nuts_code={nuts_code}, type={type})"
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
+        type_is_null=False
+        if type is None:
+            type_is_null=True
+            type = ''
+
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={type}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
         try:
             response: requests.Response = requests.get(url)
             logging.debug("ApiClient: received response. Checking for errors.")
@@ -310,7 +315,7 @@ class ApiClient:
         return buildings
 
     def get_buildings_base(
-        self, nuts_code: str = "", type: str = "", geom: Optional[Polygon] = None
+        self, nuts_code: str = "", type: str | None = "", geom: Optional[Polygon] = None
     ) -> list[BuildingBase]:
         """Gets buildings with reduced parameter set within the specified NUTS region that fall into the provided type category.
 
@@ -328,7 +333,12 @@ class ApiClient:
             f"ApiClient: get_buildings_base(nuts_code = {nuts_code}, type = {type})"
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?{nuts_query_param}={nuts_code}&type={type}"""
+        type_is_null=False
+        if type is None:
+            type_is_null=True
+            type = ''
+
+        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?{nuts_query_param}={nuts_code}&type={type}&type__isnull={type_is_null}"""
         if geom:
             url += f"&geom={geom}"
 
