@@ -25,7 +25,6 @@ from builda_client.model import (
     BuildingClassInfo,
     BuildingClassStatistics,
     BuildingEnergyCharacteristics,
-    BuildingHeatDemandCharacteristics,
     BuildingHouseholds,
     BuildingParcel,
     BuildingStatistics,
@@ -139,7 +138,6 @@ class ApiClient:
     BUILDINGS_HOUSEHOLDS_URL = "buildings-households/"
     BUILDINGS_PARCEL_URL = "buildings-parcel/"
     BUILDINGS_ENERGY_CHARACTERISTICS_URL = "buildings-energy-characteristics/"
-    BUILDINGS_HEAT_DEMAND_CHARACTERISTICS_URL = "buildings-heat-demand-characteristics/"
     BUILDINGS_ID_URL = "buildings-id/"
     BUILDINGS_ID_URL = "buildings-id/"
     BUILDING_CLASS_URL = "building-class"
@@ -450,53 +448,6 @@ class ApiClient:
         building_ids: list[UUID] = json.loads(response.content)
 
         return building_ids
-
-    def get_buildings_heat_demand_characteristics(
-        self, nuts_code: str = "", type: str = "", exclude_irrelevant=False
-    ) -> list[BuildingHeatDemandCharacteristics]:
-        """Gets buildings with heat demand characteristics (heat_demand, footprint_area, construction_year & building class) within the specified NUTS region that fall into the provided type category.
-
-        Args:
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany according to the 2021 NUTS code definitions. Defaults to None.
-
-        Raises:
-            ServerException: When the DB is inconsistent and more than one building with same ID is returned.
-
-        Returns:
-            List of objects.
-        """
-        logging.debug(
-            f"ApiClient: get_buildings_heat_demand_characteristics(nuts_code={nuts_code}, type={type})"
-        )
-        nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_HEAT_DEMAND_CHARACTERISTICS_URL}?{nuts_query_param}={nuts_code}&type={type}&&exclude_irrelevant={exclude_irrelevant}"""
-
-        try:
-            response: requests.Response = requests.get(url)
-            logging.debug("ApiClient: received response. Checking for errors.")
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.")
-
-        logging.debug(
-            f"ApiClient: received ok response, proceeding with deserialization."
-        )
-        results: list[str] = json.loads(response.content)
-        buildings_heat_demand_characteristics: list[
-            BuildingHeatDemandCharacteristics
-        ] = []
-        for res in results:
-            building_heat_demand_characteristics = BuildingHeatDemandCharacteristics(
-                id=UUID(res["id"]),
-                heat_demand=res["heat_demand_MWh"],
-                footprint_area=res["footprint_area_m2"],
-                construction_year=res["construction_year"],
-                building_class=res["building_class"],
-            )
-            buildings_heat_demand_characteristics.append(
-                building_heat_demand_characteristics
-            )
-        return buildings_heat_demand_characteristics
 
     def __deserialize(self, response_content):
         results: list[str] = json.loads(response_content)

@@ -87,15 +87,6 @@ class BuildingEnergyCharacteristics:
 
 
 @dataclass
-class BuildingHeatDemandCharacteristics:
-    id: UUID
-    heat_demand: float
-    footprint_area: float
-    construction_year: int
-    building_class: str
-
-
-@dataclass
 class NutsRegion:
     code: str
     name: str
