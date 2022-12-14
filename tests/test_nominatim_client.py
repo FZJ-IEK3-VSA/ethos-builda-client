@@ -1,6 +1,6 @@
 from typing import Tuple
-from builda_client.client import NominatimClient
-from builda_client.client import GeocodeException
+from builda_client.nominatim_client import NominatimClient
+from builda_client.nominatim_client import GeocodeException
 import pytest
 
 __author__ = "k.dabrock"
