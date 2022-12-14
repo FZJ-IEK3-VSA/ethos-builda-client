@@ -137,10 +137,13 @@ class BuildaClient:
             street, housenumber, postcode, city, nuts_code, building_type
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        type_is_null = False
 
+        type_is_null=False
+        if building_type is None:
+            type_is_null=True
+            building_type = ''
 
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
