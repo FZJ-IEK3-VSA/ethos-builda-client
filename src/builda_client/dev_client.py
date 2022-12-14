@@ -160,7 +160,7 @@ class BuildaDevClient(BuildaClient):
             return {"Authorization": f"Token {self.api_token}"}
 
     def get_buildings_base(
-        self, nuts_code: str = "", type: str | None = "", geom: Optional[Polygon] = None
+        self, nuts_code: str = "", building_type: str | None = "", geom: Optional[Polygon] = None
     ) -> list[BuildingBase]:
         """Gets buildings with reduced parameter set within the specified NUTS region 
         that fall into the provided type category.
@@ -179,16 +179,16 @@ class BuildaDevClient(BuildaClient):
         """
         logging.debug(
             "ApiClient: get_buildings_base(nuts_code = %s, type = %s)",
-            nuts_code, type
+            nuts_code, building_type
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         type_is_null = False
-        if type is None:
+        if building_type is None:
             type_is_null = True
-            type = ""
+            building_type = ""
 
         url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}
-        ?{nuts_query_param}={nuts_code}&type={type}&type__isnull={type_is_null}"""
+        ?{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}"""
         if geom:
             url += f"&geom={geom}"
 
