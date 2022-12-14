@@ -265,6 +265,14 @@ class TestBuildaClient:
             heat_demand_statistics, expected_count
         )
 
+    def test_get_refurbishment_state_statistics_succeeds(self):
+        self.given_client()
+        refurbishment_state_statistics = self.testee.get_refurbishment_state_statistics(
+            nuts_code="05958048", country="DE"
+        )
+        self.then_result_list_correct_length_returned(refurbishment_state_statistics, 1)
+
+
     # GIVEN
     def given_client(self) -> None:
         self.testee = BuildaClient()
