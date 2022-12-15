@@ -194,6 +194,11 @@ class ConstructionYearInfo(Info):
 
 
 @dataclass
+class RefurbishmentStateInfo(Info):
+    value: str
+
+
+@dataclass
 class BuildingClassInfo(Info):
     value: str
 
