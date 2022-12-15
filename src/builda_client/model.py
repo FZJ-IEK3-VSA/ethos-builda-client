@@ -219,11 +219,6 @@ class BuildingClassInfo(Info):
 
 
 @dataclass
-class RefurbishmentStateInfo(Info):
-    value: str
-
-
-@dataclass
 class Statistics(ABC):
     nuts_code: str
 
@@ -327,10 +322,12 @@ class ResidentialEnergyConsumptionStatistics(Statistics):
     derived_heat_consumption_mwh: float
     electricity_consumption_mwh: float
 
+
 @dataclass
 class NonResidentialEnergyConsumptionStatistics(Statistics):
     use: str
     electricity_consumption_mwh: float
+
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):
