@@ -314,6 +314,19 @@ class NonResidentialEnergyConsumptionStatistics(Statistics):
     use: str
     electricity_consumption_mwh: float
 
+@dataclass
+class PvGenerationPotentialStatistics(Statistics):
+    sum_pv_generation_potential_kwh: float
+    avg_pv_generation_potential_residential_kwh: float
+    median_pv_generation_potential_residential_kwh: float
+    sum_pv_generation_potential_residential_kwh: float
+    avg_pv_generation_potential_non_residential_kwh: float
+    median_pv_generation_potential_non_residential_kwh: float
+    sum_pv_generation_potential_non_residential_kwh: float
+    avg_pv_generation_potential_mixed_kwh: float
+    median_pv_generation_potential_mixed_kwh: float
+    sum_pv_generation_potential_mixed_kwh: float
+
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, UUID):
