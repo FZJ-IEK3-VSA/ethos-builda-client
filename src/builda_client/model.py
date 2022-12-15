@@ -44,7 +44,6 @@ class Building:
 @dataclass
 class ResidentialBuilding(Building):
     size_class: str
-    refurbishment_state: str
     household_count: int
     heating_commodity: str
     cooling_commodity: str
