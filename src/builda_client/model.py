@@ -1,13 +1,11 @@
-from abc import ABC
 import dataclasses
 import json
+from abc import ABC
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Optional
 from uuid import UUID
 
 from shapely.geometry import MultiPolygon, Point, Polygon
-from uuid import UUID
-from shapely.geometry import Polygon, MultiPolygon
 
 
 @dataclass
@@ -35,20 +33,37 @@ class ParcelMinimalDto:
 class Building:
     id: str
     address: Address
-    footprint_area: float
-    height: float
+    footprint_area_m2: float
+    height_m: float
+    construction_year: int
     type: str
     use: str
-    heat_demand: float
-    pv_generation: float
+    pv_generation_potential_kwh: float
+
+
+@dataclass
+class ResidentialBuilding(Building):
+    size_class: str
+    refurbishment_state: str
     household_count: int
     heating_commodity: str
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
-    construction_year: int
-    building_class: str
-    refurbishment_state: str
+    heat_demand_mwh: float
+    solids_consumption_mwh: float
+    lpg_consumption_mwh: float
+    gas_diesel_oil_consumption_mwh: float
+    gas_consumption_mwh: float
+    biomass_consumption_mwh: float
+    geothermal_consumption_mwh: float
+    derived_heat_consumption_mwh: float
+    electricity_consumption_mwh: float
+
+
+@dataclass
+class NonResidentialBuilding(Building):
+    electricity_consumption_mwh: float
 
 
 @dataclass
@@ -82,8 +97,8 @@ class BuildingEnergyCharacteristics:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
-    heat_demand: float
-    pv_generation: float
+    heat_demand_mwh: float
+    pv_generation_potential_kwh: float
 
 
 @dataclass
@@ -219,7 +234,6 @@ class BuildingStatistics(Statistics):
     building_count_residential: int
     building_count_non_residential: int
     building_count_mixed: int
-    building_count_undefined: int
 
 
 @dataclass
@@ -231,10 +245,10 @@ class BuildingUseStatistics(Statistics):
 
 @dataclass
 class BuildingClassStatistics(Statistics):
-    sum_sfh_building_class: str
-    sum_th_building_class: str
-    sum_mfh_building_class: str
-    sum_ab_building_class: str
+    sfh_count: str
+    th_count: str
+    mfh_count: str
+    ab_count: str
 
 
 @dataclass
@@ -262,8 +276,6 @@ class FootprintAreaStatistics(Statistics):
     sum_footprint_area_mixed_m2: float
     avg_footprint_area_mixed_m2: float
     median_footprint_area_mixed_m2: float
-    sum_footprint_area_undefined_m2: float
-    sum_footprint_area_undefined_irrelevant_m2: float
 
 
 @dataclass
@@ -287,7 +299,7 @@ class RefurbishmentStateStatistics(Statistics):
 
 @dataclass
 class HeatDemandStatistics(Statistics):
-    heat_demand: float
+    heat_demand_mwh: float
 
 
 @dataclass
@@ -305,18 +317,26 @@ class EnergyCommodityStatistics(Statistics):
 
 
 @dataclass
-class EnergyConsumptionStatistics(Statistics):
-    type: str
-    use: str
-    commodity: str
-    consumption: float
+class ResidentialEnergyConsumptionStatistics(Statistics):
+    solids_consumption_mwh: float
+    lpg_consumption_mwh: float
+    gas_diesel_oil_consumption_mwh: float
+    gas_consumption_mwh: float
+    biomass_consumption_mwh: float
+    geothermal_consumption_mwh: float
+    derived_heat_consumption_mwh: float
+    electricity_consumption_mwh: float
 
+@dataclass
+class NonResidentialEnergyConsumptionStatistics(Statistics):
+    use: str
+    electricity_consumption_mwh: float
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, UUID):
             return o.hex
-        if isinstance(o, Polygon) or isinstance(o, MultiPolygon):
+        if isinstance(o, (Polygon, MultiPolygon)):
             return str(o)
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
