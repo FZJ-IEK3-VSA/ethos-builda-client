@@ -44,6 +44,7 @@ class Building:
 @dataclass
 class ResidentialBuilding(Building):
     size_class: str
+    refurbishment_state: int
     household_count: int
     heating_commodity: str
     cooling_commodity: str
@@ -208,6 +209,11 @@ class ConstructionYearInfo(Info):
 
 
 @dataclass
+class RefurbishmentStateInfo(Info):
+    value: str
+
+
+@dataclass
 class BuildingClassInfo(Info):
     value: str
 
@@ -280,6 +286,13 @@ class HeightStatistics(Statistics):
 
 
 @dataclass
+class RefurbishmentStateStatistics(Statistics):
+    sum_1_refurbishment_state: int
+    sum_2_refurbishment_state: int
+    sum_3_refurbishment_state: int
+
+
+@dataclass
 class HeatDemandStatistics(Statistics):
     heat_demand_mwh: float
 
@@ -308,6 +321,7 @@ class ResidentialEnergyConsumptionStatistics(Statistics):
     geothermal_consumption_mwh: float
     derived_heat_consumption_mwh: float
     electricity_consumption_mwh: float
+
 
 @dataclass
 class NonResidentialEnergyConsumptionStatistics(Statistics):
