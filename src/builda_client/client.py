@@ -22,16 +22,7 @@ from builda_client.model import (
     FootprintAreaStatistics,
     HeatDemandStatistics,
     HeightStatistics,
-    NutsRegion,
-    Parcel,
-    ParcelInfo,
-    ParcelMinimalDto,
-    RefurbishmentStateInfo,
     RefurbishmentStateStatistics,
-    PvGenerationInfo,
-    TypeInfo,
-    UseInfo,
-    WaterHeatingCommodityInfo,
     FootprintAreaStatistics,
     BuildingUseStatistics,
 )
@@ -187,7 +178,6 @@ class BuildaClient:
                 construction_year=result["construction_year"],
                 use=result["use"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
-                refurbishment_state=result["refurbishment_state"],
             )
             buildings.append(building)
 
@@ -818,9 +808,9 @@ class BuildaClient:
         for res in results:
             statistic = RefurbishmentStateStatistics(
                 nuts_code=res["nuts_code"],
-                sum_ES_refurbishment_state=res["sum_1_refurbishment_state"],
-                sum_UR_refurbishment_state=res["sum_2_refurbishment_state"],
-                sum_AR_refurbishment_state=res["sum_3_refurbishment_state"],
+                sum_1_refurbishment_state=res["sum_1_refurbishment_state"],
+                sum_2_refurbishment_state=res["sum_2_refurbishment_state"],
+                sum_3_refurbishment_state=res["sum_3_refurbishment_state"],
             )
             statistics.append(statistic)
         return statistics
