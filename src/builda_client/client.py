@@ -17,6 +17,7 @@ from builda_client.model import (
     EnergyCommodityStatistics,
     NonResidentialBuilding,
     NonResidentialEnergyConsumptionStatistics,
+    PvGenerationPotentialStatistics,
     ResidentialBuilding,
     ResidentialEnergyConsumptionStatistics,
     FootprintAreaStatistics,
@@ -40,6 +41,7 @@ class BuildaClient:
     FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL = "statistics/footprint-area/geom"
     HEIGHT_STATISTICS_URL = "statistics/height"
     HEIGHT_STATISTICS_BY_GEOM_URL = "statistics/height/geom"
+    PV_GENERATION_POTENTIAL_STATISTICS_URL = "statistics/pv-generation-potential"
 
     NON_RESIDENTIAL_USE_STATISTICS_URL = "statistics/non-residential/building-use"
     NON_RESIDENTIAL_USE_STATISTICS_BY_GEOM_URL = (
@@ -747,7 +749,69 @@ class BuildaClient:
             statistics.append(statistic)
         return statistics
 
-    def get_heat_demand_statistics(
+    def get_pv_generation_potential_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+    ) -> list[PvGenerationPotentialStatistics]:
+        """Get the PV generation potential statistics [kWh] for the given nuts level or 
+        nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+                for Germany. Defaults to None.
+            nuts_level (int | None, optional): The NUTS level. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany 
+                according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical 
+                info about buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{self.PV_GENERATION_POTENTIAL_STATISTICS_URL}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.") from e
+
+        results: list = json.loads(response.content)
+        statistics: list[PvGenerationPotentialStatistics] = []
+        for res in results:
+            statistic = PvGenerationPotentialStatistics(
+                nuts_code=res["nuts_code"],
+                sum_pv_generation_potential_kwh=res["nuts_code"],
+                avg_pv_generation_potential_residential_kwh=res["nuts_code"],
+                median_pv_generation_potential_residential_kwh=res["nuts_code"],
+                sum_pv_generation_potential_residential_kwh=res["nuts_code"],
+                avg_pv_generation_potential_non_residential_kwh=res["nuts_code"],
+                median_pv_generation_potential_non_residential_kwh=res["nuts_code"],
+                sum_pv_generation_potential_non_residential_kwh=res["nuts_code"],
+                avg_pv_generation_potential_mixed_kwh=res["nuts_code"],
+                median_pv_generation_potential_mixed_kwh=res["nuts_code"],
+                sum_pv_generation_potential_mixed_kwh=res["nuts_code"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+
+    def get_residential_heat_demand_statistics(
         self,
         country: str = "",
         nuts_level: Optional[int] = None,
