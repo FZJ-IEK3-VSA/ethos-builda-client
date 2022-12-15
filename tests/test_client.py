@@ -123,6 +123,18 @@ class TestBuildaClient:
         height_statistics = self.testee.get_height_statistics(geom=custom_geom)
         self.then_result_list_correct_length_returned(height_statistics, 1)
 
+    @pytest.mark.parametrize(
+        "nuts_level,country,expected_count", [(0, "DE", 1), (1, "DE", 16)]
+    )
+    def test_get_pv_generation_potential_statistics_succeeds(self, nuts_level, country, expected_count):
+        self.given_client()
+        height_statistics = self.testee.get_pv_generation_potential_statistics(
+            nuts_level=nuts_level, country=country
+        )
+        self.then_result_list_correct_length_returned(
+            height_statistics, expected_count
+        )
+
     ### NON-RESIDENTIAL STATISTICS ###
 
     @pytest.mark.parametrize(
@@ -258,7 +270,7 @@ class TestBuildaClient:
         self, nuts_level, country, expected_count
     ):
         self.given_client()
-        heat_demand_statistics = self.testee.get_heat_demand_statistics(
+        heat_demand_statistics = self.testee.get_residential_heat_demand_statistics(
             nuts_level=nuts_level, country=country
         )
         self.then_result_list_correct_length_returned(
