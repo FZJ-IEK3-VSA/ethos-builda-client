@@ -14,6 +14,7 @@ from builda_client.model import (
     BuildingUseStatistics,
     CommodityCount,
     ConstructionYearStatistics,
+    Coordinates,
     EnergyCommodityStatistics,
     NonResidentialBuilding,
     NonResidentialEnergyConsumptionStatistics,
@@ -171,8 +172,13 @@ class BuildaClient:
                 postcode=result["postcode"],
                 city=result["city"],
             )
+            coordinates = Coordinates(
+                latitude=result["coordinates"]["latitude"],
+                longitude=result["coordinates"]["longitude"],
+            )
             building = Building(
                 id=result["id"],
+                coordinates=coordinates,
                 address=address,
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
@@ -240,9 +246,14 @@ class BuildaClient:
                 postcode=result["postcode"],
                 city=result["city"],
             )
+            coordinates = Coordinates(
+                latitude=result["coordinates"]["latitude"],
+                longitude=result["coordinates"]["longitude"],
+            )
     
             building = ResidentialBuilding(
                 id=result["id"],
+                coordinates=coordinates,
                 address=address,
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
@@ -326,9 +337,13 @@ class BuildaClient:
                 postcode=result["postcode"],
                 city=result["city"],
             )
-
+            coordinates = Coordinates(
+                latitude=result["coordinates"]["latitude"],
+                longitude=result["coordinates"]["longitude"],
+            )
             building = NonResidentialBuilding(
                 id=result["id"],
+                coordinates=coordinates,
                 address=address,
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
