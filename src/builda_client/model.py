@@ -158,7 +158,7 @@ class UseInfo(Info):
 @dataclass
 class HeightInfo(Info):
     value: float
-
+    lineage: str
 
 @dataclass
 class ParcelInfo(Info):
