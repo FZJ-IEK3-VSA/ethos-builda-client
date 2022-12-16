@@ -28,10 +28,15 @@ class ParcelMinimalDto:
     id: UUID
     shape: Polygon
 
+@dataclass
+class Coordinates:
+    latitude: float
+    longitude: float
 
 @dataclass
 class Building:
     id: str
+    coordinates: Coordinates
     address: Address
     footprint_area_m2: float
     height_m: float
