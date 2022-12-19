@@ -36,6 +36,7 @@ from builda_client.model import (
     ParcelMinimalDto,
     PvGenerationInfo,
     RefurbishmentStateInfo,
+    TabulaTypeInfo,
     TypeInfo,
     UseInfo,
     WaterHeatingCommodityInfo,
@@ -51,7 +52,9 @@ class BuildaDevClient(BuildaClient):
     ADDRESS_URL = "address/"
     BUILDINGS_HOUSEHOLDS_URL = "buildings/residential/household-count"
     BUILDINGS_PARCEL_URL = "buildings-parcel/"
-    BUILDINGS_ENERGY_CHARACTERISTICS_URL = "buildings/residential/energy-characteristics"
+    BUILDINGS_ENERGY_CHARACTERISTICS_URL = (
+        "buildings/residential/energy-characteristics"
+    )
     BUILDINGS_ID_URL = "buildings-id/"
     BUILDING_CLASS_URL = "building-class"
     VIEW_REFRESH_URL = "buildings/refresh"
@@ -74,6 +77,7 @@ class BuildaDevClient(BuildaClient):
     NUTS_URL = "nuts"
     PARCEL_URL = "parcels"
     PARCEL_INFO_URL = "parcel-info"
+    TABULA_TYPE_URL = "tabula-type"
 
     def __init__(
         self,
@@ -85,14 +89,14 @@ class BuildaDevClient(BuildaClient):
         """Constructor.
 
         Args:
-            proxy (bool, optional): Whether to use a proxy or not. Proxy should be used 
+            proxy (bool, optional): Whether to use a proxy or not. Proxy should be used
                 when using client on cluster compute nodes. Defaults to False.
-            username (str | None, optional): Username for authentication. Only required 
-                when using client for accessing endpoints that are not open. Defaults 
+            username (str | None, optional): Username for authentication. Only required
+                when using client for accessing endpoints that are not open. Defaults
                 to None.
             password (str | None, optional): Password; see username. Defaults to None.
-            dev (boolean, optional): The 'phase' the client is used in, i.e. which 
-                database to access. Possible options: 'dev', 'staging'. Defaults to 
+            dev (boolean, optional): The 'phase' the client is used in, i.e. which
+                database to access. Possible options: 'dev', 'staging'. Defaults to
                 'staging'.
         """
         super().__init__(proxy)
@@ -117,7 +121,7 @@ class BuildaDevClient(BuildaClient):
 
         if err.response.status_code >= 400 and err.response.status_code >= 499:
             raise ClientException("A client side error occured", err) from err
-        
+
         raise ServerException("An unexpected error occurred", err) from err
 
     def __get_authentication_token(self) -> str:
@@ -161,18 +165,21 @@ class BuildaDevClient(BuildaClient):
             return {"Authorization": f"Token {self.api_token}"}
 
     def get_buildings_base(
-        self, nuts_code: str = "", building_type: str | None = "", geom: Optional[Polygon] = None
+        self,
+        nuts_code: str = "",
+        building_type: str | None = "",
+        geom: Optional[Polygon] = None,
     ) -> list[BuildingBase]:
-        """Gets buildings with reduced parameter set within the specified NUTS region 
+        """Gets buildings with reduced parameter set within the specified NUTS region
         that fall into the provided type category.
 
         Args:
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany 
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
             type (str): The type of building ('residential', 'non-residential')
 
         Raises:
-            ServerException: When the DB is inconsistent and more than one building with 
+            ServerException: When the DB is inconsistent and more than one building with
                 same ID is returned.
 
         Returns:
@@ -180,7 +187,8 @@ class BuildaDevClient(BuildaClient):
         """
         logging.debug(
             "ApiClient: get_buildings_base(nuts_code = %s, type = %s)",
-            nuts_code, building_type
+            nuts_code,
+            building_type,
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         type_is_null = False
@@ -209,15 +217,15 @@ class BuildaDevClient(BuildaClient):
     def get_buildings_households(
         self, nuts_code: str = "", heating_type: str = ""
     ) -> list[BuildingHouseholds]:
-        """Gets residential buildings with household data within the specified NUTS 
+        """Gets residential buildings with household data within the specified NUTS
         region that fall into the provided type category.
 
         Args:
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany 
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
             according to the 2021 NUTS code definitions. Defaults to None.
 
         Raises:
-            ServerException: When the DB is inconsistent and more than one building 
+            ServerException: When the DB is inconsistent and more than one building
             with same ID is returned.
 
         Returns:
@@ -225,7 +233,8 @@ class BuildaDevClient(BuildaClient):
         """
         logging.debug(
             "ApiClient: get_buildings_households(nuts_code=%s, heating_type=%s)",
-            nuts_code, heating_type
+            nuts_code,
+            heating_type,
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         url: str = f"""{self.base_url}{self.BUILDINGS_HOUSEHOLDS_URL}?{nuts_query_param}={nuts_code}&type=residential&heating_commodity={heating_type}"""
@@ -252,16 +261,16 @@ class BuildaDevClient(BuildaClient):
     def get_buildings_parcel(
         self, nuts_code: str = "", type: str = "", geom: Optional[Polygon] = None
     ) -> list[BuildingParcel]:
-        """Gets buildings with reduced parameter set including parcel within the 
+        """Gets buildings with reduced parameter set including parcel within the
         specified NUTS region that fall into the provided type category.
 
         Args:
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany 
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
             type (str): The type of building ('residential', 'non-residential')
 
         Raises:
-            ServerException: When the DB is inconsistent and more than one building with 
+            ServerException: When the DB is inconsistent and more than one building with
                 same ID is returned.
 
         Returns:
@@ -424,7 +433,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-           self.__handle_exception(err)
+            self.__handle_exception(err)
 
     def modify_building(self, building_id: UUID, building_data: Dict):
         if not self.api_token:
@@ -442,7 +451,6 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-
     def get_residential_buildings_energy_characteristics(
         self,
         nuts_code: str = "",
@@ -450,23 +458,24 @@ class BuildaDevClient(BuildaClient):
         geom: Optional[Polygon] = None,
         heating_type: str = "",
     ) -> list[BuildingEnergyCharacteristics]:
-        """Get energy related building information (commodities, heat demand [MWh], pv 
+        """Get energy related building information (commodities, heat demand [MWh], pv
         generation [kWh]) for each building that fulfills the query parameters.
 
         Args:
-            nuts_code (str | None, optional): The NUTS or LAU code, e.g. 'DE' for 
+            nuts_code (str | None, optional): The NUTS or LAU code, e.g. 'DE' for
                 Germany according to the 2021 NUTS code definitions. Defaults to None.
             type (str): The type of building e.g. 'residential'
         Raises:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[BuildingEnergyCharacteristics]: A list of building objects with energy 
+            list[BuildingEnergyCharacteristics]: A list of building objects with energy
                 characteristics.
         """
         logging.debug(
             "ApiClient: get_building_energy_characteristics(nuts_code=%s, type=%s)",
-            nuts_code, type
+            nuts_code,
+            type,
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
 
@@ -507,8 +516,8 @@ class BuildaDevClient(BuildaClient):
         """[REQUIRES AUTHENTICATION] Refreshes the materialized view 'buildings'.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
         """
         logging.debug("ApiClient: refresh_buildings")
@@ -530,7 +539,7 @@ class BuildaDevClient(BuildaClient):
     def get_building_stock(
         self, geom: Polygon | None = None, nuts_code: str = ""
     ) -> list[BuildingStockEntry]:
-        """[REQUIRES AUTHENTICATION]  Gets all entries of the building stock within the 
+        """[REQUIRES AUTHENTICATION]  Gets all entries of the building stock within the
         specified geometry.
 
         Args:
@@ -538,12 +547,12 @@ class BuildaDevClient(BuildaClient):
             nuts_code (str, optional): The NUTS region to get buildings from.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-            case because username and password were not specified when initializing the 
+            MissingCredentialsException: If no API token exists. This is probably the
+            case because username and password were not specified when initializing the
             client.
 
         Returns:
-            list[BuildingStockEntry]: All building stock entries that lie within the 
+            list[BuildingStockEntry]: All building stock entries that lie within the
             given polygon.
         """
         logging.debug("ApiClient: get_building_stock")
@@ -604,8 +613,8 @@ class BuildaDevClient(BuildaClient):
             buildings (list[BuildingStockEntry]): The building stock entries to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-            case because username and password were not specified when initializing the 
+            MissingCredentialsException: If no API token exists. This is probably the
+            case because username and password were not specified when initializing the
             client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -631,12 +640,12 @@ class BuildaDevClient(BuildaClient):
             self.__handle_exception(err)
 
     def post_nuts(self, nuts_regions: list[NutsRegion]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the nuts data to the database. Private 
+        """[REQUIRES AUTHENTICATION] Posts the nuts data to the database. Private
         endpoint: requires client to have credentials.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                    case because username and password were not specified when initializing the 
+            MissingCredentialsException: If no API token exists. This is probably the
+                    case because username and password were not specified when initializing the
                 client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -671,8 +680,8 @@ class BuildaDevClient(BuildaClient):
             addresses (list[Address]): The address data to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -704,8 +713,8 @@ class BuildaDevClient(BuildaClient):
             type_infos (list[TypeInfo]): The type info data to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -739,8 +748,8 @@ class BuildaDevClient(BuildaClient):
             use_infos (list[UseInfo]): The use info data to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -774,8 +783,8 @@ class BuildaDevClient(BuildaClient):
             household_infos (list[HeightInfo]): The household count data to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -807,8 +816,8 @@ class BuildaDevClient(BuildaClient):
             household_infos (list[HouseholdInfo]): The household count data to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -839,12 +848,12 @@ class BuildaDevClient(BuildaClient):
         """[REQUIRES AUTHENTICATION]  Posts the heating commodity data to the database.
 
         Args:
-            heating_commodity_infos (list[HeatingCommodityInfo]): The heating commodity 
+            heating_commodity_infos (list[HeatingCommodityInfo]): The heating commodity
                 data to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -877,12 +886,12 @@ class BuildaDevClient(BuildaClient):
         """[REQUIRES AUTHENTICATION] Posts the cooling commodity data to the database.
 
         Args:
-            cooling_commodity_infos (list[CoolingCommodityInfo]): The cooling commodity 
+            cooling_commodity_infos (list[CoolingCommodityInfo]): The cooling commodity
                 data to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -912,16 +921,16 @@ class BuildaDevClient(BuildaClient):
     def post_water_heating_commodity(
         self, water_heating_commodity_infos: list[WaterHeatingCommodityInfo]
     ) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the water heating commodity data to the 
+        """[REQUIRES AUTHENTICATION] Posts the water heating commodity data to the
         database.
 
         Args:
-            water_heating_commodity_infos (list[WaterHeatingCommodityInfo]): The water 
+            water_heating_commodity_infos (list[WaterHeatingCommodityInfo]): The water
                 heating commodity infos to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -954,12 +963,12 @@ class BuildaDevClient(BuildaClient):
         """[REQUIRES AUTHENTICATION] Posts the cooking commodity data to the database.
 
         Args:
-            cooking_commodity_infos (list[CookingCommodityInfo]): The cooking commodity 
+            cooking_commodity_infos (list[CookingCommodityInfo]): The cooking commodity
             infos to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -992,12 +1001,12 @@ class BuildaDevClient(BuildaClient):
         """[REQUIRES AUTHENTICATION] Posts the energy consumption data to the database.
 
         Args:
-            energy_consumption_infos (list[EnergyConsumption]): The energy consumption 
+            energy_consumption_infos (list[EnergyConsumption]): The energy consumption
                 infos to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -1031,8 +1040,8 @@ class BuildaDevClient(BuildaClient):
             heat_demand_infos (list[HeatDemandInfo]): The heat demand infos to post.
 
         Raises:
-            MissingCredentialsException: If no API token exists. This is probably the 
-                case because username and password were not specified when initializing 
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
                 the client.
             UnauthorizedException: If the API token is not accepted.
             ClientException: If an error on the client side occurred.
@@ -1117,6 +1126,36 @@ class BuildaDevClient(BuildaClient):
             response: requests.Response = requests.post(
                 url,
                 data=construction_year_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
+
+    def post_tabula_type(self, tabula_type_infos: list[TabulaTypeInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the tabula type data to the database.
+
+        Args:
+            tabula_type_infos (list[TabulaTypeInfo]): The tabula type data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_tabula_type")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.TABULA_TYPE_URL}"""
+        tabula_type_json = json.dumps(tabula_type_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=tabula_type_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()

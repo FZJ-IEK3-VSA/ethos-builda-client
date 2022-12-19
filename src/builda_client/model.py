@@ -28,10 +28,12 @@ class ParcelMinimalDto:
     id: UUID
     shape: Polygon
 
+
 @dataclass
 class Coordinates:
     latitude: float
     longitude: float
+
 
 @dataclass
 class Building:
@@ -224,6 +226,11 @@ class BuildingClassInfo(Info):
 
 
 @dataclass
+class TabulaTypeInfo(Info):
+    value: str
+
+
+@dataclass
 class Statistics(ABC):
     nuts_code: str
 
@@ -333,6 +340,7 @@ class NonResidentialEnergyConsumptionStatistics(Statistics):
     use: str
     electricity_consumption_mwh: float
 
+
 @dataclass
 class PvGenerationPotentialStatistics(Statistics):
     sum_pv_generation_potential_kwh: float
@@ -345,6 +353,7 @@ class PvGenerationPotentialStatistics(Statistics):
     avg_pv_generation_potential_mixed_kwh: float
     median_pv_generation_potential_mixed_kwh: float
     sum_pv_generation_potential_mixed_kwh: float
+
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):
