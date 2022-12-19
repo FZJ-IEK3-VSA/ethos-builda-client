@@ -298,9 +298,7 @@ class BuildaDevClient(BuildaClient):
             f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})"
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}
-        ?{nuts_query_param}={nuts_code}&type={type}
-        &exclude_irrelevant={exclude_irrelevant}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
 
         try:
             response: requests.Response = requests.get(url)
