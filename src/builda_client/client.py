@@ -1,6 +1,7 @@
 import json
 import logging
 from typing import Dict, Optional
+from uuid import UUID
 
 import requests
 from shapely.geometry import Polygon
@@ -15,25 +16,27 @@ from builda_client.model import (
     CommodityCount,
     ConstructionYearStatistics,
     Coordinates,
+    DataSource,
     EnergyCommodityStatistics,
-    NonResidentialBuilding,
-    NonResidentialEnergyConsumptionStatistics,
-    PvGenerationPotentialStatistics,
-    ResidentialBuilding,
-    ResidentialEnergyConsumptionStatistics,
     FootprintAreaStatistics,
     HeatDemandStatistics,
     HeightStatistics,
+    MetadataResponseDto,
+    NonResidentialBuilding,
+    NonResidentialEnergyConsumptionStatistics,
+    PvGenerationPotentialStatistics,
     RefurbishmentStateStatistics,
-    FootprintAreaStatistics,
-    BuildingUseStatistics,
+    ResidentialBuilding,
+    ResidentialEnergyConsumptionStatistics,
 )
 from builda_client.util import determine_nuts_query_param, load_config
+
 
 class BuildaClient:
 
     # Buildings
     BUILDINGS_URL = "buildings"
+    BUILDINGS_SOURCES_URL = "buildings/{id}/sources"
     RESIDENTIAL_BUILDINGS_URL = "buildings/residential"
     NON_RESIDENTIAL_BUILDINGS_URL = "buildings/non-residential"
 
@@ -88,7 +91,7 @@ class BuildaClient:
         """Constructor.
 
         Args:
-            proxy (bool, optional): Whether to use a proxy or not. Proxy should be used 
+            proxy (bool, optional): Whether to use a proxy or not. Proxy should be used
                 when using client on cluster compute nodes. Defaults to False.
         """
         logging.basicConfig(level=logging.WARN)
@@ -124,33 +127,37 @@ class BuildaClient:
             housenumber (str | None, optional): The house number. Defaults to None.
             postcode (str | None, optional): The postcode. Defaults to None.
             city (str | None, optional): The city. Defaults to None.
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany 
-                according to the 2021 NUTS code definitions or 2019 LAU definition. 
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions or 2019 LAU definition.
                 Defaults to None.
-            type (str | None, optional): The type of building ('residential', 
+            type (str | None, optional): The type of building ('residential',
                 'non-residential').
-                If not provided the common attributes for residential and 
+                If not provided the common attributes for residential and
                 non-residential buildings are returned.
 
         Raises:
             ServerException: When an error occurs on the server side..
 
         Returns:
-            list[Building | ResidentialBuilding | NonResidentialBuilding]: A list of 
-                buildings.
+            list[Building]: A list of buildings.
         """
 
         logging.debug(
             """ApiClient: get_buildings(street=%s, housenumber=%s, postcode=%s, city=%s, 
             nuts_code=%s, type=%s)""",
-            street, housenumber, postcode, city, nuts_code, building_type
+            street,
+            housenumber,
+            postcode,
+            city,
+            nuts_code,
+            building_type,
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
 
-        type_is_null=False
+        type_is_null = False
         if building_type is None:
-            type_is_null=True
-            building_type = ''
+            type_is_null = True
+            building_type = ""
 
         url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
         try:
@@ -191,6 +198,50 @@ class BuildaClient:
 
         return buildings
 
+    def get_building_sources(self, building_id: UUID) -> list[DataSource]:
+        """Gets sources for building.
+        Args:
+            building_id (UUID): ID of building
+
+        Raises:
+            ServerException: When an error occurs on the server side..
+
+        Returns:
+            list[DataSource]: A list of sources.
+        """
+
+        logging.debug(
+            """ApiClient: get_building_sources(building_id=%s)""", building_id
+        )
+
+        url: str = f"""{self.base_url}{self.BUILDINGS_SOURCES_URL.replace('{id}', str(building_id))}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600)
+            logging.debug("ApiClient: received response. Checking for errors.")
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.") from e
+
+        logging.debug(
+            "ApiClient: received ok response, proceeding with deserialization."
+        )
+        result: list[Dict] = json.loads(response.content)
+        data_sources: list[DataSource] = []
+        for entry in result["sources"]:
+            metadata = MetadataResponseDto(
+                name=entry["source"]["name"],
+                provider=entry["source"]["provider"],
+                refering_website_link=entry["source"]["refering_website_link"],
+                license=entry["source"]["license"],
+                citation=entry["source"]["citation"],
+            )
+            data_source = DataSource(
+                attribute=entry["attribute"], lineage=entry["lineage"], source=metadata
+            )
+            data_sources.append(data_source)
+
+        return data_sources
+
     def get_residential_buildings(
         self,
         street: str = "",
@@ -207,8 +258,8 @@ class BuildaClient:
             housenumber (str | None, optional): The house number. Defaults to None.
             postcode (str | None, optional): The postcode. Defaults to None.
             city (str | None, optional): The city. Defaults to None.
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany 
-                according to the 2021 NUTS code definitions or 2019 LAU definition. 
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions or 2019 LAU definition.
                 Defaults to None.
 
         Raises:
@@ -221,10 +272,14 @@ class BuildaClient:
         logging.debug(
             """ApiClient: get_buildings(street=%s, housenumber=%s, postcode=%s, city=%s, 
             nuts_code=%s)""",
-            street, housenumber, postcode, city, nuts_code
+            street,
+            housenumber,
+            postcode,
+            city,
+            nuts_code,
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        building_type = '' if include_mixed else 'residential'
+        building_type = "" if include_mixed else "residential"
 
         url: str = f"""{self.base_url}{self.RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&exclude_irrelevant={exclude_irrelevant}"""
         try:
@@ -250,7 +305,7 @@ class BuildaClient:
                 latitude=result["coordinates"]["latitude"],
                 longitude=result["coordinates"]["longitude"],
             )
-    
+
             building = ResidentialBuilding(
                 id=result["id"],
                 coordinates=coordinates,
@@ -279,7 +334,7 @@ class BuildaClient:
                 electricity_consumption_mwh=result["electricity_consumption_MWh"],
             )
             buildings.append(building)
-            
+
         return buildings
 
     def get_non_residential_buildings(
@@ -298,8 +353,8 @@ class BuildaClient:
             housenumber (str | None, optional): The house number. Defaults to None.
             postcode (str | None, optional): The postcode. Defaults to None.
             city (str | None, optional): The city. Defaults to None.
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany 
-                according to the 2021 NUTS code definitions or 2019 LAU definition. 
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions or 2019 LAU definition.
                 Defaults to None.
 
         Raises:
@@ -312,10 +367,14 @@ class BuildaClient:
         logging.debug(
             """ApiClient: get_buildings(street=%s, housenumber=%s, postcode=%s, city=%s, 
             nuts_code=%s)""",
-            street, housenumber, postcode, city, nuts_code
+            street,
+            housenumber,
+            postcode,
+            city,
+            nuts_code,
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        building_type = '' if include_mixed else 'non-residential'
+        building_type = "" if include_mixed else "non-residential"
 
         url: str = f"""{self.base_url}{self.NON_RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&exclude_irrelevant={exclude_irrelevant}"""
         try:
@@ -363,14 +422,14 @@ class BuildaClient:
         nuts_code: Optional[str] = None,
         geom: Optional[Polygon] = None,
     ) -> list[BuildingStatistics]:
-        """Get the building type statistics for the given nuts level or nuts code. Only 
+        """Get the building type statistics for the given nuts level or nuts code. Only
         one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany 
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
             geom (str | None, optional): A custom geometry.
         Raises:
@@ -378,7 +437,7 @@ class BuildaClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[BuildingStatistics]: A list of objects per NUTS region or custom 
+            list[BuildingStatistics]: A list of objects per NUTS region or custom
                 geometry with statistical info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
@@ -429,14 +488,14 @@ class BuildaClient:
         nuts_code: Optional[str] = None,
         geom: Optional[Polygon] = None,
     ) -> list[BuildingUseStatistics]:
-        """Get the building use statistics for the given nuts level or nuts code. Only 
+        """Get the building use statistics for the given nuts level or nuts code. Only
         one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany 
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
             geom (str | None, optional): A custom geometry.
 
@@ -445,7 +504,7 @@ class BuildaClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[BuildingStatistics]: A list of objects per NUTS region with statistical 
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical
                 info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
@@ -494,14 +553,14 @@ class BuildaClient:
         nuts_level: int | None = None,
         nuts_code: str | None = None,
     ) -> list[BuildingClassStatistics]:
-        """Get the building class statistics for the given nuts level or nuts code. Only 
+        """Get the building class statistics for the given nuts level or nuts code. Only
         one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany 
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
 
         Raises:
@@ -509,7 +568,7 @@ class BuildaClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[BuildingClassStatistics]: A list of objects per NUTS region with 
+            list[BuildingClassStatistics]: A list of objects per NUTS region with
                 statistical info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
@@ -549,14 +608,14 @@ class BuildaClient:
         nuts_level: int | None = None,
         nuts_code: str | None = None,
     ) -> list[ConstructionYearStatistics]:
-        """Get the construction year statistics for the given nuts level or nuts code. 
+        """Get the construction year statistics for the given nuts level or nuts code.
         Only one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany 
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
 
         Raises:
@@ -564,7 +623,7 @@ class BuildaClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[ConstructionYearStatistics]: A list of objects per NUTS region with 
+            list[ConstructionYearStatistics]: A list of objects per NUTS region with
                 statistical info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
@@ -611,14 +670,14 @@ class BuildaClient:
         nuts_code: Optional[str] = None,
         geom: Optional[Polygon] = None,
     ) -> list[FootprintAreaStatistics]:
-        """Get the footprint area statistics [m2] for the given nuts level or nuts code. 
+        """Get the footprint area statistics [m2] for the given nuts level or nuts code.
         Only one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany 
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
             geom (str | None, optional): A custom geometry.
 
@@ -627,7 +686,7 @@ class BuildaClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[BuildingStatistics]: A list of objects per NUTS region with statistical 
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical
                 info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
@@ -707,14 +766,14 @@ class BuildaClient:
         nuts_code: Optional[str] = None,
         geom: Optional[Polygon] = None,
     ) -> list[HeightStatistics]:
-        """Get the height statistics [m] for the given nuts level or nuts code. Only one 
+        """Get the height statistics [m] for the given nuts level or nuts code. Only one
         of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany 
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
             geom (str | None, optional): A custom geometry.
 
@@ -723,7 +782,7 @@ class BuildaClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[BuildingStatistics]: A list of objects per NUTS region with statistical 
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical
                 info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
@@ -838,14 +897,14 @@ class BuildaClient:
         nuts_level: Optional[int] = None,
         nuts_code: Optional[str] = None,
     ) -> list[PvGenerationPotentialStatistics]:
-        """Get the PV generation potential statistics [kWh] for the given nuts level or 
+        """Get the PV generation potential statistics [kWh] for the given nuts level or
         nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
             nuts_level (int | None, optional): The NUTS level. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany 
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
 
         Raises:
@@ -853,7 +912,7 @@ class BuildaClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[BuildingStatistics]: A list of objects per NUTS region with statistical 
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical
                 info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
@@ -893,7 +952,6 @@ class BuildaClient:
             statistics.append(statistic)
         return statistics
 
-
     def get_residential_heat_demand_statistics(
         self,
         country: str = "",
@@ -901,27 +959,27 @@ class BuildaClient:
         nuts_code: Optional[str] = None,
         geom: Optional[Polygon] = None,
     ) -> list[HeatDemandStatistics]:
-        """Get the residential heat demand statistics [MWh] for the given NUTS level or 
-            NUTS/LAU code. Results can be limited to a certain country by setting the 
+        """Get the residential heat demand statistics [MWh] for the given NUTS level or
+            NUTS/LAU code. Results can be limited to a certain country by setting the
             country parameter.
         Only one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
-            nuts_level (int | None, optional): The NUTS level (0=NUTS-0, 1=NUTS-1, 
+            nuts_level (int | None, optional): The NUTS level (0=NUTS-0, 1=NUTS-1,
                 2=NUTS-2, 3=NUTS-3, 4=LAU). Defaults to None.
-            nuts_code (str | None, optional): The NUTS or LAU code, e.g. 'DEA' for NRW 
+            nuts_code (str | None, optional): The NUTS or LAU code, e.g. 'DEA' for NRW
                 in Germany according to the 2021 NUTS code and 2019 LAU code definitions. Defaults to None.
             geom (str | None, optional): A custom geometry.
 
         Raises:
-            ValueError: If both nuts_level and nuts_code are specified or the nuts_level 
+            ValueError: If both nuts_level and nuts_code are specified or the nuts_level
                 is invalid.
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[HeatDemandStatistics]: A list of objects per NUTS/LAU region with 
+            list[HeatDemandStatistics]: A list of objects per NUTS/LAU region with
                 statistical info about heat demand [MWh].
         """
         if nuts_level is not None and nuts_code is not None:
@@ -974,16 +1032,16 @@ class BuildaClient:
         use: Optional[str] = None,
         geom: Optional[Polygon] = None,
     ) -> list[NonResidentialEnergyConsumptionStatistics]:
-        """Get the energy consumption statistics [MWh] for the given nuts level or nuts 
+        """Get the energy consumption statistics [MWh] for the given nuts level or nuts
         code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
-            nuts_level (int | None, optional): The NUTS level for which to retrieve the 
+            nuts_level (int | None, optional): The NUTS level for which to retrieve the
                 statistics. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code of the region for which to 
-                retrieve the statistics according to the 2021 NUTS code definitions. 
+            nuts_code (str | None, optional): The NUTS code of the region for which to
+                retrieve the statistics according to the 2021 NUTS code definitions.
                 Defaults to None.
             geom (str | None, optional): A custom geometry.
 
@@ -992,13 +1050,14 @@ class BuildaClient:
             ServerException: If an error occurrs on the server side.
 
         Returns:
-            list[EnergyConsumptionStatistics]: A list of energy consumption statistics. 
-                If just one nuts_code is queried, the list will only contain one 
+            list[EnergyConsumptionStatistics]: A list of energy consumption statistics.
+                If just one nuts_code is queried, the list will only contain one
                 element.
         """
         logging.debug(
             "ApiClient: get_energy_consumption_statistics(nuts_level=%s, nuts_code=%s)",
-            nuts_level, nuts_code
+            nuts_level,
+            nuts_code,
         )
 
         if nuts_level is not None and nuts_code is not None:
@@ -1012,7 +1071,9 @@ class BuildaClient:
             )
 
         if geom is not None:
-            statistics_url = self.NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_BY_GEOM_URL
+            statistics_url = (
+                self.NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_BY_GEOM_URL
+            )
             query_params = f"?geom={geom.wkt}"
         else:
             statistics_url = self.NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_URL
@@ -1024,7 +1085,6 @@ class BuildaClient:
 
         if use is not None:
             query_params += f"&use={use}"
- 
 
         url: str = f"""{self.base_url}{statistics_url}{query_params}"""
         try:
@@ -1054,15 +1114,15 @@ class BuildaClient:
         commodity: Optional[str] = None,
         geom: Optional[Polygon] = None,
     ) -> list[ResidentialEnergyConsumptionStatistics]:
-        """Get the energy consumption statistics [MWh] for the given nuts level or nuts 
+        """Get the energy consumption statistics [MWh] for the given nuts level or nuts
         code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
-            nuts_level (int | None, optional): The NUTS level for which to retrieve the 
+            nuts_level (int | None, optional): The NUTS level for which to retrieve the
                 statistics. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code of the region for which to 
+            nuts_code (str | None, optional): The NUTS code of the region for which to
                 retrieve the statistics according to the 2021 NUTS code definitions. Defaults to None.
             geom (str | None, optional): A custom geometry.
 
@@ -1071,12 +1131,13 @@ class BuildaClient:
             ServerException: If an error occurrs on the server side.
 
         Returns:
-            list[EnergyConsumptionStatistics]: A list of energy consumption statistics. 
+            list[EnergyConsumptionStatistics]: A list of energy consumption statistics.
                 If just one nuts_code is queried, the list will only contain one element.
         """
         logging.debug(
             "ApiClient: get_energy_consumption_statistics(nuts_level=%s, nuts_code=%s)",
-            nuts_level, nuts_code
+            nuts_level,
+            nuts_code,
         )
 
         if nuts_level is not None and nuts_code is not None:
@@ -1139,16 +1200,16 @@ class BuildaClient:
         geom: Optional[Polygon] = None,
         commodity: str = "",
     ) -> list[EnergyCommodityStatistics]:
-        """Get the energy commodity statistics for the given nuts level or nuts code. 
+        """Get the energy commodity statistics for the given nuts level or nuts code.
         Only one of nuts_level and nuts_code may be specified.
 
         Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE' 
+            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
                 for Germany. Defaults to None.
-            nuts_level (int | None, optional): The NUTS level for which to retrieve the 
+            nuts_level (int | None, optional): The NUTS level for which to retrieve the
                 statistics. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code of the region for which to 
-                retrieve the statistics according to the 2021 NUTS code definitions. 
+            nuts_code (str | None, optional): The NUTS code of the region for which to
+                retrieve the statistics according to the 2021 NUTS code definitions.
                 Defaults to None.
             commodity (str, optional): The commodity for which to get statistics
 
@@ -1158,12 +1219,15 @@ class BuildaClient:
             geom (str | None, optional): A custom geometry.
 
         Returns:
-            list[EnergyCommodityStatistics]: A list of building commodity statistics. 
+            list[EnergyCommodityStatistics]: A list of building commodity statistics.
                 If just one nuts_code is queried, the list will only contain one element.
         """
         logging.debug(
             """ApiClient: get_energy_commodity_statistics(nuts_level=%d, nuts_code=%s, 
-            commodity=%s)""", nuts_level, nuts_code, commodity
+            commodity=%s)""",
+            nuts_level,
+            nuts_code,
+            commodity,
         )
 
         if nuts_level is not None and nuts_code is not None:

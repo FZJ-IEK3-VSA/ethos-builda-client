@@ -43,6 +43,20 @@ class ParcelMinimalDto:
 class Coordinates:
     latitude: float
     longitude: float
+    
+@dataclass
+class MetadataResponseDto:
+    name: str
+    provider: str
+    refering_website_link: str
+    license: str
+    citation: str
+
+@dataclass
+class DataSource:
+    attribute: str
+    source: MetadataResponseDto
+    lineage: str
 
 @dataclass
 class Building:
