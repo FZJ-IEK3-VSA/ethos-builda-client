@@ -30,6 +30,7 @@ from builda_client.model import (
     HeatingCommodityInfo,
     HeightInfo,
     HouseholdInfo,
+    Metadata,
     NutsRegion,
     Parcel,
     ParcelInfo,
@@ -74,6 +75,8 @@ class BuildaDevClient(BuildaClient):
     NUTS_URL = "nuts"
     PARCEL_URL = "parcels"
     PARCEL_INFO_URL = "parcel-info"
+
+    METADATA_URL = "metadata"
 
     def __init__(
         self,
@@ -295,9 +298,7 @@ class BuildaDevClient(BuildaClient):
             f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})"
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}
-        ?{nuts_query_param}={nuts_code}&type={type}
-        &exclude_irrelevant={exclude_irrelevant}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
 
         try:
             response: requests.Response = requests.get(url)
@@ -307,7 +308,7 @@ class BuildaDevClient(BuildaClient):
             raise ServerException("An unexpected exception occurred.")
 
         logging.debug(
-            f"ApiClient: received ok response, proceeding with deserialization."
+            "ApiClient: received ok response, proceeding with deserialization."
         )
         building_ids: list[UUID] = json.loads(response.content)
 
@@ -503,8 +504,11 @@ class BuildaDevClient(BuildaClient):
 
         return buildings
 
-    def refresh_buildings(self) -> None:
+    def refresh_buildings(self, building_type: str) -> None:
         """[REQUIRES AUTHENTICATION] Refreshes the materialized view 'buildings'.
+
+        Args:
+            building_type (str): The type of building (residential, non-residential, all).
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the 
@@ -518,7 +522,14 @@ class BuildaDevClient(BuildaClient):
                 when initializing the client."""
             )
 
-        url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}"""
+        if building_type == 'residential':
+            view_name = 'result.residential_attributes'
+        elif building_type in ['non_residential', 'non-residential']:
+            view_name = 'result.non_residential_attributes'
+        else:
+            view_name = 'result.all_buildings'
+
+        url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}?view_name={view_name}"""
         try:
             response: requests.Response = requests.post(
                 url, headers=self.__construct_authorization_header(json=False)
@@ -1252,11 +1263,38 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            if err.response.status_code == 403:
-                raise UnauthorizedException(
-                    "You are not authorized to perform this operation. Perhaps wrong username and password given?"
-                )
-            elif err.response.status_code >= 400 and err.response.status_code >= 499:
-                raise ClientException("A client side error occured", err)
-            else:
-                raise ServerException("An unexpected error occurred", err)
+            self.__handle_exception(err)
+
+    def post_metadata(
+        self, metadata: list[Metadata]
+    ) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the source metadata to the database.
+
+        Args:
+            metadata (list[Metadata]): The metadata to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_metadata")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.METADATA_URL}"""
+        metadata_json = json.dumps(
+            metadata, cls=EnhancedJSONEncoder
+        )
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=metadata_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
