@@ -7,6 +7,17 @@ from uuid import UUID
 
 from shapely.geometry import MultiPolygon, Point, Polygon
 
+@dataclass
+class Metadata:
+    key: str
+    name: Optional[str]
+    provider: Optional[str]
+    download_url: Optional[str]
+    refering_website_link: Optional[str]
+    download_timestamp: Optional[str]
+    extent: Optional[str]
+    license: Optional[str]
+    citation: Optional[str]
 
 @dataclass
 class Address:
@@ -33,6 +44,20 @@ class ParcelMinimalDto:
 class Coordinates:
     latitude: float
     longitude: float
+    
+@dataclass
+class MetadataResponseDto:
+    name: str
+    provider: str
+    refering_website_link: str
+    license: str
+    citation: str
+
+@dataclass
+class DataSource:
+    attribute: str
+    source: MetadataResponseDto
+    lineage: str
 
 
 @dataclass
@@ -160,7 +185,8 @@ class UseInfo(Info):
 @dataclass
 class HeightInfo(Info):
     value: float
-
+    lineage: str
+    priority: int
 
 @dataclass
 class ParcelInfo(Info):
