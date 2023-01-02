@@ -308,7 +308,7 @@ class BuildaDevClient(BuildaClient):
             raise ServerException("An unexpected exception occurred.")
 
         logging.debug(
-            f"ApiClient: received ok response, proceeding with deserialization."
+            "ApiClient: received ok response, proceeding with deserialization."
         )
         building_ids: list[UUID] = json.loads(response.content)
 
@@ -504,8 +504,11 @@ class BuildaDevClient(BuildaClient):
 
         return buildings
 
-    def refresh_buildings(self) -> None:
+    def refresh_buildings(self, building_type: str) -> None:
         """[REQUIRES AUTHENTICATION] Refreshes the materialized view 'buildings'.
+
+        Args:
+            building_type (str): The type of building (residential, non-residential, all).
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the 
@@ -519,7 +522,14 @@ class BuildaDevClient(BuildaClient):
                 when initializing the client."""
             )
 
-        url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}"""
+        if building_type == 'residential':
+            view_name = 'result.residential_attributes'
+        elif building_type == 'non-residential':
+            view_name = 'result.non_residential_attributes'
+        else:
+            view_name = 'result.all_buildings'
+
+        url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}?view_name={view_name}"""
         try:
             response: requests.Response = requests.post(
                 url, headers=self.__construct_authorization_header(json=False)
