@@ -524,7 +524,7 @@ class BuildaDevClient(BuildaClient):
 
         if building_type == 'residential':
             view_name = 'result.residential_attributes'
-        elif building_type == 'non-residential':
+        elif building_type in ['non_residential', 'non-residential']:
             view_name = 'result.non_residential_attributes'
         else:
             view_name = 'result.all_buildings'
