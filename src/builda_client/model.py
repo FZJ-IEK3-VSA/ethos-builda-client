@@ -237,7 +237,6 @@ class PvGenerationInfo(Info):
 @dataclass
 class ConstructionYearInfo(Info):
     value: int
-    lineage: str
 
 
 @dataclass
