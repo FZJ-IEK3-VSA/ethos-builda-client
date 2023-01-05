@@ -77,6 +77,7 @@ class Building:
 class ResidentialBuilding(Building):
     size_class: str
     refurbishment_state: int
+    tabula_type: str
     household_count: int
     heating_commodity: str
     cooling_commodity: str
