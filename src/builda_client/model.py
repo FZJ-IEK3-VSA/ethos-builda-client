@@ -39,6 +39,7 @@ class ParcelMinimalDto:
     id: UUID
     shape: Polygon
 
+
 @dataclass
 class Coordinates:
     latitude: float
@@ -58,6 +59,7 @@ class DataSource:
     source: MetadataResponseDto
     lineage: str
 
+
 @dataclass
 class Building:
     id: str
@@ -75,6 +77,7 @@ class Building:
 class ResidentialBuilding(Building):
     size_class: str
     refurbishment_state: int
+    tabula_type: str
     household_count: int
     heating_commodity: str
     cooling_commodity: str
@@ -250,6 +253,11 @@ class BuildingClassInfo(Info):
 
 
 @dataclass
+class TabulaTypeInfo(Info):
+    value: str
+
+
+@dataclass
 class Statistics(ABC):
     nuts_code: str
 
@@ -359,6 +367,7 @@ class NonResidentialEnergyConsumptionStatistics(Statistics):
     use: str
     electricity_consumption_mwh: float
 
+
 @dataclass
 class PvGenerationPotentialStatistics(Statistics):
     sum_pv_generation_potential_kwh: float
@@ -371,6 +380,7 @@ class PvGenerationPotentialStatistics(Statistics):
     avg_pv_generation_potential_mixed_kwh: float
     median_pv_generation_potential_mixed_kwh: float
     sum_pv_generation_potential_mixed_kwh: float
+
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):
