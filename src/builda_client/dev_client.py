@@ -538,7 +538,7 @@ class BuildaDevClient(BuildaClient):
         else:
             view_name = 'result.all_buildings'
 
-        url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}?view_name={view_name}"""
+        url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}/{view_name}"""
         try:
             response: requests.Response = requests.post(
                 url, headers=self.__construct_authorization_header(json=False)

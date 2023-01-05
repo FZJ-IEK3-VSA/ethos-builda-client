@@ -57,12 +57,12 @@ class TestDevBuildaClient:
     def test_refresh_view_raises_missing_credentials_exception(self):
         self.__given_client_unauthenticated()
         with pytest.raises(MissingCredentialsException):
-            self.testee.refresh_buildings()
+            self.testee.refresh_buildings('non_residential')
 
     # TODO comment in once test db is in place
     # def test_refresh_view_succeeds(self):
     #     self.__given_client_authenticated()
-    #     self.testee.refresh_buildings()
+    #     self.testee.refresh_buildings('non_residential')
 
     # def test_post_building_stock_raises_missing_credentials_exception(self):
     #     self.__given_client_unauthenticated()
