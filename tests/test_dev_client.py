@@ -24,6 +24,11 @@ class TestDevBuildaClient:
 
     testee: BuildaDevClient
 
+    def test_get_building_ids(self):
+        self.__given_client_unauthenticated()
+        building_ids = self.testee.get_building_ids(nuts_code='DE', type='residential')
+        self.__then_result_list_min_length_returned(building_ids, 1)
+
     def test_get_building_energy_characteristics_succeeds(self):
         self.__given_client_unauthenticated()
         bu_energy = self.testee.get_residential_buildings_energy_characteristics(nuts_code="DE80N")
@@ -52,12 +57,12 @@ class TestDevBuildaClient:
     def test_refresh_view_raises_missing_credentials_exception(self):
         self.__given_client_unauthenticated()
         with pytest.raises(MissingCredentialsException):
-            self.testee.refresh_buildings()
+            self.testee.refresh_buildings('non_residential')
 
     # TODO comment in once test db is in place
     # def test_refresh_view_succeeds(self):
     #     self.__given_client_authenticated()
-    #     self.testee.refresh_buildings()
+    #     self.testee.refresh_buildings('non_residential')
 
     # def test_post_building_stock_raises_missing_credentials_exception(self):
     #     self.__given_client_unauthenticated()
