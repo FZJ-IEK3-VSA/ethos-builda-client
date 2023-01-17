@@ -196,8 +196,7 @@ class BuildaDevClient(BuildaClient):
             type_is_null = True
             building_type = ""
 
-        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}
-        ?{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}"""
         if geom:
             url += f"&geom={geom}"
 
