@@ -248,6 +248,26 @@ class RefurbishmentStateInfo(Info):
 
 
 @dataclass
+class RoofHeightInfo(Info):
+    value: float
+
+
+@dataclass
+class RoofTiltInfo(Info):
+    value: float
+
+
+@dataclass
+class RoofAreaInfo(Info):
+    value: float
+
+
+@dataclass
+class RoofTypeInfo(Info):
+    value: int
+
+
+@dataclass
 class BuildingClassInfo(Info):
     value: str
 

@@ -37,6 +37,10 @@ from builda_client.model import (
     ParcelMinimalDto,
     PvGenerationInfo,
     RefurbishmentStateInfo,
+    RoofHeightInfo,
+    RoofTiltInfo,
+    RoofAreaInfo,
+    RoofTypeInfo,
     TabulaTypeInfo,
     TypeInfo,
     UseInfo,
@@ -78,6 +82,10 @@ class BuildaDevClient(BuildaClient):
     NUTS_URL = "nuts"
     PARCEL_URL = "parcels"
     PARCEL_INFO_URL = "parcel-info"
+    ROOF_HEIGHT_URL = "roof-height"
+    ROOF_AREA_URL = "roof-area"
+    ROOF_TYPE_URL = "roof-type"
+    ROOF_TILT_URL = "roof-tilt"
 
     METADATA_URL = "metadata"
     TABULA_TYPE_URL = "tabula-type"
@@ -1297,6 +1305,126 @@ class BuildaDevClient(BuildaClient):
             response: requests.Response = requests.post(
                 url,
                 data=refurbishment_state_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
+
+    def post_roof_height(self, roof_height_infos: list[RoofHeightInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the roof height data to the database.
+
+        Args:
+            roof_height_infos (list[RoofHeightInfo]): The roof height data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_roof_height")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.ROOF_HEIGHT_URL}"""
+        roof_height_json = json.dumps(roof_height_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=roof_height_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
+
+    def post_roof_tilt(self, roof_tilt_infos: list[RoofTiltInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the roof tilt data to the database.
+
+        Args:
+            roof_tilt_infos (list[RoofTiltInfo]): The roof tilt data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_roof_tilt")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.ROOF_TILT_URL}"""
+        roof_tilt_json = json.dumps(roof_tilt_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=roof_tilt_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
+
+    def post_roof_area(self, roof_area_infos: list[RoofAreaInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the roof area data to the database.
+
+        Args:
+            roof_area_infos (list[RoofAreaInfo]): The roof area data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_roof_area")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.ROOF_AREA_URL}"""
+        roof_area_json = json.dumps(roof_area_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=roof_area_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
+
+    def post_roof_type(self, roof_type_infos: list[RoofTypeInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the roof type data to the database.
+
+        Args:
+            roof_type_infos (list[RoofTypeInfo]): The roof type data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_roof_type")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.ROOF_TYPE_URL}"""
+        roof_type_json = json.dumps(roof_type_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=roof_type_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()
