@@ -1468,12 +1468,11 @@ class BuildaDevClient(BuildaClient):
     def get_roof_stock(
         self, nuts_code: str = "", building_type: str | None = "", exclude_irrelevant=False
     ) -> list[RoofStockEntry]:
-        """[REQUIRES AUTHENTICATION]  Gets all entries of the building stock within the
-        specified geometry.
+        """[REQUIRES AUTHENTICATION]  Gets all entries of the roof stock for the specified building_type and NUTS-region.
 
         Args:
-            geom (Polygon, optional): The polygon for which to retrieve buildings.
             nuts_code (str, optional): The NUTS region to get buildings from.
+            building_type (str): The type of building ('residential', 'non-residential', 'mixed')
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the
@@ -1481,7 +1480,7 @@ class BuildaDevClient(BuildaClient):
             client.
 
         Returns:
-            list[BuildingStockEntry]: All building stock entries that lie within the
+            list[RoofStockEntry]: All building stock entries that lie within the
             given polygon.
         """
         logging.debug("ApiClient: get_building_stock")
@@ -1519,7 +1518,7 @@ class BuildaDevClient(BuildaClient):
         roofs: list[RoofStockEntry] = []
         results: Dict = json.loads(response.content)
         for result in results:
-            roofs = RoofStockEntry(
+            roof = RoofStockEntry(
                 building_id=result["building_id"],
                 roof_id=result["roof_id"]
                 footprint=ewkt_loads(result["footprint"]),
