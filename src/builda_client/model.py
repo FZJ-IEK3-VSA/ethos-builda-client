@@ -157,6 +157,19 @@ class BuildingStockEntry:
 
 
 @dataclass
+class RoofStockEntry:
+    footprint: Polygon
+    centroid: Point
+    roof_area: float
+    roof_height: float
+    roof_orientation: float
+    roof_tilt: float
+    roof_type: str
+    building_id: Optional[UUID] = None
+    roof_id: Optional[UUID] = None
+
+
+@dataclass
 class Info:
     building_id: UUID
     source: str
@@ -249,22 +262,32 @@ class RefurbishmentStateInfo(Info):
 
 @dataclass
 class RoofHeightInfo(Info):
+    roof_id: str
     value: float
 
 
 @dataclass
 class RoofTiltInfo(Info):
+    roof_id: str
     value: float
 
 
 @dataclass
 class RoofAreaInfo(Info):
+    roof_id: str
+    value: float
+
+
+@dataclass
+class RoofOrientationInfo(Info):
+    roof_id: str
     value: float
 
 
 @dataclass
 class RoofTypeInfo(Info):
-    value: int
+    roof_id: str
+    value: str
 
 
 @dataclass
