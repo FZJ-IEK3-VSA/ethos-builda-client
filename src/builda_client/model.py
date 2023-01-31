@@ -158,8 +158,6 @@ class BuildingStockEntry:
 
 @dataclass
 class RoofStockEntry:
-    footprint: Polygon
-    centroid: Point
     roof_area: float
     roof_height: float
     roof_orientation: float

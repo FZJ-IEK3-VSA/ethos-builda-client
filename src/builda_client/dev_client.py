@@ -1520,9 +1520,7 @@ class BuildaDevClient(BuildaClient):
         for result in results:
             roof = RoofStockEntry(
                 building_id=result["building_id"],
-                roof_id=result["roof_id"]
-                footprint=ewkt_loads(result["footprint"]),
-                centroid=ewkt_loads(result["centroid"]),
+                roof_id=result["roof_id"],
                 roof_area=result["roof_area"],
                 roof_height=result["roof_height"],
                 roof_orientation=result["roof_orientation"],
