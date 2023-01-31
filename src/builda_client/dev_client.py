@@ -1471,7 +1471,7 @@ class BuildaDevClient(BuildaClient):
         """[REQUIRES AUTHENTICATION]  Gets all entries of the roof stock for the specified building_type and NUTS-region.
 
         Args:
-            nuts_code (str, optional): The NUTS region to get buildings from.
+            nuts_code (str, optional): The NUTS region to get roofs from.
             building_type (str): The type of building ('residential', 'non-residential', 'mixed')
 
         Raises:
@@ -1483,7 +1483,7 @@ class BuildaDevClient(BuildaClient):
             list[RoofStockEntry]: All building stock entries that lie within the
             given polygon.
         """
-        logging.debug("ApiClient: get_building_stock")
+        logging.debug("ApiClient: get_roof_stock")
 
         if not self.api_token:
             raise MissingCredentialsException(
