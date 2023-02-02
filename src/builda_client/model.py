@@ -248,7 +248,7 @@ class RefurbishmentStateInfo(Info):
 
 
 @dataclass
-class BuildingClassInfo(Info):
+class SizeClassInfo(Info):
     value: str
 
 
@@ -278,7 +278,7 @@ class BuildingUseStatistics(Statistics):
 
 
 @dataclass
-class BuildingClassStatistics(Statistics):
+class SizeClassStatistics(Statistics):
     sfh_count: str
     th_count: str
     mfh_count: str
