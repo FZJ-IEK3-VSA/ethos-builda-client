@@ -248,7 +248,7 @@ class RefurbishmentStateInfo(Info):
 
 
 @dataclass
-class BuildingClassInfo(Info):
+class SizeClassInfo(Info):
     value: str
 
 
