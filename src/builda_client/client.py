@@ -10,7 +10,7 @@ from builda_client.exceptions import ServerException
 from builda_client.model import (
     Address,
     Building,
-    BuildingClassStatistics,
+    SizeClassStatistics,
     BuildingStatistics,
     BuildingUseStatistics,
     CommodityCount,
@@ -553,7 +553,7 @@ class BuildaClient:
         country: str = "",
         nuts_level: int | None = None,
         nuts_code: str | None = None,
-    ) -> list[BuildingClassStatistics]:
+    ) -> list[SizeClassStatistics]:
         """Get the building class statistics for the given nuts level or nuts code. Only
         one of nuts_level and nuts_code may be specified.
 
@@ -569,7 +569,7 @@ class BuildaClient:
             ServerException: If an unexpected error occurrs on the server side.
 
         Returns:
-            list[BuildingClassStatistics]: A list of objects per NUTS region with
+            list[SizeClassStatistics]: A list of objects per NUTS region with
                 statistical info about buildings.
         """
         if nuts_level is not None and nuts_code is not None:
@@ -591,9 +591,9 @@ class BuildaClient:
             raise ServerException("An unexpected exception occurred.") from e
 
         results: list = json.loads(response.content)
-        statistics: list[BuildingClassStatistics] = []
+        statistics: list[SizeClassStatistics] = []
         for res in results:
-            statistic = BuildingClassStatistics(
+            statistic = SizeClassStatistics(
                 nuts_code=res["nuts_code"],
                 sfh_count=res["count_sfh"],
                 th_count=res["count_th"],
