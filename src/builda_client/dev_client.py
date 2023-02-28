@@ -184,6 +184,7 @@ class BuildaDevClient(BuildaClient):
         nuts_code: str = "",
         building_type: str | None = "",
         geom: Optional[Polygon] = None,
+        exclude_irrelevant=False,
     ) -> list[BuildingBase]:
         """Gets buildings with reduced parameter set within the specified NUTS region
         that fall into the provided type category.
@@ -211,7 +212,7 @@ class BuildaDevClient(BuildaClient):
             type_is_null = True
             building_type = ""
 
-        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
         if geom:
             url += f"&geom={geom}"
 
