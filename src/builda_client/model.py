@@ -157,14 +157,21 @@ class BuildingStockEntry:
 
 
 @dataclass
-class RoofStockEntry:
-    roof_area: float
+class RoofStock:
+    building_id: UUID
+    roof_id: UUID
     roof_height: float
-    roof_orientation: float
+    roof_area: float
     roof_tilt: float
+    roof_orientation: float
     roof_type: str
-    building_id: Optional[UUID] = None
-    roof_id: Optional[UUID] = None
+    type: str
+    use: str
+    nuts0: str
+    nuts1: str
+    nuts2: str
+    nuts3: str
+    lau: str
 
 
 @dataclass

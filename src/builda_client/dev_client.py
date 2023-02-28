@@ -42,7 +42,7 @@ from builda_client.model import (
     RoofAreaInfo,
     RoofTypeInfo,
     RoofOrientationInfo,
-    RoofStockEntry,
+    RoofStock,
     TabulaTypeInfo,
     TypeInfo,
     UseInfo,
@@ -1467,7 +1467,7 @@ class BuildaDevClient(BuildaClient):
 
     def get_roof_stock(
         self, nuts_code: str = "", building_type: str | None = "", exclude_irrelevant=False
-    ) -> list[RoofStockEntry]:
+    ) -> list[RoofStock]:
         """[REQUIRES AUTHENTICATION]  Gets all entries of the roof stock for the specified building_type and NUTS-region.
 
         Args:
@@ -1515,10 +1515,10 @@ class BuildaDevClient(BuildaClient):
             else:
                 raise ServerException("An unexpected error occured.")
 
-        roofs: list[RoofStockEntry] = []
+        roofs: list[RoofStock] = []
         results: Dict = json.loads(response.content)
         for result in results:
-            roof = RoofStockEntry(
+            roof = RoofStock(
                 building_id=result["building_id"],
                 roof_id=result["roof_id"],
                 roof_area=result["roof_area"],
@@ -1526,6 +1526,13 @@ class BuildaDevClient(BuildaClient):
                 roof_orientation=result["roof_orientation"],
                 roof_tilt=result["roof_tilt"],
                 roof_type=result["roof_type"],
+                type=result["type"],
+                use=result["use"],
+                nuts0=result["nuts0"],
+                nuts1=result["nuts1"],
+                nuts2=result["nuts2"],
+                nuts3=result["nuts3"],
+                lau=result["lau"],
             )
             roofs.append(roof)
 
