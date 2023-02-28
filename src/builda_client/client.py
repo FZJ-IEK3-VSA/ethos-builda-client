@@ -319,6 +319,7 @@ class BuildaClient:
                 size_class=result["size_class"],
                 refurbishment_state=result["refurbishment_state"],
                 tabula_type=result["tabula_type"],
+                living_area=result["living_area_m2"],
                 heat_demand_mwh=result["heat_demand_MWh"],
                 household_count=result["household_count"],
                 heating_commodity=result["heating_commodity"],

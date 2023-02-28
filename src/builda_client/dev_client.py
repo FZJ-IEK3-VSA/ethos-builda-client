@@ -16,6 +16,7 @@ from builda_client.exceptions import (
 from builda_client.model import (
     AddressInfo,
     BuildingBase,
+    LivingAreaInfo,
     SizeClassInfo,
     BuildingEnergyCharacteristics,
     BuildingHouseholds,
@@ -78,9 +79,10 @@ class BuildaDevClient(BuildaClient):
     NUTS_URL = "nuts"
     PARCEL_URL = "parcels"
     PARCEL_INFO_URL = "parcel-info"
+    TABULA_TYPE_URL = "tabula-type"
+    LIVING_AREA_URL = "living-area"
 
     METADATA_URL = "metadata"
-    TABULA_TYPE_URL = "tabula-type"
 
     def __init__(
         self,
@@ -814,6 +816,39 @@ class BuildaDevClient(BuildaClient):
             response: requests.Response = requests.post(
                 url,
                 data=height_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
+
+    def post_living_area_info(self, living_area_infos: list[LivingAreaInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the living area data to the database.
+
+        Args:
+            household_infos (list[LivingAreaInfo]): The household count data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
+                the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_living_area_info")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+
+        url: str = f"""{self.base_url}{self.LIVING_AREA_URL}"""
+        living_area_infos_json = json.dumps(living_area_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=living_area_infos_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()
