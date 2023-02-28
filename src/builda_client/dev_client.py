@@ -16,7 +16,7 @@ from builda_client.exceptions import (
 from builda_client.model import (
     AddressInfo,
     BuildingBase,
-    BuildingClassInfo,
+    SizeClassInfo,
     BuildingEnergyCharacteristics,
     BuildingHouseholds,
     BuildingParcel,
@@ -64,7 +64,7 @@ class BuildaDevClient(BuildaClient):
         "buildings/residential/energy-characteristics"
     )
     BUILDINGS_ID_URL = "buildings-id/"
-    BUILDING_CLASS_URL = "building-class"
+    SIZE_CLASS_URL = "size-class"
     VIEW_REFRESH_URL = "buildings/refresh"
     BUILDING_STOCK_URL = "building-stock"
     NUTS_URL = "nuts"
@@ -1186,7 +1186,7 @@ class BuildaDevClient(BuildaClient):
             self.__handle_exception(err)
 
     def post_building_class(
-        self, building_class_infos: list[BuildingClassInfo]
+        self, building_class_infos: list[SizeClassInfo]
     ) -> None:
         """[REQUIRES AUTHENTICATION] Posts the building size class data to the database.
 
