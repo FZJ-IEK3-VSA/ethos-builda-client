@@ -68,6 +68,7 @@ class Building:
     footprint_area_m2: float
     height_m: float
     construction_year: int
+    roof_type: str
     type: str
     use: str
     pv_generation_potential_kwh: float
@@ -165,13 +166,6 @@ class RoofStock:
     roof_area: float
     roof_tilt: float
     roof_orientation: float
-    type: str
-    use: str
-    nuts0: str
-    nuts1: str
-    nuts2: str
-    nuts3: str
-    lau: str
 
 
 @dataclass
