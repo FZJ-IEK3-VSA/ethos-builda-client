@@ -1206,7 +1206,7 @@ class BuildaDevClient(BuildaClient):
                 "This endpoint is private. You need to provide username and password when initializing the client."
             )
 
-        url: str = f"""{self.base_url}{self.BUILDING_CLASS_URL}"""
+        url: str = f"""{self.base_url}{self.SIZE_CLASS_URL}"""
         size_class_json = json.dumps(size_class_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(
