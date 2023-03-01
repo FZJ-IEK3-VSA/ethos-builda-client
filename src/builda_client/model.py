@@ -165,7 +165,6 @@ class RoofStock:
     roof_area: float
     roof_tilt: float
     roof_orientation: float
-    roof_type: str
     type: str
     use: str
     nuts0: str
