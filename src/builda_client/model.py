@@ -78,6 +78,7 @@ class ResidentialBuilding(Building):
     size_class: str
     refurbishment_state: int
     tabula_type: str
+    living_area: float
     household_count: int
     heating_commodity: str
     cooling_commodity: str
@@ -304,7 +305,12 @@ class SizeClassInfo(Info):
 class TabulaTypeInfo(Info):
     value: str
 
-
+@dataclass
+class LivingAreaInfo(Info):
+    value: str
+    lineage: str
+    priority: int
+    
 @dataclass
 class Statistics(ABC):
     nuts_code: str
