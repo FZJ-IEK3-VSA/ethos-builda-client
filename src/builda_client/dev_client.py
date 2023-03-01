@@ -1185,13 +1185,13 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-    def post_building_class(
-        self, building_class_infos: list[SizeClassInfo]
+    def post_size_class(
+        self, size_class_infos: list[SizeClassInfo]
     ) -> None:
         """[REQUIRES AUTHENTICATION] Posts the building size class data to the database.
 
         Args:
-            building_class_infos (list[BuildingClassInfo]): The building size class data to post.
+            size_class_infos (list[BuildingClassInfo]): The building size class data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
@@ -1199,18 +1199,18 @@ class BuildaDevClient(BuildaClient):
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
         """
-        logging.debug("ApiClient: post_building_class")
+        logging.debug("ApiClient: post_size_class")
         if not self.api_token:
             raise MissingCredentialsException(
                 "This endpoint is private. You need to provide username and password when initializing the client."
             )
 
-        url: str = f"""{self.base_url}{self.BUILDING_CLASS_URL}"""
-        building_class_json = json.dumps(building_class_infos, cls=EnhancedJSONEncoder)
+        url: str = f"""{self.base_url}{self.size_class_URL}"""
+        size_class_json = json.dumps(size_class_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(
                 url,
-                data=building_class_json,
+                data=size_class_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()
