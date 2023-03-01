@@ -57,7 +57,7 @@ class BuildaDevClient(BuildaClient):
         "buildings/residential/energy-characteristics"
     )
     BUILDINGS_ID_URL = "buildings-id/"
-    BUILDING_CLASS_URL = "building-class"
+    SIZE_CLASS_URL = "size-class"
     VIEW_REFRESH_URL = "buildings/refresh"
     BUILDING_STOCK_URL = "building-stock"
     NUTS_URL = "nuts"
@@ -1194,7 +1194,7 @@ class BuildaDevClient(BuildaClient):
                 "This endpoint is private. You need to provide username and password when initializing the client."
             )
 
-        url: str = f"""{self.base_url}{self.BUILDING_CLASS_URL}"""
+        url: str = f"""{self.base_url}{self.SIZE_CLASS_URL}"""
         size_class_json = json.dumps(size_class_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(
