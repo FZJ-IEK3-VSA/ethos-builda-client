@@ -266,6 +266,7 @@ class RefurbishmentStateInfo(Info):
 
 
 @dataclass
+<<<<<<< HEAD
 class RoofHeightInfo(Info):
     roof_id: str
     value: float
@@ -296,6 +297,8 @@ class RoofTypeInfo(Info):
 
 
 @dataclass
+=======
+>>>>>>> main
 class SizeClassInfo(Info):
     value: str
 
@@ -326,7 +329,7 @@ class BuildingUseStatistics(Statistics):
 
 
 @dataclass
-class BuildingClassStatistics(Statistics):
+class SizeClassStatistics(Statistics):
     sfh_count: str
     th_count: str
     mfh_count: str

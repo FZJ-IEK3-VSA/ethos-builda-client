@@ -184,7 +184,7 @@ class BuildaDevClient(BuildaClient):
         nuts_code: str = "",
         building_type: str | None = "",
         geom: Optional[Polygon] = None,
-        exclude_irrelevant=False,
+        exclude_irrelevant: bool = False,
     ) -> list[BuildingBase]:
         """Gets buildings with reduced parameter set within the specified NUTS region
         that fall into the provided type category.
@@ -313,13 +313,14 @@ class BuildaDevClient(BuildaClient):
         return buildings
 
     def get_building_ids(
-        self, nuts_code: str = "", type: str = "", exclude_irrelevant=False
+        self, nuts_code: str = "", type: str = "", height_max: Optional[float] = None, exclude_irrelevant=False
     ) -> list[UUID]:
         logging.debug(
             f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})"
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&exclude_irrelevant={exclude_irrelevant}"""
+        height_lt = "" if height_max is None else str(height_max)
+        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&height__lt={height_lt}&exclude_irrelevant={exclude_irrelevant}"""
 
         try:
             response: requests.Response = requests.get(url)
@@ -1191,7 +1192,7 @@ class BuildaDevClient(BuildaClient):
         """[REQUIRES AUTHENTICATION] Posts the building size class data to the database.
 
         Args:
-            size_class_infos (list[BuildingClassInfo]): The building size class data to post.
+            size_class_infos (list[SizeClassInfo]): The building size class data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
@@ -1205,7 +1206,7 @@ class BuildaDevClient(BuildaClient):
                 "This endpoint is private. You need to provide username and password when initializing the client."
             )
 
-        url: str = f"""{self.base_url}{self.size_class_URL}"""
+        url: str = f"""{self.base_url}{self.BUILDING_CLASS_URL}"""
         size_class_json = json.dumps(size_class_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(
