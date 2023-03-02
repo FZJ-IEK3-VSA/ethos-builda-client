@@ -191,6 +191,7 @@ class BuildaClient:
                 height_m=result["height_m"],
                 type=result["type"],
                 construction_year=result["construction_year"],
+                roof_type=result["roof_type"],
                 use=result["use"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
             )
@@ -314,6 +315,7 @@ class BuildaClient:
                 height_m=result["height_m"],
                 type=result["type"],
                 construction_year=result["construction_year"],
+                roof_type=result["roof_type"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
                 use=result["use"],
                 size_class=result["size_class"],

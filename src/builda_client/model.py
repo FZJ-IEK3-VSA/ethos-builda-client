@@ -160,8 +160,8 @@ class BuildingStockEntry:
 
 @dataclass
 class RoofStock:
-    building_id: UUID
     roof_id: UUID
+    building_id: UUID
     roof_height: float
     roof_area: float
     roof_tilt: float
