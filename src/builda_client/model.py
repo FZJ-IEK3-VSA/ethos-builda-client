@@ -68,6 +68,7 @@ class Building:
     footprint_area_m2: float
     height_m: float
     construction_year: int
+    roof_type: str
     type: str
     use: str
     pv_generation_potential_kwh: float
@@ -158,6 +159,16 @@ class BuildingStockEntry:
 
 
 @dataclass
+class RoofStock:
+    building_id: UUID
+    roof_id: UUID
+    roof_height: float
+    roof_area: float
+    roof_tilt: float
+    roof_orientation: float
+
+
+@dataclass
 class Info:
     building_id: UUID
     source: str
@@ -245,6 +256,36 @@ class ConstructionYearInfo(Info):
 
 @dataclass
 class RefurbishmentStateInfo(Info):
+    value: str
+
+
+@dataclass
+class RoofHeightInfo(Info):
+    roof_id: str
+    value: float
+
+
+@dataclass
+class RoofTiltInfo(Info):
+    roof_id: str
+    value: float
+
+
+@dataclass
+class RoofAreaInfo(Info):
+    roof_id: str
+    value: float
+
+
+@dataclass
+class RoofOrientationInfo(Info):
+    roof_id: str
+    value: float
+
+
+@dataclass
+class RoofTypeInfo(Info):
+    roof_id: str
     value: str
 
 
