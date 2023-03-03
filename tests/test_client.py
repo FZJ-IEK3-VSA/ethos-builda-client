@@ -284,6 +284,25 @@ class TestBuildaClient:
             heat_demand_statistics, expected_count
         )
 
+    @pytest.mark.parametrize(
+        "country, construction_year, construction_year_after, construction_year_before, size_class, expected_count",
+        [("DE", 1860, None, None, 'AB', 1)]
+    )
+    def test_get_residential_heat_demand_statistics_by_building_characteristics_succeeds(
+        self, country, construction_year, construction_year_after, construction_year_before, size_class, expected_count
+    ):
+        self.given_client()
+        heat_demand_statistics = self.testee.get_residential_heat_demand_statistics_by_building_characteristics(
+            country=country,
+            construction_year=construction_year,
+            construction_year_after=construction_year_after, 
+            construction_year_before=construction_year_before,
+            size_class=size_class
+        )
+        self.then_result_list_correct_length_returned(
+            heat_demand_statistics, expected_count
+        )
+
     def test_get_refurbishment_state_statistics_succeeds(self):
         self.given_client()
         refurbishment_state_statistics = self.testee.get_refurbishment_state_statistics(

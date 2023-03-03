@@ -382,6 +382,13 @@ class RefurbishmentStateStatistics(Statistics):
 class HeatDemandStatistics(Statistics):
     heat_demand_mwh: float
 
+@dataclass
+class HeatDemandStatisticsByBuildingCharacteristics():
+    country: str
+    size_class: str
+    construction_year: int
+    refurbishment_state: str
+    heat_demand_mwh: float
 
 @dataclass
 class CommodityCount:
