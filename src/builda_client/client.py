@@ -10,6 +10,7 @@ from builda_client.exceptions import ServerException
 from builda_client.model import (
     Address,
     Building,
+    HeatDemandStatisticsByBuildingCharacteristics,
     SizeClassStatistics,
     BuildingStatistics,
     BuildingUseStatistics,
@@ -77,6 +78,9 @@ class BuildaClient:
         "statistics/residential/energy-consumption/geom"
     )
     RESIDENTIAL_HEAT_DEMAND_STATISTICS_URL = "statistics/residential/heat-demand"
+    RESIDENTIAL_HEAT_DEMAND_STATISTICS_BY_BUILDING_CHARACTERISTICS_URL = (
+        "statistics/residential/heat-demand-by-building-characteristics"
+    )
     RESIDENTIAL_HEAT_DEMAND_STATISTICS_BY_GEOM_URL = (
         "statistics/residential/heat-demand/geom"
     )
@@ -1021,6 +1025,70 @@ class BuildaClient:
         for res in results:
             statistic = HeatDemandStatistics(
                 nuts_code=res["nuts_code"],
+                heat_demand_mwh=res["heat_demand_MWh"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+    def get_residential_heat_demand_statistics_by_building_characteristics(
+        self,
+        country: str = "",
+        construction_year: Optional[int] = None,
+        construction_year_before: Optional[int] = None,
+        construction_year_after: Optional[int] = None,
+        size_class: Optional[str] = "",
+        refurbishment_state: Optional[str] = "",
+    ) -> list[HeatDemandStatisticsByBuildingCharacteristics]:
+        """Get the residential heat demand statistics [MWh] for the given country
+        and combination of building characteristics.
+
+        Args:
+            country (str | "", optional): The NUTS-0 code for the country, e.g. 'DE'
+                for Germany. Defaults to "".
+            construcion_year (str | None, optional): Construction year of
+                building should be exactly the given year.        
+            construcion_year_before (str | None, optional): Construction year of
+                building should be before given year.
+            construcion_year_after (str | None, optional): Construction year of
+                building should be after given year.
+            size_class (str | "", optional): Size class of building (SFH, MFH, TH, AB)
+            refurbishment_state (str | None, optional): Refurbishment state of building 
+                (1, 2, 3)
+           
+        Raises:
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[HeatDemandStatisticsByBuildingCharacteristics]: A list of objects per
+                building parameter combination with statistical info about heat demand [MWh].
+        """
+        if construction_year and (construction_year_before or construction_year_after):
+            raise ValueError("You cannot query for an exact construction year and a range at the same time.")
+        
+        statistics_url = self.RESIDENTIAL_HEAT_DEMAND_STATISTICS_BY_BUILDING_CHARACTERISTICS_URL
+        
+        construction_year_after_param = str(construction_year_after) if construction_year_after else ""
+        construction_year_before_param = str(construction_year_before) if construction_year_before else ""
+        construction_year_param = str(construction_year) if construction_year else ""
+
+        query_params = f"?country={country}&construction_year__gt={construction_year_after_param}&construction_year={construction_year_param}&construction_year__lt={construction_year_before_param}&size_class={size_class}&refurbishment_state={refurbishment_state}"
+
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.") from e
+
+        results: list = json.loads(response.content)
+        statistics: list[HeatDemandStatisticsByBuildingCharacteristics] = []
+        for res in results:
+            statistic = HeatDemandStatisticsByBuildingCharacteristics(
+                country=res["country"],
+                construction_year=res["construction_year"],
+                size_class=res["size_class"],
+                refurbishment_state=res["refurbishment_state"],
                 heat_demand_mwh=res["heat_demand_MWh"],
             )
             statistics.append(statistic)
