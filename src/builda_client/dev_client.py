@@ -1556,20 +1556,12 @@ class BuildaDevClient(BuildaClient):
         results: Dict = json.loads(response.content)
         for result in results:
             roof = RoofStock(
-                building_id=result["building_id"],
                 roof_id=result["roof_id"],
+                building_id=result["building_id"],
                 roof_area=result["roof_area"],
                 roof_height=result["roof_height"],
                 roof_orientation=result["roof_orientation"],
                 roof_tilt=result["roof_tilt"],
-                roof_type=result["roof_type"],
-                type=result["type"],
-                use=result["use"],
-                nuts0=result["nuts0"],
-                nuts1=result["nuts1"],
-                nuts2=result["nuts2"],
-                nuts3=result["nuts3"],
-                lau=result["lau"],
             )
             roofs.append(roof)
 
