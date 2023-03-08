@@ -1,5 +1,6 @@
 from typing import Any
 from uuid import uuid4
+from shapely import wkt
 
 import pandas as pd
 import pytest
@@ -26,7 +27,13 @@ class TestDevBuildaClient:
 
     def test_get_building_ids(self):
         self.__given_client_unauthenticated()
-        building_ids = self.testee.get_building_ids(nuts_code='DE', type='residential')
+        building_ids = self.testee.get_building_ids(nuts_code='DE5', type='residential')
+        self.__then_result_list_min_length_returned(building_ids, 1)
+
+    def test_get_building_ids_geom(self):
+        self.__given_client_unauthenticated()
+        geom = self.__given_valid_custom_geom()
+        building_ids = self.testee.get_building_ids(geom=geom, type='residential', nuts_code='DE943')
         self.__then_result_list_min_length_returned(building_ids, 1)
 
     def test_get_building_energy_characteristics_succeeds(self):
@@ -128,7 +135,15 @@ class TestDevBuildaClient:
         )
         return [address_info1, address_info2]
 
-
+    def __given_valid_custom_geom(self) -> Polygon:
+        return Polygon(
+            wkt.loads(
+                """POLYGON((4031408.7239999995 2684074.9562,4031408.7239999995 
+                3551421.7045,4672473.542199999 3551421.7045,4672473.542199999 
+                2684074.9562,4031408.7239999995 2684074.9562))"""
+            )
+        )
+    
     # THEN
     def __then_construction_year_statistics_returned(
         self, result: list[ConstructionYearStatistics]

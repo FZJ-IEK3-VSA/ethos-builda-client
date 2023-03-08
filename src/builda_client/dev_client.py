@@ -315,7 +315,7 @@ class BuildaDevClient(BuildaClient):
         return buildings
 
     def get_building_ids(
-        self, nuts_code: str = "", type: str = "", height_max: Optional[float] = None, exclude_irrelevant=False
+        self, nuts_code: str = "", type: str = "", geom: Optional[Polygon] = None, height_max: Optional[float] = None, exclude_irrelevant=False
     ) -> list[UUID]:
         logging.debug(
             f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})"
@@ -323,7 +323,9 @@ class BuildaDevClient(BuildaClient):
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         height_lt = "" if height_max is None else str(height_max)
         url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&height__lt={height_lt}&exclude_irrelevant={exclude_irrelevant}"""
-
+        if geom:
+            url += f"&geom={geom}"
+            
         try:
             response: requests.Response = requests.get(url)
             logging.debug("ApiClient: received response. Checking for errors.")
