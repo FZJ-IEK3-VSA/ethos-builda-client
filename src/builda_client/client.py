@@ -4,12 +4,13 @@ from typing import Dict, Optional
 from uuid import UUID
 
 import requests
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, shape
 
 from builda_client.exceptions import ServerException
 from builda_client.model import (
     Address,
     Building,
+    BuildingGeometry,
     HeatDemandStatisticsByBuildingCharacteristics,
     SizeClassStatistics,
     BuildingStatistics,
@@ -40,6 +41,7 @@ class BuildaClient:
     BUILDINGS_SOURCES_URL = "buildings/{id}/sources"
     RESIDENTIAL_BUILDINGS_URL = "buildings/residential"
     NON_RESIDENTIAL_BUILDINGS_URL = "buildings/non-residential"
+    BUILDINGS_GEOMETRY_URL = "buildings-geometry"
 
     # Statistics
     TYPE_STATISTICS_URL = "statistics/building-type"
@@ -342,6 +344,69 @@ class BuildaClient:
                 geothermal_consumption_mwh=result["geothermal_consumption_MWh"],
                 derived_heat_consumption_mwh=result["derived_heat_consumption_MWh"],
                 electricity_consumption_mwh=result["electricity_consumption_MWh"],
+            )
+            buildings.append(building)
+
+        return buildings
+    
+    def get_buildings_geometry(
+        self,
+        nuts_code: str = "",
+        building_type: str | None = "",
+        geom: Optional[Polygon] = None,
+        exclude_irrelevant: bool = False,
+    ) -> list[BuildingGeometry]:
+        """Gets buildings with reduced parameter set within the specified NUTS region
+        that fall into the provided type category.
+
+        Args:
+            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions. Defaults to None.
+            type (str): The type of building ('residential', 'non-residential')
+
+        Raises:
+            ServerException: When the DB is inconsistent and more than one building with
+                same ID is returned.
+
+        Returns:
+            gpd.GeoDataFrame: A geodataframe with all buildings.
+        """
+        logging.debug(
+            "ApiClient: get_buildings_geometry(nuts_code = %s, type = %s)",
+            nuts_code,
+            building_type,
+        )
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        type_is_null = False
+        if building_type is None:
+            type_is_null = True
+            building_type = ""
+
+        url: str = f"""{self.base_url}{self.BUILDINGS_GEOMETRY_URL}?{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
+        if geom:
+            url += f"&geom={geom}"
+
+        try:
+            response: requests.Response = requests.get(url)
+            logging.debug("ApiClient: received response. Checking for errors.")
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise ServerException("An unexpected exception occurred.")
+
+        logging.debug(
+            f"ApiClient: received ok response, proceeding with deserialization."
+        )
+        
+        results: list[str] = json.loads(response.content)
+        buildings: list[BuildingGeometry] = []
+        for res_json in results:
+            res = json.loads(res_json)
+            building = BuildingGeometry(
+                id=res["id"],
+                footprint=shape(res["footprint"]),
+                centroid=shape(res["centroid"]),
+                height=(res["height"]),
+                type=res["type"],
             )
             buildings.append(building)
 

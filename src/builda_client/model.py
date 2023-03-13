@@ -108,6 +108,13 @@ class BuildingBase:
     centroid: Point
     type: str
 
+@dataclass
+class BuildingGeometry:
+    id: str
+    footprint: MultiPolygon
+    centroid: Point
+    height: float
+    type: str
 
 @dataclass
 class BuildingHouseholds:
