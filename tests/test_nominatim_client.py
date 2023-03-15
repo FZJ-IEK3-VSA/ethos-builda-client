@@ -27,6 +27,12 @@ class TestNominatimClient:
         with pytest.raises(GeocodeException):
             self.__when_get_address(lat, lon)
 
+    def test_get_address_succeeds_with_scientific_notation(self):
+        lat = 38.82547070990314
+        lon = 2.911528113837302e-05
+        address = self.__when_get_address(lat, lon)
+        address
+
     def __given_position(self, city) -> Tuple[float, float]:
         if city == 'Aachen':
             return (50.767327101912475, 6.081489764857749)

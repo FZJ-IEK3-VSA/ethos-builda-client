@@ -66,6 +66,11 @@ class TestDevBuildaClient:
         with pytest.raises(MissingCredentialsException):
             self.testee.refresh_buildings('non_residential')
 
+    def test_get_buildings_base_no_type(self):
+        self.__given_client_unauthenticated()
+        buildings = self.testee.get_buildings_base('ES11')
+        buildings
+
     # TODO comment in once test db is in place
     # def test_refresh_view_succeeds(self):
     #     self.__given_client_authenticated()
