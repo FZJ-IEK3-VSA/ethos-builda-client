@@ -147,6 +147,7 @@ class NutsRegion:
 
 @dataclass
 class BuildingStockEntry:
+    building_id: str
     footprint: Polygon
     centroid: Point
     footprint_area: float
@@ -155,7 +156,6 @@ class BuildingStockEntry:
     nuts1: str
     nuts0: str
     lau: str
-    building_id: Optional[UUID] = None
 
 
 @dataclass
@@ -170,7 +170,7 @@ class RoofStock:
 
 @dataclass
 class Info:
-    building_id: UUID
+    building_id: str
     source: str
 
 
