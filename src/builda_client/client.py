@@ -196,7 +196,6 @@ class BuildaClient:
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
                 type=result["type"],
-                construction_year=result["construction_year"],
                 roof_type=result["roof_type"],
                 use=result["use"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
@@ -417,7 +416,6 @@ class BuildaClient:
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
                 type=result["type"],
-                construction_year=result["construction_year"],
                 roof_type=result["roof_type"],
                 use=result["use"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
@@ -663,13 +661,6 @@ class BuildaClient:
             statistic = ConstructionYearStatistics(
                 nuts_code=res["nuts_code"],
                 avg_construction_year=res["avg_construction_year"],
-                avg_construction_year_residential=res[
-                    "avg_construction_year_residential"
-                ],
-                avg_construction_year_non_residential=res[
-                    "avg_construction_year_non_residential"
-                ],
-                avg_construction_year_mixed=res["avg_construction_year_mixed"],
             )
             statistics.append(statistic)
         return statistics

@@ -67,7 +67,6 @@ class Building:
     address: Address
     footprint_area_m2: float
     height_m: float
-    construction_year: int
     roof_type: str
     type: str
     use: str
@@ -78,6 +77,7 @@ class Building:
 class ResidentialBuilding(Building):
     size_class: str
     refurbishment_state: int
+    construction_year: int
     tabula_type: str
     living_area: float
     household_count: int
@@ -335,9 +335,6 @@ class SizeClassStatistics(Statistics):
 @dataclass
 class ConstructionYearStatistics(Statistics):
     avg_construction_year: int
-    avg_construction_year_residential: int
-    avg_construction_year_non_residential: int
-    avg_construction_year_mixed: int
 
 
 @dataclass
