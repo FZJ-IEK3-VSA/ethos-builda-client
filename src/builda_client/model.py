@@ -111,13 +111,13 @@ class BuildingBase:
 
 @dataclass
 class BuildingHouseholds:
-    id: UUID
+    id: str
     household_count: int
 
 
 @dataclass
 class BuildingParcel:
-    id: UUID
+    id: str
     footprint: MultiPolygon
     centroid: Point
     type: str
@@ -126,7 +126,7 @@ class BuildingParcel:
 
 @dataclass
 class BuildingEnergyCharacteristics:
-    id: UUID
+    id: str
     type: str
     heating_commodity: str
     cooling_commodity: str
@@ -161,7 +161,7 @@ class BuildingStockEntry:
 @dataclass
 class RoofStock:
     roof_id: UUID
-    building_id: UUID
+    building_id: str
     roof_height: float
     roof_area: float
     roof_tilt: float

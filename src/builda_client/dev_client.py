@@ -275,7 +275,7 @@ class BuildaDevClient(BuildaClient):
         buildings_households: list[BuildingHouseholds] = []
         for res in results:
             building_households = BuildingHouseholds(
-                id=UUID(res["id"]), household_count=res["household_count"]
+                id=res["id"], household_count=res["household_count"]
             )
             buildings_households.append(building_households)
         return buildings_households
@@ -321,7 +321,7 @@ class BuildaDevClient(BuildaClient):
 
     def get_building_ids(
         self, nuts_code: str = "", type: str = "", geom: Optional[Polygon] = None, height_max: Optional[float] = None, exclude_irrelevant=False
-    ) -> list[UUID]:
+    ) -> list[str]:
         logging.debug(
             f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})"
         )
@@ -341,7 +341,7 @@ class BuildaDevClient(BuildaClient):
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
         )
-        building_ids: list[UUID] = json.loads(response.content)
+        building_ids: list[str] = json.loads(response.content)
 
         return building_ids
 
@@ -370,7 +370,7 @@ class BuildaDevClient(BuildaClient):
                     id=UUID(res["parcel_id"]), shape=shape(res["parcel_geom"])
                 )
             building = BuildingParcel(
-                id=UUID(res["id"]),
+                id=res["id"],
                 footprint=shape(res["footprint"]),
                 centroid=shape(res["centroid"]),
                 type=res["type"],
@@ -458,7 +458,7 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-    def modify_building(self, building_id: UUID, building_data: Dict):
+    def modify_building(self, building_id: str, building_data: Dict):
         if not self.api_token:
             raise MissingCredentialsException(
                 """This endpoint is private. You need to provide username and password 
@@ -522,7 +522,7 @@ class BuildaDevClient(BuildaClient):
         buildings: list[BuildingEnergyCharacteristics] = []
         for res in results:
             building = BuildingEnergyCharacteristics(
-                id=UUID(res["id"]),
+                id=res["id"],
                 type=res["type"],
                 heating_commodity=res["heating_commodity"],
                 cooling_commodity=res["cooling_commodity"],

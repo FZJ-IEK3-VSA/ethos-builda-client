@@ -205,10 +205,10 @@ class BuildaClient:
 
         return buildings
 
-    def get_building_sources(self, building_id: UUID) -> list[DataSource]:
+    def get_building_sources(self, building_id: str) -> list[DataSource]:
         """Gets sources for building.
         Args:
-            building_id (UUID): ID of building
+            building_id (str): ID of building
 
         Raises:
             ServerException: When an error occurs on the server side..
