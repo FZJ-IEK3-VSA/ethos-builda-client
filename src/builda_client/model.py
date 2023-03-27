@@ -67,7 +67,6 @@ class Building:
     address: Address
     footprint_area_m2: float
     height_m: float
-    construction_year: int
     roof_type: str
     type: str
     use: str
@@ -78,6 +77,7 @@ class Building:
 class ResidentialBuilding(Building):
     size_class: str
     refurbishment_state: int
+    construction_year: int
     tabula_type: str
     living_area: float
     household_count: int
@@ -118,13 +118,13 @@ class BuildingGeometry:
 
 @dataclass
 class BuildingHouseholds:
-    id: UUID
+    id: str
     household_count: int
 
 
 @dataclass
 class BuildingParcel:
-    id: UUID
+    id: str
     footprint: MultiPolygon
     centroid: Point
     type: str
@@ -133,7 +133,7 @@ class BuildingParcel:
 
 @dataclass
 class BuildingEnergyCharacteristics:
-    id: UUID
+    id: str
     type: str
     heating_commodity: str
     cooling_commodity: str
@@ -154,6 +154,7 @@ class NutsRegion:
 
 @dataclass
 class BuildingStockEntry:
+    building_id: str
     footprint: Polygon
     centroid: Point
     footprint_area: float
@@ -162,13 +163,12 @@ class BuildingStockEntry:
     nuts1: str
     nuts0: str
     lau: str
-    building_id: Optional[UUID] = None
 
 
 @dataclass
 class RoofStock:
     roof_id: UUID
-    building_id: UUID
+    building_id: str
     roof_height: float
     roof_area: float
     roof_tilt: float
@@ -177,7 +177,7 @@ class RoofStock:
 
 @dataclass
 class Info:
-    building_id: UUID
+    building_id: str
     source: str
 
 
@@ -342,9 +342,6 @@ class SizeClassStatistics(Statistics):
 @dataclass
 class ConstructionYearStatistics(Statistics):
     avg_construction_year: int
-    avg_construction_year_residential: int
-    avg_construction_year_non_residential: int
-    avg_construction_year_mixed: int
 
 
 @dataclass

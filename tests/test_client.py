@@ -1,5 +1,4 @@
 from typing import Any
-from uuid import UUID
 
 import pandas as pd
 import pytest
@@ -44,7 +43,7 @@ class TestBuildaClient:
     ### METADATA ###
     def test_get_building_sources(self):
         self.given_client()
-        sources = self.testee.get_building_sources(UUID("008c0bed-0955-4c6b-8792-9b25b5cd79bd"))
+        sources = self.testee.get_building_sources("DE1_1000010573")
         self.__then_result_list_min_length_returned(sources, 1)
 
     ### GENERAL STATISTICS ###

@@ -1,13 +1,13 @@
 import json
 import logging
 from typing import Dict, Tuple
-from builda_client.util import load_config
+
+import numpy as np
 import requests
-from builda_client.exceptions import (
-    GeocodeException,
-    ServerException,
-    UnauthorizedException,
-)
+
+from builda_client.exceptions import (GeocodeException, ServerException,
+                                      UnauthorizedException)
+from builda_client.util import load_config
 
 
 class NominatimClient:
@@ -34,7 +34,10 @@ class NominatimClient:
         self, lat: float, lon: float
     ) -> Tuple[str, str, str, str]:
         logging.debug(f"NominatimClient: get_address_from_location")
-        url: str = f"""{self.address}/reverse/?lat={lat}&lon={lon}&zoom=18&format=geocodejson"""
+        lat_str = np.format_float_positional(lat, trim='-')
+        lon_str = np.format_float_positional(lon, trim='-')
+
+        url: str = f"""{self.address}/reverse/?lat={lat_str}&lon={lon_str}&zoom=18&format=geocodejson"""
         try:
             response: requests.Response = requests.get(url)
             response.raise_for_status()

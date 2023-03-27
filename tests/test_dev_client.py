@@ -66,6 +66,11 @@ class TestDevBuildaClient:
         with pytest.raises(MissingCredentialsException):
             self.testee.refresh_buildings('non_residential')
 
+    def test_get_buildings_base_no_type(self):
+        self.__given_client_unauthenticated()
+        buildings = self.testee.get_buildings_base('ES11')
+        buildings
+
     # TODO comment in once test db is in place
     # def test_refresh_view_succeeds(self):
     #     self.__given_client_authenticated()
@@ -116,7 +121,7 @@ class TestDevBuildaClient:
 
     def __given_valid_addresses(self) -> list[AddressInfo]:
         address_info1 = AddressInfo(
-            building_id = uuid4(),
+            building_id = 'test_id',
             street = 'Wüllnerstraße',
             house_number = '9',
             postcode = '52062',
@@ -125,7 +130,7 @@ class TestDevBuildaClient:
             source = 'Test'
         )
         address_info2 = AddressInfo(
-            building_id = uuid4(),
+            building_id = 'test_id',
             street = 'Wüllnerstraße',
             house_number = '10',
             postcode = '52062',
