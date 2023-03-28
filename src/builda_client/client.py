@@ -201,6 +201,7 @@ class BuildaClient:
                 roof_type=result["roof_type"],
                 use=result["use"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
+                additional=result["additional"]
             )
             buildings.append(building)
 
@@ -343,6 +344,7 @@ class BuildaClient:
                 geothermal_consumption_mwh=result["geothermal_consumption_MWh"],
                 derived_heat_consumption_mwh=result["derived_heat_consumption_MWh"],
                 electricity_consumption_mwh=result["electricity_consumption_MWh"],
+                additional=result["additional"],
             )
             buildings.append(building)
 
@@ -488,6 +490,7 @@ class BuildaClient:
                 use=result["use"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
                 electricity_consumption_mwh=result["electricity_consumption_MWh"],
+                additional=result["additional"]
             )
             buildings.append(building)
         return buildings

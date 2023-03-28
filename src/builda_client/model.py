@@ -71,6 +71,7 @@ class Building:
     type: str
     use: str
     pv_generation_potential_kwh: float
+    additional: str
 
 
 @dataclass
@@ -305,12 +306,21 @@ class SizeClassInfo(Info):
 class TabulaTypeInfo(Info):
     value: str
 
+
 @dataclass
 class LivingAreaInfo(Info):
     value: str
     lineage: str
     priority: int
-    
+
+
+@dataclass
+class AdditionalInfo(Info):
+    attribute: str
+    value: str
+    lineage: str
+
+
 @dataclass
 class Statistics(ABC):
     nuts_code: str

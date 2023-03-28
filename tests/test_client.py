@@ -18,8 +18,14 @@ class TestBuildaClient:
     testee: BuildaClient
 
     ### BUILDINGS ###
-
     def test_get_buildings(self):
+        self.given_client()
+        buildings = self.testee.get_buildings(
+            nuts_code='DE943'
+        )
+        self.__then_result_list_min_length_returned(buildings, 1)
+
+    def test_get_buildings_type_residential(self):
         self.given_client()
         buildings = self.testee.get_buildings(
             building_type="residential", city="Arpsdorf", street="Dorfstraße"

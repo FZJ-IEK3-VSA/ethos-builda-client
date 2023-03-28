@@ -14,6 +14,7 @@ from builda_client.exceptions import (
     UnauthorizedException,
 )
 from builda_client.model import (
+    AdditionalInfo,
     AddressInfo,
     BuildingBase,
     LivingAreaInfo,
@@ -93,6 +94,7 @@ class BuildaDevClient(BuildaClient):
     ROOF_ORIENTATION_URL = "roof-orientation"
     TABULA_TYPE_URL = "tabula-type"
     LIVING_AREA_URL = "living-area"
+    ADDITIONAL_URL = "additional"
 
     METADATA_URL = "metadata"
 
@@ -1259,6 +1261,41 @@ class BuildaDevClient(BuildaClient):
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
+
+
+    def post_additional_info(self, additional_infos: list[AdditionalInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the additional data to the database.
+
+        Args:
+            household_infos (list[AdditionalInfo]): The additional data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
+                the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_additional_info")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+
+        url: str = f"""{self.base_url}{self.ADDITIONAL_URL}"""
+        additional_infos_json = json.dumps(additional_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=additional_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
+
 
     def post_timing_log(self, function_name: str, measured_time: float):
         logging.debug("ApiClient: post_timing_log")
