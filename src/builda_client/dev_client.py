@@ -1263,7 +1263,7 @@ class BuildaDevClient(BuildaClient):
             self.__handle_exception(err)
 
 
-def post_additional_info(self, additional_infos: list[AdditionalInfo]) -> None:
+    def post_additional_info(self, additional_infos: list[AdditionalInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the additional data to the database.
 
         Args:
