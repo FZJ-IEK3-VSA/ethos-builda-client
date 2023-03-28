@@ -71,6 +71,7 @@ class Building:
     type: str
     use: str
     pv_generation_potential_kwh: float
+    additional: str
 
 
 @dataclass
