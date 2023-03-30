@@ -1672,7 +1672,7 @@ class BuildaDevClient(BuildaClient):
             response: requests.Response = requests.post(
                 url,
                 data={"query": query},
-                headers=self.__construct_authorization_header().update({"Content-Type": "multipart/form-data"}),
+                headers=self.__construct_authorization_header(json=False),
             )
             response.raise_for_status()
             return json.loads(response.content)
