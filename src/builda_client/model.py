@@ -293,7 +293,6 @@ class RoofOrientationInfo(Info):
 
 @dataclass
 class RoofTypeInfo(Info):
-    roof_id: str
     value: str
 
 

@@ -67,7 +67,7 @@ class BuildaDevClient(BuildaClient):
     )
     BUILDINGS_ID_URL = "buildings-id/"
     SIZE_CLASS_URL = "size-class"
-    VIEW_REFRESH_URL = "buildings/refresh"
+    VIEW_REFRESH_URL = "refresh-materialized_view"
     BUILDING_STOCK_URL = "building-stock"
     NUTS_URL = "nuts"
     NUTS_CODES_URL = "nuts-codes/"
@@ -561,6 +561,33 @@ class BuildaDevClient(BuildaClient):
             view_name = 'result.non_residential_attributes'
         else:
             view_name = 'result.all_buildings'
+
+        url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}/{view_name}"""
+        try:
+            response: requests.Response = requests.post(
+                url, headers=self.__construct_authorization_header(json=False)
+            )
+            response.raise_for_status()
+        except requests.HTTPError as err:
+            self.__handle_exception(err)
+
+    def refresh_materialized_view(self, view_name: str):
+        """[REQUIRES AUTHENTICATION] Refreshes the materialized view.
+
+        Args:
+            view_name (str): The name of the materialized view to be refreshed.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
+                the client.
+        """
+        logging.debug("ApiClient: refresh_buildings")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password
+                when initializing the client."""
+            )
 
         url: str = f"""{self.base_url}{self.VIEW_REFRESH_URL}/{view_name}"""
         try:
