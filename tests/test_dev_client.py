@@ -71,6 +71,11 @@ class TestDevBuildaClient:
         buildings = self.testee.get_buildings_base('ES11')
         buildings
 
+    def test_execute_custom_query(self):
+        self.__given_client_authenticated()
+        result = self.testee.execute_query("SELECT COUNT(*) FROM result.old_all_buildings")
+        assert result
+
     # TODO comment in once test db is in place
     # def test_refresh_view_succeeds(self):
     #     self.__given_client_authenticated()
