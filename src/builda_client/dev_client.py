@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 import requests
@@ -97,6 +97,8 @@ class BuildaDevClient(BuildaClient):
     ADDITIONAL_URL = "additional"
 
     METADATA_URL = "metadata"
+
+    CUSTOM_QUERY_URL = "custom-query"
 
     def __init__(
         self,
@@ -1671,3 +1673,36 @@ class BuildaDevClient(BuildaClient):
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
+
+    def execute_query(
+        self, query: str
+    ) -> Any:
+        """[REQUIRES AUTHENTICATION] Executes a custom sql query.
+
+        Args:
+            query (str): SQL query.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_metadata")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.CUSTOM_QUERY_URL}"""
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data={"query": query},
+                headers=self.__construct_authorization_header(json=False),
+            )
+            response.raise_for_status()
+            return json.loads(response.content)
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
+
