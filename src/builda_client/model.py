@@ -194,6 +194,7 @@ class AddressInfo(Info):
 @dataclass
 class TypeInfo(Info):
     value: str
+    lineage: str
     priority: int  # TODO use metadata table reference instead
 
 
