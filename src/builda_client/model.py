@@ -115,6 +115,7 @@ class BuildingGeometry:
     footprint: MultiPolygon
     centroid: Point
     height: float
+    roof_type: str
     type: str
 
 @dataclass

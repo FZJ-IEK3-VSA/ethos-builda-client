@@ -410,6 +410,7 @@ class BuildaClient:
                 footprint=shape(res["footprint"]),
                 centroid=shape(res["centroid"]),
                 height=(res["height"]),
+                roof_type=(res["roof_type"]),
                 type=res["type"],
             )
             buildings.append(building)
