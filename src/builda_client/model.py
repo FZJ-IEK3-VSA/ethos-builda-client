@@ -80,7 +80,9 @@ class ResidentialBuilding(Building):
     refurbishment_state: int
     construction_year: int
     tabula_type: str
-    living_area: float
+    useful_area_m2: float
+    conditioned_living_area_m2: float
+    net_floor_area_m2: float
     household_count: int
     heating_commodity: str
     cooling_commodity: str
@@ -307,8 +309,10 @@ class TabulaTypeInfo(Info):
 
 
 @dataclass
-class LivingAreaInfo(Info):
-    value: str
+class FloorAreasInfo(Info):
+    useful_area_m2: float
+    conditioned_living_area_m2: float
+    net_floor_area_m2: float
     lineage: str
     priority: int
 
