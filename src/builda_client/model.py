@@ -67,6 +67,7 @@ class Building:
     address: Address
     footprint_area_m2: float
     height_m: float
+    elevation_m: float
     roof_type: str
     type: str
     use: str
