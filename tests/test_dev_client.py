@@ -36,6 +36,21 @@ class TestDevBuildaClient:
         building_ids = self.testee.get_building_ids(geom=geom, type='residential', nuts_code='DE943')
         self.__then_result_list_min_length_returned(building_ids, 1)
 
+    def test_get_buildings_geometry_with_no_type(self):
+        self.__given_client_unauthenticated()
+        buildings = self.testee.get_buildings_geometry(building_type=None, nuts_code='DE943')
+        assert all([b.type == None for b in buildings])
+
+    def test_get_buildings_geometry_type_mixed(self):
+        self.__given_client_unauthenticated()
+        buildings = self.testee.get_buildings_geometry(building_type="mixed", nuts_code='DE943')
+        assert all([b.type == "mixed" for b in buildings])
+
+    def test_get_buildings_geometry_all_types(self):
+        self.__given_client_unauthenticated()
+        buildings = self.testee.get_buildings_geometry(building_type="", nuts_code='DE943')
+        assert all([b.type in ["residential", "non-residential", "mixed", None] for b in buildings])
+
     def test_get_building_energy_characteristics_succeeds(self):
         self.__given_client_unauthenticated()
         bu_energy = self.testee.get_residential_buildings_energy_characteristics(nuts_code="DE80N")
