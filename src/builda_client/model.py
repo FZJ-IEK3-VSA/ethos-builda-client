@@ -210,6 +210,12 @@ class HeightInfo(Info):
     priority: int
 
 @dataclass
+class ElevationInfo(Info):
+    value: float
+    lineage: str
+    priority: int
+
+@dataclass
 class ParcelInfo(Info):
     value: UUID
 
