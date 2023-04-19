@@ -117,6 +117,7 @@ class BuildingGeometry:
     footprint: MultiPolygon
     centroid: Point
     height: float
+    roof_type: str
     type: str
 
 @dataclass
@@ -196,6 +197,7 @@ class AddressInfo(Info):
 @dataclass
 class TypeInfo(Info):
     value: str
+    lineage: str
     priority: int  # TODO use metadata table reference instead
 
 
