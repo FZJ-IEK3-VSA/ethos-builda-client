@@ -46,6 +46,13 @@ class TestBuildaClient:
         )
         self.__then_result_list_min_length_returned(buildings, 1)
 
+    def test_get_residential_buildings_by_lau(self):
+        self.given_client()
+        buildings = self.testee.get_residential_buildings(
+            nuts_code="01058007"
+        )
+        self.__then_result_list_min_length_returned(buildings, 1)
+
     def test_get_non_residential_buildings(self):
         self.given_client()
         buildings = self.testee.get_non_residential_buildings(
