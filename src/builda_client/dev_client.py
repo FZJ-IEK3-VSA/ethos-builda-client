@@ -17,6 +17,7 @@ from builda_client.model import (
     AdditionalInfo,
     AddressInfo,
     BuildingBase,
+    ElevationInfo,
     FloorAreasInfo,
     SizeClassInfo,
     BuildingEnergyCharacteristics,
@@ -74,6 +75,7 @@ class BuildaDevClient(BuildaClient):
     TYPE_URL = "type/"
     USE_URL = "use/"
     HEIGHT_URL = "height/"
+    ELEVATION_URL = "elevation/"
     HOUSEHOLD_COUNT_URL = "household-count"
     HEATING_COMMODITY_URL = "heating-commodity"
     COOLING_COMMODITY_URL = "cooling-commodity"
@@ -867,6 +869,39 @@ class BuildaDevClient(BuildaClient):
             response: requests.Response = requests.post(
                 url,
                 data=height_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
+
+    def post_elevation_info(self, infos: list[ElevationInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the elevation data to the database.
+
+        Args:
+            infos (list[ElevationInfo]): The elevation data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
+                the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_elevation_info")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+
+        url: str = f"""{self.base_url}{self.ELEVATION_URL}"""
+        infos_json = json.dumps(infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=infos_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()
