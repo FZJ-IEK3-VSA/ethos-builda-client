@@ -18,7 +18,7 @@ from builda_client.model import (
     AddressInfo,
     BuildingBase,
     ElevationInfo,
-    LivingAreaInfo,
+    FloorAreasInfo,
     SizeClassInfo,
     BuildingEnergyCharacteristics,
     BuildingHouseholds,
@@ -95,7 +95,7 @@ class BuildaDevClient(BuildaClient):
     ROOF_TILT_URL = "roof-tilt"
     ROOF_ORIENTATION_URL = "roof-orientation"
     TABULA_TYPE_URL = "tabula-type"
-    LIVING_AREA_URL = "living-area"
+    FLOOR_AREAS_URL = "floor-areas"
     ADDITIONAL_URL = "additional"
 
     METADATA_URL = "metadata"
@@ -908,11 +908,11 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-    def post_living_area_info(self, living_area_infos: list[LivingAreaInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the living area data to the database.
+    def post_floor_areas_info(self, floor_areas_infos: list[FloorAreasInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the floor area data to the database.
 
         Args:
-            household_infos (list[LivingAreaInfo]): The household count data to post.
+            household_infos (list[FloorAreasInfo]): The household count data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the
@@ -922,19 +922,19 @@ class BuildaDevClient(BuildaClient):
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
         """
-        logging.debug("ApiClient: post_living_area_info")
+        logging.debug("ApiClient: post_floor_areas_info")
         if not self.api_token:
             raise MissingCredentialsException(
                 """This endpoint is private. You need to provide username and password 
                 when initializing the client."""
             )
 
-        url: str = f"""{self.base_url}{self.LIVING_AREA_URL}"""
-        living_area_infos_json = json.dumps(living_area_infos, cls=EnhancedJSONEncoder)
+        url: str = f"""{self.base_url}{self.FLOOR_AREAS_URL}"""
+        floor_areas_infos_json = json.dumps(floor_areas_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(
                 url,
-                data=living_area_infos_json,
+                data=floor_areas_infos_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()

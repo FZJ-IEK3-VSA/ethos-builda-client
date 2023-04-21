@@ -25,6 +25,13 @@ class TestBuildaClient:
         )
         self.__then_result_list_min_length_returned(buildings, 1)
 
+    def test_get_buildings_geometry(self):
+        self.given_client()
+        buildings = self.testee.get_buildings_geometry(
+            nuts_code='09780133'
+        )
+        self.__then_result_list_min_length_returned(buildings, 1)
+
     def test_get_buildings_type_residential(self):
         self.given_client()
         buildings = self.testee.get_buildings(
@@ -36,6 +43,13 @@ class TestBuildaClient:
         self.given_client()
         buildings = self.testee.get_residential_buildings(
             city="Arpsdorf", street="Dorfstraße"
+        )
+        self.__then_result_list_min_length_returned(buildings, 1)
+
+    def test_get_residential_buildings_by_lau(self):
+        self.given_client()
+        buildings = self.testee.get_residential_buildings(
+            nuts_code="01058007"
         )
         self.__then_result_list_min_length_returned(buildings, 1)
 

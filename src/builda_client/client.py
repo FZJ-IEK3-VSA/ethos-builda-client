@@ -136,10 +136,10 @@ class BuildaClient:
             nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions or 2019 LAU definition.
                 Defaults to None.
-            type (str | None, optional): The type of building ('residential',
-                'non-residential').
-                If not provided the common attributes for residential and
-                non-residential buildings are returned.
+            building_type (str): The type of building ('residential', 'non-residential', 'mixed'). 
+                If building_type = None returns all buildings without type.
+                If building_type = "", returns all buildings independent of type.
+
 
         Raises:
             ServerException: When an error occurs on the server side..
@@ -164,7 +164,7 @@ class BuildaClient:
         if building_type is None:
             type_is_null = "True"
             building_type = ""
-        if building_type == '':
+        elif building_type == '':
             type_is_null = ""
 
         url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
@@ -331,7 +331,9 @@ class BuildaClient:
                 size_class=result["size_class"],
                 refurbishment_state=result["refurbishment_state"],
                 tabula_type=result["tabula_type"],
-                living_area=result["living_area_m2"],
+                useful_area_m2=result["useful_area_m2"],
+                conditioned_living_area_m2=result["conditioned_living_area_m2"],
+                net_floor_area_m2=result["net_floor_area_m2"],
                 heat_demand_mwh=result["heat_demand_MWh"],
                 household_count=result["household_count"],
                 heating_commodity=result["heating_commodity"],
@@ -365,7 +367,9 @@ class BuildaClient:
         Args:
             nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
-            type (str): The type of building ('residential', 'non-residential')
+            building_type (str): The type of building ('residential', 'non-residential', 'mixed'). 
+                If building_type = None returns all buildings without type.
+                If building_type = "", returns all buildings independent of type.
 
         Raises:
             ServerException: When the DB is inconsistent and more than one building with
@@ -385,7 +389,7 @@ class BuildaClient:
         if building_type is None:
             type_is_null = "True"
             building_type = ""
-        if building_type == '':
+        elif building_type == '':
             type_is_null = ""
 
         url: str = f"""{self.base_url}{self.BUILDINGS_GEOMETRY_URL}?{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
@@ -412,6 +416,7 @@ class BuildaClient:
                 footprint=shape(res["footprint"]),
                 centroid=shape(res["centroid"]),
                 height=(res["height"]),
+                roof_type=(res["roof_type"]),
                 type=res["type"],
             )
             buildings.append(building)
