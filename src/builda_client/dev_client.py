@@ -18,6 +18,7 @@ from builda_client.model import (
     AddressInfo,
     BuildingBase,
     FloorAreasInfo,
+    NormHeatingLoadInfo,
     SizeClassInfo,
     BuildingEnergyCharacteristics,
     BuildingHouseholds,
@@ -81,6 +82,7 @@ class BuildaDevClient(BuildaClient):
     COOKING_COMMODITY_URL = "cooking-commodity"
     ENERGY_CONSUMPTION_URL = "energy-consumption"
     HEAT_DEMAND_URL = "heat-demand"
+    NORM_HEATING_LOAD_URL = "norm-heating-load"
     PV_GENERATION_URL = "pv-generation/"
     CONSTRUCTION_YEAR_URL = "construction-year"
     TIMING_LOG_URL = "admin/timing-log"
@@ -533,6 +535,7 @@ class BuildaDevClient(BuildaClient):
                 water_heating_commodity=res["water_heating_commodity"],
                 cooking_commodity=res["cooking_commodity"],
                 heat_demand_mwh=res["heat_demand_MWh"],
+                norm_heating_load_kw=res["norm_heating_load_kW"],
                 pv_generation_potential_kwh=res["pv_generation_potential_kWh"],
             )
             buildings.append(building)
@@ -1157,6 +1160,39 @@ class BuildaDevClient(BuildaClient):
             response: requests.Response = requests.post(
                 url,
                 data=heat_demand_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
+
+    def post_norm_heating_load(self, heating_load_infos: list[NormHeatingLoadInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the norm heating load data to the database.
+
+        Args:
+            heat_demand_infos (list[NormHeatingLoadInfo]): The heat demand infos to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
+                the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_norm_heating_load")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+
+        url: str = f"""{self.base_url}{self.NORM_HEATING_LOAD_URL}"""
+        heating_load_infos_json = json.dumps(heating_load_infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=heating_load_infos_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()
