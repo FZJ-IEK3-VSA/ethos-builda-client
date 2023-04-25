@@ -21,7 +21,7 @@ from builda_client.model import (
     FloorAreasInfo,
     SizeClassInfo,
     BuildingEnergyCharacteristics,
-    BuildingHouseholds,
+    BuildingHousingUnits,
     BuildingParcel,
     BuildingStockEntry,
     ConstructionYearInfo,
@@ -242,9 +242,9 @@ class BuildaDevClient(BuildaClient):
         buildings = self.__deserialize(response.content)
         return buildings
 
-    def get_buildings_households(
+    def get_buildings_housing_units(
         self, nuts_code: str = "", heating_type: str = ""
-    ) -> list[BuildingHouseholds]:
+    ) -> list[BuildingHousingUnits]:
         """Gets residential buildings with household data within the specified NUTS
         region that fall into the provided type category.
 
@@ -278,10 +278,10 @@ class BuildaDevClient(BuildaClient):
             "ApiClient: received ok response, proceeding with deserialization."
         )
         results: list[Dict] = json.loads(response.content)
-        buildings_households: list[BuildingHouseholds] = []
+        buildings_households: list[BuildingHousingUnits] = []
         for res in results:
-            building_households = BuildingHouseholds(
-                id=res["id"], household_count=res["household_count"]
+            building_households = BuildingHousingUnits(
+                id=res["id"], housing_units_count=res["household_count"]
             )
             buildings_households.append(building_households)
         return buildings_households
@@ -941,7 +941,7 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-    def post_household_count(self, household_infos: list[HouseholdInfo]) -> None:
+    def post_housing_unit_count(self, household_infos: list[HouseholdInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
 
         Args:

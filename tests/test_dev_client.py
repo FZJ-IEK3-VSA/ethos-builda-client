@@ -10,7 +10,7 @@ from builda_client.dev_client import BuildaDevClient
 from builda_client.exceptions import MissingCredentialsException
 from builda_client.model import (AddressInfo, Building,
                                  BuildingEnergyCharacteristics,
-                                 BuildingHouseholds, BuildingParcel,
+                                 BuildingHousingUnits, BuildingParcel,
                                  BuildingStockEntry,
                                  ConstructionYearStatistics, NutsRegion,
                                  Parcel)
@@ -189,7 +189,7 @@ class TestDevBuildaClient:
 
     def __then_buildings_with_households_returned(self, result):
         assert len(result) > 0
-        assert isinstance(result[0], BuildingHouseholds)
+        assert isinstance(result[0], BuildingHousingUnits)
 
     def __then_buildings_with_parcel_returned(self, result):
         assert len(result) > 0
