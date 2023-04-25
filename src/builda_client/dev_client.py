@@ -32,7 +32,7 @@ from builda_client.model import (
     HeatDemandInfo,
     HeatingCommodityInfo,
     HeightInfo,
-    HouseholdInfo,
+    HousingUnitsInfo,
     Metadata,
     NutsRegion,
     Parcel,
@@ -76,7 +76,7 @@ class BuildaDevClient(BuildaClient):
     USE_URL = "use/"
     HEIGHT_URL = "height/"
     ELEVATION_URL = "elevation/"
-    HOUSEHOLD_COUNT_URL = "household-count"
+    HOUSING_UNIT_COUNT_URL = "housing-unit-count"
     HEATING_COMMODITY_URL = "heating-commodity"
     COOLING_COMMODITY_URL = "cooling-commodity"
     WARM_WATER_COMMODITY_URL = "water-heating-commodity"
@@ -941,11 +941,11 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-    def post_housing_unit_count(self, household_infos: list[HouseholdInfo]) -> None:
+    def post_housing_unit_count(self, household_infos: list[HousingUnitsInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
 
         Args:
-            household_infos (list[HouseholdInfo]): The household count data to post.
+            household_infos (list[HousingUnitsInfo]): The household count data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the
@@ -955,14 +955,14 @@ class BuildaDevClient(BuildaClient):
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
         """
-        logging.debug("ApiClient: post_household_count")
+        logging.debug("ApiClient: post_housing_unit_count")
         if not self.api_token:
             raise MissingCredentialsException(
                 """This endpoint is private. You need to provide username and password 
                 when initializing the client."""
             )
 
-        url: str = f"""{self.base_url}{self.HOUSEHOLD_COUNT_URL}"""
+        url: str = f"""{self.base_url}{self.HOUSING_UNIT_COUNT_URL}"""
         household_infos_json = json.dumps(household_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(
