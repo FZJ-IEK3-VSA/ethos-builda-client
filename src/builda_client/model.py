@@ -13,7 +13,7 @@ class Metadata:
     name: Optional[str]
     provider: Optional[str]
     download_url: Optional[str]
-    refering_website_link: Optional[str]
+    referring_website_link: Optional[str]
     download_timestamp: Optional[str]
     extent: Optional[str]
     license: Optional[str]
