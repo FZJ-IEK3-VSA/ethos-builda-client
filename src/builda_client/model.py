@@ -228,7 +228,7 @@ class ParcelInfo(Info):
 @dataclass
 class HousingUnitsInfo(Info):
     value: int
-
+    lineage: str
 
 @dataclass
 class HeatingCommodityInfo(Info):
