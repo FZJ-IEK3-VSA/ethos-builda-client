@@ -228,6 +228,7 @@ class ParcelInfo(Info):
 @dataclass
 class HousingUnitsInfo(Info):
     value: int
+    priority: int
     lineage: str
 
 @dataclass
