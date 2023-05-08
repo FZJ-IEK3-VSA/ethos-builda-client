@@ -335,7 +335,7 @@ class BuildaClient:
                 conditioned_living_area_m2=result["conditioned_living_area_m2"],
                 net_floor_area_m2=result["net_floor_area_m2"],
                 heat_demand_mwh=result["heat_demand_MWh"],
-                housing_unit_count=result["household_count"],
+                housing_unit_count=result["housing_unit_count"],
                 heating_commodity=result["heating_commodity"],
                 cooling_commodity=result["heating_commodity"],
                 water_heating_commodity=result["heating_commodity"],
