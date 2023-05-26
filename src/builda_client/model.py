@@ -204,9 +204,9 @@ class TypeInfo(Info):
 
 @dataclass
 class UseInfo(Info):
-    category: str
-    nace_code: str
-    iwu_type: str
+    value: str
+    value_raw: str
+    lineage: str
     priority: int  # TODO use metadata table reference instead
 
 
