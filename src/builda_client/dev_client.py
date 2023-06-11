@@ -40,12 +40,7 @@ from builda_client.model import (
     ParcelMinimalDto,
     PvGenerationInfo,
     RefurbishmentStateInfo,
-    RoofHeightInfo,
-    RoofTiltInfo,
-    RoofAreaInfo,
-    RoofTypeInfo,
-    RoofOrientationInfo,
-    RoofStock,
+    RoofCharacteristicsInfo,
     TabulaTypeInfo,
     TypeInfo,
     UseInfo,
@@ -59,7 +54,6 @@ class BuildaDevClient(BuildaClient):
     # For developpers/ write users of database
     AUTH_URL = "/auth/api-token"
     BUILDINGS_BASE_URL = "buildings-base/"
-    ROOF_STOCK_URL = "roof-stock/"
     ADDRESS_URL = "address/"
     BUILDINGS_HOUSEHOLDS_URL = "buildings/residential/household-count"
     BUILDINGS_PARCEL_URL = "buildings-parcel/"
@@ -89,11 +83,7 @@ class BuildaDevClient(BuildaClient):
     NUTS_URL = "nuts"
     PARCEL_URL = "parcels"
     PARCEL_INFO_URL = "parcel-info"
-    ROOF_HEIGHT_URL = "roof-height"
-    ROOF_AREA_URL = "roof-area"
-    ROOF_TYPE_URL = "roof-type"
-    ROOF_TILT_URL = "roof-tilt"
-    ROOF_ORIENTATION_URL = "roof-orientation"
+    ROOF_CHARACTERISTICS_INFO_URL = "roof-characteristics/"
     TABULA_TYPE_URL = "tabula-type"
     FLOOR_AREAS_URL = "floor-areas"
     ADDITIONAL_URL = "additional"
@@ -123,15 +113,19 @@ class BuildaDevClient(BuildaClient):
                 'staging'.
         """
         super().__init__(proxy)
+
+        self.username = username
+        self.password = password
+        self.phase = phase
+
         if proxy:
             host = self.config["proxy"]["host"]
             port = self.config["proxy"]["port"]
         else:
-            host = self.config[phase]["api"]["host"]
-            port = self.config[phase]["api"]["port"]
+            host = self.config[self.phase]["api"]["host"]
+            port = self.config[self.phase]["api"]["port"]
 
-        self.username = username
-        self.password = password
+        self.base_url = f"""http://{host}:{port}{self.config['base_url']}"""
         self.authentication_url = f"""http://{host}:{port}{self.AUTH_URL}"""
         self.api_token = self.__get_authentication_token()
 
@@ -1460,11 +1454,11 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-    def post_roof_height(self, roof_height_infos: list[RoofHeightInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the roof height data to the database.
+    def post_roof_characteristics(self, roof_characteristics_infos: list[RoofCharacteristicsInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the roof characteristics data to the database.
 
         Args:
-            roof_height_infos (list[RoofHeightInfo]): The roof height data to post.
+            roof_characteristics_infos (list[RoofCharacteristicsInfo]): The roof characteristics data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
@@ -1472,208 +1466,23 @@ class BuildaDevClient(BuildaClient):
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
         """
-        logging.debug("ApiClient: post_roof_height")
+        logging.debug("ApiClient: post_roof_characteristics")
         if not self.api_token:
             raise MissingCredentialsException(
                 "This endpoint is private. You need to provide username and password when initializing the client."
             )
 
-        url: str = f"""{self.base_url}{self.ROOF_HEIGHT_URL}"""
-        roof_height_json = json.dumps(roof_height_infos, cls=EnhancedJSONEncoder)
+        url: str = f"""{self.base_url}{self.ROOF_CHARACTERISTICS_INFO_URL}"""
+        roof_characteristics_json = json.dumps(roof_characteristics_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(
                 url,
-                data=roof_height_json,
+                data=roof_characteristics_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
-
-    def post_roof_tilt(self, roof_tilt_infos: list[RoofTiltInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the roof tilt data to the database.
-
-        Args:
-            roof_tilt_infos (list[RoofTiltInfo]): The roof tilt data to post.
-
-        Raises:
-            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
-            UnauthorizedException: If the API token is not accepted.
-            ClientException: If an error on the client side occurred.
-            ServerException: If an unexpected error on the server side occurred.
-        """
-        logging.debug("ApiClient: post_roof_tilt")
-        if not self.api_token:
-            raise MissingCredentialsException(
-                "This endpoint is private. You need to provide username and password when initializing the client."
-            )
-
-        url: str = f"""{self.base_url}{self.ROOF_TILT_URL}"""
-        roof_tilt_json = json.dumps(roof_tilt_infos, cls=EnhancedJSONEncoder)
-        try:
-            response: requests.Response = requests.post(
-                url,
-                data=roof_tilt_json,
-                headers=self.__construct_authorization_header(),
-            )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
-
-    def post_roof_area(self, roof_area_infos: list[RoofAreaInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the roof area data to the database.
-
-        Args:
-            roof_area_infos (list[RoofAreaInfo]): The roof area data to post.
-
-        Raises:
-            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
-            UnauthorizedException: If the API token is not accepted.
-            ClientException: If an error on the client side occurred.
-            ServerException: If an unexpected error on the server side occurred.
-        """
-        logging.debug("ApiClient: post_roof_area")
-        if not self.api_token:
-            raise MissingCredentialsException(
-                "This endpoint is private. You need to provide username and password when initializing the client."
-            )
-
-        url: str = f"""{self.base_url}{self.ROOF_AREA_URL}"""
-        roof_area_json = json.dumps(roof_area_infos, cls=EnhancedJSONEncoder)
-        try:
-            response: requests.Response = requests.post(
-                url,
-                data=roof_area_json,
-                headers=self.__construct_authorization_header(),
-            )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
-
-    def post_roof_type(self, roof_type_infos: list[RoofTypeInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the roof type data to the database.
-
-        Args:
-            roof_type_infos (list[RoofTypeInfo]): The roof type data to post.
-
-        Raises:
-            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
-            UnauthorizedException: If the API token is not accepted.
-            ClientException: If an error on the client side occurred.
-            ServerException: If an unexpected error on the server side occurred.
-        """
-        logging.debug("ApiClient: post_roof_type")
-        if not self.api_token:
-            raise MissingCredentialsException(
-                "This endpoint is private. You need to provide username and password when initializing the client."
-            )
-
-        url: str = f"""{self.base_url}{self.ROOF_TYPE_URL}"""
-        roof_type_json = json.dumps(roof_type_infos, cls=EnhancedJSONEncoder)
-        try:
-            response: requests.Response = requests.post(
-                url,
-                data=roof_type_json,
-                headers=self.__construct_authorization_header(),
-            )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
-
-    def post_roof_orientation(self, roof_type_infos: list[RoofOrientationInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the roof type data to the database.
-
-        Args:
-            roof_orientation_infos (list[RoofOrientationInfo]): The roof type data to post.
-
-        Raises:
-            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
-            UnauthorizedException: If the API token is not accepted.
-            ClientException: If an error on the client side occurred.
-            ServerException: If an unexpected error on the server side occurred.
-        """
-        logging.debug("ApiClient: post_roof_orientation")
-        if not self.api_token:
-            raise MissingCredentialsException(
-                "This endpoint is private. You need to provide username and password when initializing the client."
-            )
-
-        url: str = f"""{self.base_url}{self.ROOF_ORIENTATION_URL}"""
-        roof_orientation_json = json.dumps(roof_type_infos, cls=EnhancedJSONEncoder)
-        try:
-            response: requests.Response = requests.post(
-                url,
-                data=roof_orientation_json,
-                headers=self.__construct_authorization_header(),
-            )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
-
-    def get_roof_stock(
-        self, nuts_code: str = "", building_type: str | None = "", exclude_irrelevant=False
-    ) -> list[RoofStock]:
-        """[REQUIRES AUTHENTICATION]  Gets all entries of the roof stock for the specified building_type and NUTS-region.
-
-        Args:
-            nuts_code (str, optional): The NUTS region to get roofs from.
-            building_type (str): The type of building ('residential', 'non-residential', 'mixed')
-
-        Raises:
-            MissingCredentialsException: If no API token exists. This is probably the
-            case because username and password were not specified when initializing the
-            client.
-
-        Returns:
-            list[RoofStockEntry]: All building stock entries that lie within the
-            given polygon.
-        """
-        logging.debug("ApiClient: get_roof_stock")
-
-        if not self.api_token:
-            raise MissingCredentialsException(
-                """This endpoint is private. You need to provide username and password 
-                when initializing the client."""
-            )
-
-        query_params: str = ""
-        if nuts_code:
-            nuts_query_param = determine_nuts_query_param(nuts_code)
-            query_params = f"?{nuts_query_param}={nuts_code}"
-        type_is_null = False
-        if building_type is None:
-            type_is_null = True
-            building_type = ""
-
-        url: str = f"""{self.base_url}{self.ROOF_STOCK_URL}{query_params}&type={building_type}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
-
-        try:
-            response: requests.Response = requests.get(
-                url, headers=self.__construct_authorization_header()
-            )
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            if e.response.status_code == 403:
-                raise UnauthorizedException(
-                    "You are not authorized to perform this operation."
-                )
-            else:
-                raise ServerException("An unexpected error occured.")
-
-        roofs: list[RoofStock] = []
-        results: Dict = json.loads(response.content)
-        for result in results:
-            roof = RoofStock(
-                roof_id=result["roof_id"],
-                building_id=result["building_id"],
-                roof_area=result["roof_area"],
-                roof_height=result["roof_height"],
-                roof_orientation=result["roof_orientation"],
-                roof_tilt=result["roof_tilt"],
-            )
-            roofs.append(roof)
-
-        return roofs
 
     def post_metadata(
         self, metadata: list[Metadata]
