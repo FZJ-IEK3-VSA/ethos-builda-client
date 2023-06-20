@@ -75,7 +75,6 @@ class Building:
     height_m: float
     elevation_m: float
     roof_shape: str
-    roof_geometry: RoofGeometry
     type: str
     use: str
     pv_generation_potential_kwh: float
@@ -124,10 +123,15 @@ class BuildingGeometry:
     id: str
     footprint: MultiPolygon
     centroid: Point
-    height: float
+    height_m: float
     roof_shape: str
     roof_geometry: RoofGeometry
     type: str
+    nuts3: str
+    nuts2: str
+    nuts1: str
+    nuts0: str
+    lau: str
 
 @dataclass
 class BuildingHouseholds:

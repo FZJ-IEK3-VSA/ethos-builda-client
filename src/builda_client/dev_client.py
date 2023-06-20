@@ -45,6 +45,7 @@ from builda_client.model import (
     TypeInfo,
     UseInfo,
     WaterHeatingCommodityInfo,
+    BuildingGeometry
 )
 from builda_client.util import determine_nuts_query_param, ewkt_loads
 
@@ -61,6 +62,7 @@ class BuildaDevClient(BuildaClient):
         "buildings/residential/energy-characteristics"
     )
     BUILDINGS_ID_URL = "buildings-id/"
+    BUILDINGS_GEOMETRY_URL = "buildings-geometry/"
     SIZE_CLASS_URL = "size-class"
     VIEW_REFRESH_URL = "refresh-materialized_view"
     BUILDING_STOCK_URL = "building-stock"
@@ -698,6 +700,81 @@ class BuildaDevClient(BuildaClient):
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
+
+    def get_buildings_geometry(
+        self, geom: Polygon | None = None, nuts_code: str = ""
+    ) -> list[BuildingGeometry]:
+        """[REQUIRES AUTHENTICATION]  Gets all entries of the buildings within the
+        specified geometry with geometric attributes.
+
+        Args:
+            geom (Polygon, optional): The polygon for which to retrieve buildings.
+            nuts_code (str, optional): The NUTS region to get buildings from.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the
+            case because username and password were not specified when initializing the
+            client.
+
+        Returns:
+            list[BuildingStockEntry]: All building stock entries that lie within the
+            given polygon.
+        """
+        logging.debug("ApiClient: get_buildings_geometry")
+
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+
+        query_params: str = ""
+        if geom is not None and nuts_code:
+            nuts_query_param = determine_nuts_query_param(nuts_code)
+            query_params = f"?geom={geom}&{nuts_query_param}={nuts_code}"
+        elif geom is not None:
+            query_params = f"?geom={geom}"
+        elif nuts_code:
+            nuts_query_param = determine_nuts_query_param(nuts_code)
+            query_params = f"?{nuts_query_param}={nuts_code}"
+
+        url: str = f"""{self.base_url}{self.BUILDINGS_GEOMETRY_URL}{query_params}"""
+
+        try:
+            response: requests.Response = requests.get(
+                url, headers=self.__construct_authorization_header()
+            )
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedException(
+                    "You are not authorized to perform this operation."
+                )
+            else:
+                raise ServerException("An unexpected error occured.")
+
+        buildings: list[BuildingGeometry] = []
+        results: Dict = json.loads(response.content)
+        for result_json in results:
+            result = json.loads(result_json)
+            building = BuildingGeometry(
+                id=result["id"],
+                footprint=shape(result["footprint"]),
+                centroid=shape(result["centroid"]),
+                height_m=result["height_m"],
+                roof_shape=result["roof_shape"],
+                roof_geometry=result["roof_geometry"],
+                type=result["type"],
+                nuts0=result["nuts0"],
+                nuts1=result["nuts1"],
+                nuts2=result["nuts2"],
+                nuts3=result["nuts3"],
+                lau=result["lau"],
+            )
+            buildings.append(building)
+
+        return buildings
+
 
     def post_nuts(self, nuts_regions: list[NutsRegion]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the nuts data to the database. Private
