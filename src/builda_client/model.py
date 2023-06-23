@@ -59,6 +59,12 @@ class DataSource:
     source: MetadataResponseDto
     lineage: str
 
+@dataclass
+class RoofGeometry:
+    centroid: Coordinates
+    orientation: str
+    tilt: float
+    area: float
 
 @dataclass
 class Building:
@@ -68,7 +74,7 @@ class Building:
     footprint_area_m2: float
     height_m: float
     elevation_m: float
-    roof_type: str
+    roof_shape: str
     type: str
     use: str
     pv_generation_potential_kwh: float
@@ -117,9 +123,15 @@ class BuildingGeometry:
     id: str
     footprint: MultiPolygon
     centroid: Point
-    height: float
-    roof_type: str
+    height_m: float
+    roof_shape: str
+    roof_geometry: RoofGeometry
     type: str
+    nuts3: str
+    nuts2: str
+    nuts1: str
+    nuts0: str
+    lau: str
 
 @dataclass
 class BuildingHousingUnits:
@@ -168,16 +180,6 @@ class BuildingStockEntry:
     nuts1: str
     nuts0: str
     lau: str
-
-
-@dataclass
-class RoofStock:
-    roof_id: UUID
-    building_id: str
-    roof_height: float
-    roof_area: float
-    roof_tilt: float
-    roof_orientation: float
 
 
 @dataclass
@@ -280,33 +282,9 @@ class RefurbishmentStateInfo(Info):
 
 
 @dataclass
-class RoofHeightInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofTiltInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofAreaInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofOrientationInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofTypeInfo(Info):
-    value: str
-
+class RoofCharacteristicsInfo(Info):
+    shape: str
+    geometry: str
 
 @dataclass
 class SizeClassInfo(Info):
