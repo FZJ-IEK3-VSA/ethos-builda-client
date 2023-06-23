@@ -702,7 +702,7 @@ class BuildaDevClient(BuildaClient):
             self.__handle_exception(err)
 
     def get_buildings_geometry(
-        self, geom: Polygon | None = None, nuts_code: str = ""
+        self, geom: Polygon | None = None, nuts_code: str = "", building_type: str | None = "",
     ) -> list[BuildingGeometry]:
         """[REQUIRES AUTHENTICATION]  Gets all entries of the buildings within the
         specified geometry with geometric attributes.
@@ -729,6 +729,14 @@ class BuildaDevClient(BuildaClient):
             )
 
         query_params: str = ""
+
+        type_is_null = "False"
+        if building_type is None:
+            type_is_null = "True"
+            building_type = ""
+        elif building_type == '':
+            type_is_null = ""
+
         if geom is not None and nuts_code:
             nuts_query_param = determine_nuts_query_param(nuts_code)
             query_params = f"?geom={geom}&{nuts_query_param}={nuts_code}"
@@ -737,6 +745,7 @@ class BuildaDevClient(BuildaClient):
         elif nuts_code:
             nuts_query_param = determine_nuts_query_param(nuts_code)
             query_params = f"?{nuts_query_param}={nuts_code}"
+        query_params += f"&type={building_type}&type__isnull={type_is_null}"
 
         url: str = f"""{self.base_url}{self.BUILDINGS_GEOMETRY_URL}{query_params}"""
 
