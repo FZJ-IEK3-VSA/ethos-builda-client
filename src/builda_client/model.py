@@ -13,7 +13,7 @@ class Metadata:
     name: Optional[str]
     provider: Optional[str]
     download_url: Optional[str]
-    refering_website_link: Optional[str]
+    referring_website_link: Optional[str]
     download_timestamp: Optional[str]
     extent: Optional[str]
     license: Optional[str]
@@ -90,7 +90,8 @@ class ResidentialBuilding(Building):
     useful_area_m2: float
     conditioned_living_area_m2: float
     net_floor_area_m2: float
-    household_count: int
+    housing_unit_count: int
+    households: str
     heating_commodity: str
     cooling_commodity: str
     water_heating_commodity: str
@@ -132,11 +133,6 @@ class BuildingGeometry:
     nuts1: str
     nuts0: str
     lau: str
-
-@dataclass
-class BuildingHouseholds:
-    id: str
-    household_count: int
 
 
 @dataclass
@@ -228,9 +224,11 @@ class ParcelInfo(Info):
 
 
 @dataclass
-class HouseholdInfo(Info):
-    value: int
-
+class OccupancyInfo(Info):
+    housing_unit_count: int
+    households: str
+    priority: int
+    lineage: str
 
 @dataclass
 class HeatingCommodityInfo(Info):
