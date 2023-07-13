@@ -21,7 +21,6 @@ from builda_client.model import (
     FloorAreasInfo,
     SizeClassInfo,
     BuildingEnergyCharacteristics,
-    BuildingHousingUnits,
     BuildingParcel,
     BuildingStockEntry,
     ConstructionYearInfo,
@@ -32,7 +31,7 @@ from builda_client.model import (
     HeatDemandInfo,
     HeatingCommodityInfo,
     HeightInfo,
-    HousingUnitsInfo,
+    OccupancyInfo,
     Metadata,
     NutsRegion,
     Parcel,
@@ -72,7 +71,7 @@ class BuildaDevClient(BuildaClient):
     USE_URL = "use/"
     HEIGHT_URL = "height/"
     ELEVATION_URL = "elevation/"
-    HOUSING_UNIT_COUNT_URL = "housing-unit-count"
+    OCCUPANCY_URL = "occupancy"
     HEATING_COMMODITY_URL = "heating-commodity"
     COOLING_COMMODITY_URL = "cooling-commodity"
     WARM_WATER_COMMODITY_URL = "water-heating-commodity"
@@ -238,49 +237,6 @@ class BuildaDevClient(BuildaClient):
         buildings = self.__deserialize(response.content)
         return buildings
 
-    def get_buildings_housing_units(
-        self, nuts_code: str = "", heating_type: str = ""
-    ) -> list[BuildingHousingUnits]:
-        """Gets residential buildings with household data within the specified NUTS
-        region that fall into the provided type category.
-
-        Args:
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
-            according to the 2021 NUTS code definitions. Defaults to None.
-
-        Raises:
-            ServerException: When the DB is inconsistent and more than one building
-            with same ID is returned.
-
-        Returns:
-            gpd.GeoDataFrame: A geodataframe with all buildings.
-        """
-        logging.debug(
-            "ApiClient: get_buildings_households(nuts_code=%s, heating_type=%s)",
-            nuts_code,
-            heating_type,
-        )
-        nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        url: str = f"""{self.base_url}{self.BUILDINGS_HOUSEHOLDS_URL}?{nuts_query_param}={nuts_code}&type=residential&heating_commodity={heating_type}"""
-
-        try:
-            response: requests.Response = requests.get(url)
-            logging.debug("ApiClient: received response. Checking for errors.")
-            response.raise_for_status()
-        except requests.HTTPError as err:
-            self.__handle_exception(err)
-
-        logging.debug(
-            "ApiClient: received ok response, proceeding with deserialization."
-        )
-        results: list[Dict] = json.loads(response.content)
-        buildings_households: list[BuildingHousingUnits] = []
-        for res in results:
-            building_households = BuildingHousingUnits(
-                id=res["id"], housing_units_count=res["household_count"]
-            )
-            buildings_households.append(building_households)
-        return buildings_households
 
     def get_buildings_parcel(
         self, nuts_code: str = "", type: str = "", geom: Optional[Polygon] = None
@@ -1021,11 +977,13 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-    def post_housing_unit_count(self, household_infos: list[HousingUnitsInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
+    def post_occupancy_info(self, occupancy_infos: list[OccupancyInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the housing unit count and households data to 
+        the database.
 
         Args:
-            household_infos (list[HousingUnitsInfo]): The household count data to post.
+            occupancy_infos (list[OccupancyInfo]): The housing unit count and 
+            household data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the
@@ -1042,12 +1000,12 @@ class BuildaDevClient(BuildaClient):
                 when initializing the client."""
             )
 
-        url: str = f"""{self.base_url}{self.HOUSING_UNIT_COUNT_URL}"""
-        household_infos_json = json.dumps(household_infos, cls=EnhancedJSONEncoder)
+        url: str = f"""{self.base_url}{self.OCCUPANCY_URL}"""
+        occupancy_infos_json = json.dumps(occupancy_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(
                 url,
-                data=household_infos_json,
+                data=occupancy_infos_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()

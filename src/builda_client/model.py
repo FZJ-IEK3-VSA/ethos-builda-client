@@ -91,6 +91,7 @@ class ResidentialBuilding(Building):
     conditioned_living_area_m2: float
     net_floor_area_m2: float
     housing_unit_count: int
+    households: str
     heating_commodity: str
     cooling_commodity: str
     water_heating_commodity: str
@@ -132,11 +133,6 @@ class BuildingGeometry:
     nuts1: str
     nuts0: str
     lau: str
-
-@dataclass
-class BuildingHousingUnits:
-    id: str
-    housing_units_count: int
 
 
 @dataclass
@@ -228,8 +224,9 @@ class ParcelInfo(Info):
 
 
 @dataclass
-class HousingUnitsInfo(Info):
-    value: int
+class OccupancyInfo(Info):
+    housing_unit_count: int
+    households: str
     priority: int
     lineage: str
 
