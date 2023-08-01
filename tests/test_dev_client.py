@@ -10,8 +10,7 @@ from builda_client.dev_client import BuildaDevClient
 from builda_client.exceptions import MissingCredentialsException
 from builda_client.model import (AddressInfo, Building,
                                  BuildingEnergyCharacteristics,
-                                 BuildingHouseholds, BuildingParcel,
-                                 BuildingStockEntry,
+                                 BuildingParcel,
                                  ConstructionYearStatistics, NutsRegion,
                                  Parcel)
 
@@ -61,10 +60,6 @@ class TestDevBuildaClient:
         result = self.testee.get_nuts_region("DE")
         self.__then_nuts_region_with_code_returned(result, "DE")
 
-    def test_get_buildings_households(self):
-        self.__given_client_unauthenticated()
-        buildings_households = self.testee.get_buildings_households(nuts_code="DE80N")
-        self.__then_buildings_with_households_returned(buildings_households)
 
     def test_get_building_parcel_succeeds(self):
         self.__given_client_unauthenticated()
@@ -187,9 +182,6 @@ class TestDevBuildaClient:
         assert isinstance(result, NutsRegion)
         assert result.code == code
 
-    def __then_buildings_with_households_returned(self, result):
-        assert len(result) > 0
-        assert isinstance(result[0], BuildingHouseholds)
 
     def __then_buildings_with_parcel_returned(self, result):
         assert len(result) > 0
