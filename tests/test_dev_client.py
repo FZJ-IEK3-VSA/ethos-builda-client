@@ -29,6 +29,11 @@ class TestDevBuildaClient:
         building_ids = self.testee.get_building_ids(nuts_code='DE5', type='residential')
         self.__then_result_list_min_length_returned(building_ids, 1)
 
+    def test_get_residential_buildings(self):
+        self.__given_client_unauthenticated()
+        buildings = self.testee.get_residential_buildings()
+        self.__then_result_list_min_length_returned(buildings, 1)
+
     def test_get_building_ids_geom(self):
         self.__given_client_unauthenticated()
         geom = self.__given_valid_custom_geom()
