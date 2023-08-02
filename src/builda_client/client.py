@@ -364,7 +364,6 @@ class BuildaClient:
         city: str = "",
         nuts_code: str = "",
         include_mixed: bool = True,
-        exclude_irrelevant: bool = False,
     ) -> list[NonResidentialBuilding]:
         """Gets all buildings that match the query parameters.
         Args:
@@ -395,7 +394,7 @@ class BuildaClient:
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         building_type = "" if include_mixed else "non-residential"
 
-        url: str = f"""{self.base_url}{self.NON_RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&exclude_irrelevant={exclude_irrelevant}"""
+        url: str = f"""{self.base_url}{self.NON_RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
@@ -427,7 +426,7 @@ class BuildaClient:
                 height_m=result["height_m"],
                 elevation_m=result["elevation_m"],
                 type=result["type"],
-                roof_type=result["roof_type"],
+                roof_shape=result["roof_shape"],
                 use=result["use"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
                 electricity_consumption_mwh=result["electricity_consumption_MWh"],
