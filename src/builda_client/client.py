@@ -1,7 +1,6 @@
 import json
 import logging
 from typing import Dict, Optional
-from uuid import UUID
 
 import requests
 from shapely.geometry import Polygon, shape
@@ -336,6 +335,7 @@ class BuildaClient:
                 net_floor_area_m2=result["net_floor_area_m2"],
                 heat_demand_mwh=result["heat_demand_MWh"],
                 housing_unit_count=result["housing_unit_count"],
+                norm_heating_load_kw=result["norm_heating_load_kW"],
                 households=result["households"],
                 heating_commodity=result["heating_commodity"],
                 cooling_commodity=result["heating_commodity"],

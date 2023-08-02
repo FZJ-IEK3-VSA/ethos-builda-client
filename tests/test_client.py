@@ -21,7 +21,7 @@ class TestBuildaClient:
     def test_get_buildings(self):
         self.given_client()
         buildings = self.testee.get_buildings(
-            nuts_code='DE943'
+            nuts_code='09780133'
         )
         self.__then_result_list_min_length_returned(buildings, 1)
 

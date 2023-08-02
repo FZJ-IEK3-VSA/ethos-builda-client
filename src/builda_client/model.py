@@ -97,6 +97,7 @@ class ResidentialBuilding(Building):
     water_heating_commodity: str
     cooking_commodity: str
     heat_demand_mwh: float
+    norm_heating_load_kw: float
     solids_consumption_mwh: float
     lpg_consumption_mwh: float
     gas_diesel_oil_consumption_mwh: float
@@ -153,6 +154,7 @@ class BuildingEnergyCharacteristics:
     water_heating_commodity: str
     cooking_commodity: str
     heat_demand_mwh: float
+    norm_heating_load_kw: float
     pv_generation_potential_kwh: float
 
 
@@ -260,6 +262,11 @@ class EnergyConsumption(Info):
 
 @dataclass
 class HeatDemandInfo(Info):
+    value: float
+
+
+@dataclass
+class NormHeatingLoadInfo(Info):
     value: float
 
 
