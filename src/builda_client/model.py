@@ -13,7 +13,7 @@ class Metadata:
     name: Optional[str]
     provider: Optional[str]
     download_url: Optional[str]
-    refering_website_link: Optional[str]
+    referring_website_link: Optional[str]
     download_timestamp: Optional[str]
     extent: Optional[str]
     license: Optional[str]
@@ -59,6 +59,12 @@ class DataSource:
     source: MetadataResponseDto
     lineage: str
 
+@dataclass
+class RoofGeometry:
+    centroid: Coordinates
+    orientation: str
+    tilt: float
+    area: float
 
 @dataclass
 class Building:
@@ -68,7 +74,7 @@ class Building:
     footprint_area_m2: float
     height_m: float
     elevation_m: float
-    roof_type: str
+    roof_shape: str
     type: str
     use: str
     pv_generation_potential_kwh: float
@@ -84,12 +90,14 @@ class ResidentialBuilding(Building):
     useful_area_m2: float
     conditioned_living_area_m2: float
     net_floor_area_m2: float
-    household_count: int
+    housing_unit_count: int
+    households: str
     heating_commodity: str
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
     heat_demand_mwh: float
+    norm_heating_load_kw: float
     solids_consumption_mwh: float
     lpg_consumption_mwh: float
     gas_diesel_oil_consumption_mwh: float
@@ -117,14 +125,15 @@ class BuildingGeometry:
     id: str
     footprint: MultiPolygon
     centroid: Point
-    height: float
-    roof_type: str
+    height_m: float
+    roof_shape: str
+    roof_geometry: RoofGeometry
     type: str
-
-@dataclass
-class BuildingHouseholds:
-    id: str
-    household_count: int
+    nuts3: str
+    nuts2: str
+    nuts1: str
+    nuts0: str
+    lau: str
 
 
 @dataclass
@@ -145,6 +154,7 @@ class BuildingEnergyCharacteristics:
     water_heating_commodity: str
     cooking_commodity: str
     heat_demand_mwh: float
+    norm_heating_load_kw: float
     pv_generation_potential_kwh: float
 
 
@@ -168,16 +178,6 @@ class BuildingStockEntry:
     nuts1: str
     nuts0: str
     lau: str
-
-
-@dataclass
-class RoofStock:
-    roof_id: UUID
-    building_id: str
-    roof_height: float
-    roof_area: float
-    roof_tilt: float
-    roof_orientation: float
 
 
 @dataclass
@@ -228,9 +228,11 @@ class ParcelInfo(Info):
 
 
 @dataclass
-class HouseholdInfo(Info):
-    value: int
-
+class OccupancyInfo(Info):
+    housing_unit_count: int
+    households: str
+    priority: int
+    lineage: str
 
 @dataclass
 class HeatingCommodityInfo(Info):
@@ -266,6 +268,11 @@ class HeatDemandInfo(Info):
 
 
 @dataclass
+class NormHeatingLoadInfo(Info):
+    value: float
+
+
+@dataclass
 class PvGenerationInfo(Info):
     value: float
 
@@ -281,33 +288,9 @@ class RefurbishmentStateInfo(Info):
 
 
 @dataclass
-class RoofHeightInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofTiltInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofAreaInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofOrientationInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofTypeInfo(Info):
-    value: str
-
+class RoofCharacteristicsInfo(Info):
+    shape: str
+    geometry: str
 
 @dataclass
 class SizeClassInfo(Info):

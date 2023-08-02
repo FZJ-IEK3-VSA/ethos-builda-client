@@ -1,7 +1,6 @@
 import json
 import logging
 from typing import Dict, Optional
-from uuid import UUID
 
 import requests
 from shapely.geometry import Polygon, shape
@@ -199,7 +198,7 @@ class BuildaClient:
                 height_m=result["height_m"],
                 elevation_m=result["elevation_m"],
                 type=result["type"],
-                roof_type=result["roof_type"],
+                roof_shape=result["roof_shape"],
                 use=result["use"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
                 additional=result["additional"]
@@ -325,7 +324,7 @@ class BuildaClient:
                 elevation_m=result["elevation_m"],
                 type=result["type"],
                 construction_year=result["construction_year"],
-                roof_type=result["roof_type"],
+                roof_shape=result["roof_shape"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
                 use=result["use"],
                 size_class=result["size_class"],
@@ -335,7 +334,9 @@ class BuildaClient:
                 conditioned_living_area_m2=result["conditioned_living_area_m2"],
                 net_floor_area_m2=result["net_floor_area_m2"],
                 heat_demand_mwh=result["heat_demand_MWh"],
-                household_count=result["household_count"],
+                housing_unit_count=result["housing_unit_count"],
+                norm_heating_load_kw=result["norm_heating_load_kW"],
+                households=result["households"],
                 heating_commodity=result["heating_commodity"],
                 cooling_commodity=result["heating_commodity"],
                 water_heating_commodity=result["heating_commodity"],
@@ -354,74 +355,6 @@ class BuildaClient:
 
         return buildings
     
-    def get_buildings_geometry(
-        self,
-        nuts_code: str = "",
-        building_type: str | None = "",
-        geom: Optional[Polygon] = None,
-        exclude_irrelevant: bool = False,
-    ) -> list[BuildingGeometry]:
-        """Gets buildings with reduced parameter set within the specified NUTS region
-        that fall into the provided type category.
-
-        Args:
-            nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
-                according to the 2021 NUTS code definitions. Defaults to None.
-            building_type (str): The type of building ('residential', 'non-residential', 'mixed'). 
-                If building_type = None returns all buildings without type.
-                If building_type = "", returns all buildings independent of type.
-
-        Raises:
-            ServerException: When the DB is inconsistent and more than one building with
-                same ID is returned.
-
-        Returns:
-            gpd.GeoDataFrame: A geodataframe with all buildings.
-        """
-        logging.debug(
-            "ApiClient: get_buildings_geometry(nuts_code = %s, type = %s)",
-            nuts_code,
-            building_type,
-        )
-        nuts_query_param: str = determine_nuts_query_param(nuts_code)
-        
-        type_is_null = "False"
-        if building_type is None:
-            type_is_null = "True"
-            building_type = ""
-        elif building_type == '':
-            type_is_null = ""
-
-        url: str = f"""{self.base_url}{self.BUILDINGS_GEOMETRY_URL}?{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
-        if geom:
-            url += f"&geom={geom}"
-
-        try:
-            response: requests.Response = requests.get(url)
-            logging.debug("ApiClient: received response. Checking for errors.")
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.")
-
-        logging.debug(
-            f"ApiClient: received ok response, proceeding with deserialization."
-        )
-        
-        results: list[str] = json.loads(response.content)
-        buildings: list[BuildingGeometry] = []
-        for res_json in results:
-            res = json.loads(res_json)
-            building = BuildingGeometry(
-                id=res["id"],
-                footprint=shape(res["footprint"]),
-                centroid=shape(res["centroid"]),
-                height=(res["height"]),
-                roof_type=(res["roof_type"]),
-                type=res["type"],
-            )
-            buildings.append(building)
-
-        return buildings
 
     def get_non_residential_buildings(
         self,
