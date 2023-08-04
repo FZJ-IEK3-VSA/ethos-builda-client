@@ -124,7 +124,6 @@ class BuildaClient:
         postcode: str = "",
         city: str = "",
         nuts_code: str = "",
-        exclude_irrelevant: bool = False,
     ) -> list[Building]:
         """Gets all buildings that match the query parameters.
         Args:
@@ -166,7 +165,7 @@ class BuildaClient:
         elif building_type == '':
             type_is_null = ""
 
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&type__isnull={type_is_null}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
@@ -259,7 +258,6 @@ class BuildaClient:
         city: str = "",
         nuts_code: str = "",
         include_mixed: bool = True,
-        exclude_irrelevant: bool = False,
     ) -> list[ResidentialBuilding]:
         """Gets all buildings that match the query parameters.
         Args:
@@ -290,7 +288,7 @@ class BuildaClient:
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         building_type = "" if include_mixed else "residential"
 
-        url: str = f"""{self.base_url}{self.RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&exclude_irrelevant={exclude_irrelevant}"""
+        url: str = f"""{self.base_url}{self.RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
@@ -364,6 +362,7 @@ class BuildaClient:
         city: str = "",
         nuts_code: str = "",
         include_mixed: bool = True,
+        exclude_auxiliary: bool = False,
     ) -> list[NonResidentialBuilding]:
         """Gets all buildings that match the query parameters.
         Args:
@@ -374,6 +373,10 @@ class BuildaClient:
             nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions or 2019 LAU definition.
                 Defaults to None.
+            include_mixed (bool, optional): Whether to include mixed buildings. Defaults
+                to True.
+            exclude_auxiliary (bool, optional): Whether tom exclude auxiliary buildings.
+                Defaults to False.
 
         Raises:
             ServerException: When an error occurs on the server side..
@@ -394,7 +397,7 @@ class BuildaClient:
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         building_type = "" if include_mixed else "non-residential"
 
-        url: str = f"""{self.base_url}{self.NON_RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}"""
+        url: str = f"""{self.base_url}{self.NON_RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&exclude_auxiliary={exclude_auxiliary}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
