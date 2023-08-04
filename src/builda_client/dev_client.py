@@ -189,7 +189,6 @@ class BuildaDevClient(BuildaClient):
         nuts_code: str = "",
         building_type: str | None = "",
         geom: Optional[Polygon] = None,
-        exclude_irrelevant: bool = False,
     ) -> list[BuildingBase]:
         """Gets buildings with reduced parameter set within the specified NUTS region
         that fall into the provided type category.
@@ -197,7 +196,7 @@ class BuildaDevClient(BuildaClient):
         Args:
             nuts_code (str | None, optional): The NUTS-code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
-            type (str): The type of building ('residential', 'non-residential', 'mixed').
+            building_type (str): The type of building ('residential', 'non-residential', 'mixed').
                 If None will return all buildings with no type, if empty string (or not
                 provided) will return all buildings independent of type.
 
@@ -222,7 +221,7 @@ class BuildaDevClient(BuildaClient):
             type_is_null = ""
 
 
-        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&exclude_irrelevant={exclude_irrelevant}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_BASE_URL}?{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}"""
         if geom:
             url += f"&geom={geom}"
 
@@ -280,14 +279,14 @@ class BuildaDevClient(BuildaClient):
         return buildings
 
     def get_building_ids(
-        self, nuts_code: str = "", type: str = "", geom: Optional[Polygon] = None, height_max: Optional[float] = None, exclude_irrelevant=False
+        self, nuts_code: str = "", type: str = "", geom: Optional[Polygon] = None, height_max: Optional[float] = None
     ) -> list[str]:
         logging.debug(
             f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})"
         )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         height_lt = "" if height_max is None else str(height_max)
-        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&height__lt={height_lt}&exclude_irrelevant={exclude_irrelevant}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&height__lt={height_lt}"""
         if geom:
             url += f"&geom={geom}"
             

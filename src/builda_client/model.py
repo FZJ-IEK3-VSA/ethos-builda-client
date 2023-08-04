@@ -205,6 +205,8 @@ class TypeInfo(Info):
 @dataclass
 class UseInfo(Info):
     value: str
+    value_raw: str
+    lineage: str
     priority: int  # TODO use metadata table reference instead
 
 
