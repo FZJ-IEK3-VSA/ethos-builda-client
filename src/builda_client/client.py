@@ -324,7 +324,6 @@ class BuildaClient:
                 construction_year=result["construction_year"],
                 roof_shape=result["roof_shape"],
                 pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
-                use=result["use"],
                 size_class=result["size_class"],
                 refurbishment_state=result["refurbishment_state"],
                 tabula_type=result["tabula_type"],
