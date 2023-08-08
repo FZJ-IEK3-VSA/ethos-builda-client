@@ -76,7 +76,6 @@ class Building:
     elevation_m: float
     roof_shape: str
     type: str
-    use: str
     pv_generation_potential_kwh: float
     additional: str
 
@@ -110,6 +109,7 @@ class ResidentialBuilding(Building):
 
 @dataclass
 class NonResidentialBuilding(Building):
+    use: str
     electricity_consumption_mwh: float
 
 
@@ -273,8 +273,8 @@ class NormHeatingLoadInfo(Info):
 
 
 @dataclass
-class PvGenerationInfo(Info):
-    value: float
+class PvPotentialInfo(Info):
+    value: str
 
 
 @dataclass

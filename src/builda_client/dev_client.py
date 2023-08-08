@@ -38,7 +38,7 @@ from builda_client.model import (
     Parcel,
     ParcelInfo,
     ParcelMinimalDto,
-    PvGenerationInfo,
+    PvPotentialInfo,
     RefurbishmentStateInfo,
     RoofCharacteristicsInfo,
     TabulaTypeInfo,
@@ -80,7 +80,7 @@ class BuildaDevClient(BuildaClient):
     ENERGY_CONSUMPTION_URL = "energy-consumption"
     HEAT_DEMAND_URL = "heat-demand"
     NORM_HEATING_LOAD_URL = "norm-heating-load"
-    PV_GENERATION_URL = "pv-generation/"
+    PV_POTENTIAL_URL = "pv-potential/"
     CONSTRUCTION_YEAR_URL = "construction-year"
     TIMING_LOG_URL = "admin/timing-log"
     NUTS_URL = "nuts"
@@ -1271,11 +1271,11 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-    def post_pv_generation(self, pv_generation_infos: list[PvGenerationInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the pv generation data to the database.
+    def post_pv_potential(self, pv_potential_infos: list[PvPotentialInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the pv potential data to the database.
 
         Args:
-            pv_generation_infos (list[PvGenerationInfo]): The pv generation infos to post.
+            pv_potential_infos (list[PvPotentialInfo]): The pv potential infos to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
@@ -1283,20 +1283,20 @@ class BuildaDevClient(BuildaClient):
             ClientException: If an error on the client side occurred.
             ServerException: If an unexpected error on the server side occurred.
         """
-        logging.debug("ApiClient: post_pv_generation")
+        logging.debug("ApiClient: post_pv_potential")
         if not self.api_token:
             raise MissingCredentialsException(
                 "This endpoint is private. You need to provide username and password when initializing the client."
             )
 
-        url: str = f"""{self.base_url}{self.PV_GENERATION_URL}"""
-        pv_generation_infos_json = json.dumps(
-            pv_generation_infos, cls=EnhancedJSONEncoder
+        url: str = f"""{self.base_url}{self.PV_POTENTIAL_URL}"""
+        pv_potential_infos_json = json.dumps(
+            pv_potential_infos, cls=EnhancedJSONEncoder
         )
         try:
             response: requests.Response = requests.post(
                 url,
-                data=pv_generation_infos_json,
+                data=pv_potential_infos_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()
