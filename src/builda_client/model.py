@@ -273,8 +273,8 @@ class NormHeatingLoadInfo(Info):
 
 
 @dataclass
-class PvGenerationInfo(Info):
-    value: float
+class PvPotentialInfo(Info):
+    value: str
 
 
 @dataclass
