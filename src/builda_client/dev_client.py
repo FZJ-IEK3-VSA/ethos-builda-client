@@ -25,12 +25,9 @@ from builda_client.model import (
     BuildingParcel,
     BuildingStockEntry,
     ConstructionYearInfo,
-    CookingCommodityInfo,
-    CoolingCommodityInfo,
     EnergyConsumption,
     EnhancedJSONEncoder,
     HeatDemandInfo,
-    HeatingCommodityInfo,
     HeightInfo,
     OccupancyInfo,
     Metadata,
@@ -44,7 +41,7 @@ from builda_client.model import (
     TabulaTypeInfo,
     TypeInfo,
     UseInfo,
-    WaterHeatingCommodityInfo,
+    EnergySystemInfo,
     BuildingGeometry
 )
 from builda_client.util import determine_nuts_query_param, ewkt_loads
@@ -73,10 +70,7 @@ class BuildaDevClient(BuildaClient):
     HEIGHT_URL = "height/"
     ELEVATION_URL = "elevation/"
     OCCUPANCY_URL = "occupancy"
-    HEATING_COMMODITY_URL = "heating-commodity"
-    COOLING_COMMODITY_URL = "cooling-commodity"
-    WARM_WATER_COMMODITY_URL = "water-heating-commodity"
-    COOKING_COMMODITY_URL = "cooking-commodity"
+    ENERGY_SYSTEM_URL = "energy-system"
     ENERGY_CONSUMPTION_URL = "energy-consumption"
     HEAT_DEMAND_URL = "heat-demand"
     NORM_HEATING_LOAD_URL = "norm-heating-load"
@@ -1014,90 +1008,15 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-    def post_heating_commodity(
-        self, heating_commodity_infos: list[HeatingCommodityInfo]
+
+    def post_energy_system_infos(
+        self, energy_system_infos: list[EnergySystemInfo]
     ) -> None:
-        """[REQUIRES AUTHENTICATION]  Posts the heating commodity data to the database.
-
-        Args:
-            heating_commodity_infos (list[HeatingCommodityInfo]): The heating commodity
-                data to post.
-
-        Raises:
-            MissingCredentialsException: If no API token exists. This is probably the
-                case because username and password were not specified when initializing
-                the client.
-            UnauthorizedException: If the API token is not accepted.
-            ClientException: If an error on the client side occurred.
-            ServerException: If an unexpected error on the server side occurred.
-        """
-        logging.debug("ApiClient: post_heating_commodity")
-        if not self.api_token:
-            raise MissingCredentialsException(
-                """This endpoint is private. You need to provide username and password 
-                when initializing the client."""
-            )
-
-        url: str = f"""{self.base_url}{self.HEATING_COMMODITY_URL}"""
-        heating_commodity_infos_json = json.dumps(
-            heating_commodity_infos, cls=EnhancedJSONEncoder
-        )
-        try:
-            response: requests.Response = requests.post(
-                url,
-                data=heating_commodity_infos_json,
-                headers=self.__construct_authorization_header(),
-            )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
-
-    def post_cooling_commodity(
-        self, cooling_commodity_infos: list[CoolingCommodityInfo]
-    ) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the cooling commodity data to the database.
-
-        Args:
-            cooling_commodity_infos (list[CoolingCommodityInfo]): The cooling commodity
-                data to post.
-
-        Raises:
-            MissingCredentialsException: If no API token exists. This is probably the
-                case because username and password were not specified when initializing
-                the client.
-            UnauthorizedException: If the API token is not accepted.
-            ClientException: If an error on the client side occurred.
-            ServerException: If an unexpected error on the server side occurred.
-        """
-        logging.debug("ApiClient: post_cooling_commodity")
-        if not self.api_token:
-            raise MissingCredentialsException(
-                """This endpoint is private. You need to provide username and password 
-                when initializing the client."""
-            )
-
-        url: str = f"""{self.base_url}{self.COOLING_COMMODITY_URL}"""
-        cooling_commodity_infos_json = json.dumps(
-            cooling_commodity_infos, cls=EnhancedJSONEncoder
-        )
-        try:
-            response: requests.Response = requests.post(
-                url,
-                data=cooling_commodity_infos_json,
-                headers=self.__construct_authorization_header(),
-            )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
-
-    def post_water_heating_commodity(
-        self, water_heating_commodity_infos: list[WaterHeatingCommodityInfo]
-    ) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the water heating commodity data to the
+        """[REQUIRES AUTHENTICATION] Posts the energy system data to the
         database.
 
         Args:
-            water_heating_commodity_infos (list[WaterHeatingCommodityInfo]): The water
+            energy_system_infos (list[WaterHeatingCommodityInfo]): The water
                 heating commodity infos to post.
 
         Raises:
@@ -1115,57 +1034,20 @@ class BuildaDevClient(BuildaClient):
                 when initializing the client."""
             )
 
-        url: str = f"""{self.base_url}{self.WARM_WATER_COMMODITY_URL}"""
-        water_heating_commodity_infos_json = json.dumps(
-            water_heating_commodity_infos, cls=EnhancedJSONEncoder
+        url: str = f"""{self.base_url}{self.ENERGY_SYSTEM_URL}"""
+        energy_system_infos_json = json.dumps(
+            energy_system_infos, cls=EnhancedJSONEncoder
         )
         try:
             response: requests.Response = requests.post(
                 url,
-                data=water_heating_commodity_infos_json,
+                data=energy_system_infos_json,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             self.__handle_exception(err)
 
-    def post_cooking_commodity(
-        self, cooking_commodity_infos: list[CookingCommodityInfo]
-    ) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the cooking commodity data to the database.
-
-        Args:
-            cooking_commodity_infos (list[CookingCommodityInfo]): The cooking commodity
-            infos to post.
-
-        Raises:
-            MissingCredentialsException: If no API token exists. This is probably the
-                case because username and password were not specified when initializing
-                the client.
-            UnauthorizedException: If the API token is not accepted.
-            ClientException: If an error on the client side occurred.
-            ServerException: If an unexpected error on the server side occurred.
-        """
-        logging.debug("ApiClient: post_cooking_commodity")
-        if not self.api_token:
-            raise MissingCredentialsException(
-                """This endpoint is private. You need to provide username and password 
-                when initializing the client."""
-            )
-
-        url: str = f"""{self.base_url}{self.COOKING_COMMODITY_URL}"""
-        cooking_commodity_infos_json = json.dumps(
-            cooking_commodity_infos, cls=EnhancedJSONEncoder
-        )
-        try:
-            response: requests.Response = requests.post(
-                url,
-                data=cooking_commodity_infos_json,
-                headers=self.__construct_authorization_header(),
-            )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
 
     def post_energy_consumption(
         self, energy_consumption_infos: list[EnergyConsumption]

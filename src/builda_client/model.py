@@ -76,7 +76,7 @@ class Building:
     elevation_m: float
     roof_shape: str
     type: str
-    pv_generation_potential_kwh: float
+    pv_potential: str
     additional: str
 
 
@@ -91,10 +91,7 @@ class ResidentialBuilding(Building):
     net_floor_area_m2: float
     housing_unit_count: int
     households: str
-    heating_commodity: str
-    cooling_commodity: str
-    water_heating_commodity: str
-    cooking_commodity: str
+    energy_system: str
     heat_demand_mwh: float
     norm_heating_load_kw: float
     solids_consumption_mwh: float
@@ -235,24 +232,8 @@ class OccupancyInfo(Info):
     lineage: str
 
 @dataclass
-class HeatingCommodityInfo(Info):
+class EnergySystemInfo(Info):
     value: str
-
-
-@dataclass
-class CoolingCommodityInfo(Info):
-    value: str
-
-
-@dataclass
-class WaterHeatingCommodityInfo(Info):
-    value: str
-
-
-@dataclass
-class CookingCommodityInfo(Info):
-    value: str
-
 
 @dataclass
 class EnergyConsumption(Info):
