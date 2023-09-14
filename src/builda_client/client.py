@@ -426,7 +426,7 @@ class BuildaClient:
                 type=result["type"],
                 roof_shape=result["roof_shape"],
                 use=result["use"],
-                pv_generation_potential_kwh=result["pv_generation_potential_kWh"],
+                pv_potential=result["pv_potential"],
                 electricity_consumption_mwh=result["electricity_consumption_MWh"],
                 additional=result["additional"]
             )
