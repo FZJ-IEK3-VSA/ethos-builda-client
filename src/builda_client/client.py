@@ -3,18 +3,16 @@ import logging
 from typing import Dict, Optional
 
 import requests
-from shapely.geometry import Polygon, shape
+from shapely.geometry import Polygon
 
 from builda_client.exceptions import ServerException
 from builda_client.model import (
     Address,
     Building,
-    BuildingGeometry,
     HeatDemandStatisticsByBuildingCharacteristics,
     SizeClassStatistics,
     BuildingStatistics,
     BuildingUseStatistics,
-    CommodityCount,
     ConstructionYearStatistics,
     Coordinates,
     DataSource,
@@ -25,10 +23,9 @@ from builda_client.model import (
     MetadataResponseDto,
     NonResidentialBuilding,
     NonResidentialEnergyConsumptionStatistics,
-    PvGenerationPotentialStatistics,
+    PvPotentialStatistics,
     RefurbishmentStateStatistics,
     ResidentialBuilding,
-    ResidentialEnergyConsumptionStatistics,
 )
 from builda_client.util import determine_nuts_query_param, load_config
 
@@ -92,6 +89,7 @@ class BuildaClient:
     def __init__(
         self,
         proxy: bool = False,
+        phase: str = 'staging'
     ):
         """Constructor.
 
@@ -101,7 +99,7 @@ class BuildaClient:
         """
         logging.basicConfig(level=logging.WARN)
 
-        self.phase: str = "staging"
+        self.phase: str = phase
         requests_log = logging.getLogger("urllib3")
         requests_log.setLevel(logging.WARN)
         requests_log.propagate = True
@@ -238,7 +236,7 @@ class BuildaClient:
             metadata = MetadataResponseDto(
                 name=entry["source"]["name"],
                 provider=entry["source"]["provider"],
-                refering_website_link=entry["source"]["refering_website_link"],
+                referring_website=entry["source"]["referring_website"],
                 license=entry["source"]["license"],
                 citation=entry["source"]["citation"],
             )
@@ -334,14 +332,6 @@ class BuildaClient:
                 norm_heating_load_kw=result["norm_heating_load_kW"],
                 households=result["households"],
                 energy_system=result["energy_system"],
-                solids_consumption_mwh=result["solids_consumption_MWh"],
-                lpg_consumption_mwh=result["lpg_consumption_MWh"],
-                gas_diesel_oil_consumption_mwh=result["gas_diesel_oil_consumption_MWh"],
-                gas_consumption_mwh=result["gas_consumption_MWh"],
-                biomass_consumption_mwh=result["biomass_consumption_MWh"],
-                geothermal_consumption_mwh=result["geothermal_consumption_MWh"],
-                derived_heat_consumption_mwh=result["derived_heat_consumption_MWh"],
-                electricity_consumption_mwh=result["electricity_consumption_MWh"],
                 additional=result["additional"],
             )
             buildings.append(building)
@@ -620,7 +610,7 @@ class BuildaClient:
             statistics.append(statistic)
         return statistics
 
-    def get_construction_year_statistics(
+    def get_residential_construction_year_statistics(
         self,
         country: str = "",
         nuts_level: int | None = None,
@@ -736,15 +726,6 @@ class BuildaClient:
                 sum_footprint_area_total_m2=res["sum_footprint_area_total_m2"],
                 avg_footprint_area_total_m2=res["avg_footprint_area_total_m2"],
                 median_footprint_area_total_m2=res["median_footprint_area_total_m2"],
-                avg_footprint_area_total_irrelevant_m2=res[
-                    "avg_footprint_area_total_irrelevant_m2"
-                ],
-                sum_footprint_area_total_irrelevant_m2=res[
-                    "sum_footprint_area_total_irrelevant_m2"
-                ],
-                median_footprint_area_total_irrelevant_m2=res[
-                    "median_footprint_area_total_irrelevant_m2"
-                ],
                 sum_footprint_area_residential_m2=res[
                     "sum_footprint_area_residential_m2"
                 ],
@@ -902,13 +883,13 @@ class BuildaClient:
             statistics.append(statistic)
         return statistics
 
-    def get_pv_generation_potential_statistics(
+    def get_pv_potential_statistics(
         self,
         country: str = "",
         nuts_level: Optional[int] = None,
         nuts_code: Optional[str] = None,
-    ) -> list[PvGenerationPotentialStatistics]:
-        """Get the PV generation potential statistics [kWh] for the given nuts level or
+    ) -> list[PvPotentialStatistics]:
+        """Get the PV potential statistics [kWh] for the given nuts level or
         nuts code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -945,9 +926,9 @@ class BuildaClient:
             raise ServerException("An unexpected exception occurred.") from e
 
         results: list = json.loads(response.content)
-        statistics: list[PvGenerationPotentialStatistics] = []
+        statistics: list[PvPotentialStatistics] = []
         for res in results:
-            statistic = PvGenerationPotentialStatistics(
+            statistic = PvPotentialStatistics(
                 nuts_code=res["nuts_code"],
                 sum_pv_generation_potential_kwh=res["nuts_code"],
                 avg_pv_generation_potential_residential_kwh=res["nuts_code"],
@@ -1035,7 +1016,7 @@ class BuildaClient:
             statistics.append(statistic)
         return statistics
 
-    def get_residential_heat_demand_statistics_by_building_characteristics(
+    def get_residential_heat_demand_statistics_by_building_info(
         self,
         country: str = "",
         construction_year: Optional[int] = None,
@@ -1104,7 +1085,6 @@ class BuildaClient:
         country: str = "",
         nuts_level: Optional[int] = None,
         nuts_code: Optional[str] = None,
-        use: Optional[str] = None,
         geom: Optional[Polygon] = None,
     ) -> list[NonResidentialEnergyConsumptionStatistics]:
         """Get the energy consumption statistics [MWh] for the given nuts level or nuts
@@ -1158,9 +1138,6 @@ class BuildaClient:
             elif nuts_code is not None:
                 query_params += f"&nuts_code={nuts_code}"
 
-        if use is not None:
-            query_params += f"&use={use}"
-
         url: str = f"""{self.base_url}{statistics_url}{query_params}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
@@ -1179,93 +1156,6 @@ class BuildaClient:
             statistics.append(statistic)
         return statistics
 
-    def get_residential_energy_consumption_statistics(
-        self,
-        country: str = "",
-        nuts_level: Optional[int] = None,
-        nuts_code: Optional[str] = None,
-        building_type: Optional[str] = None,
-        use: Optional[str] = None,
-        commodity: Optional[str] = None,
-        geom: Optional[Polygon] = None,
-    ) -> list[ResidentialEnergyConsumptionStatistics]:
-        """Get the energy consumption statistics [MWh] for the given nuts level or nuts
-        code. Only one of nuts_level and nuts_code may be specified.
-
-        Args:
-            country (str | None, optional): The NUTS-0 code for the country, e.g. 'DE'
-                for Germany. Defaults to None.
-            nuts_level (int | None, optional): The NUTS level for which to retrieve the
-                statistics. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code of the region for which to
-                retrieve the statistics according to the 2021 NUTS code definitions. Defaults to None.
-            geom (str | None, optional): A custom geometry.
-
-        Raises:
-            ValueError: If both nuts_level and nuts_code are given.
-            ServerException: If an error occurrs on the server side.
-
-        Returns:
-            list[EnergyConsumptionStatistics]: A list of energy consumption statistics.
-                If just one nuts_code is queried, the list will only contain one element.
-        """
-        logging.debug(
-            "ApiClient: get_energy_consumption_statistics(nuts_level=%s, nuts_code=%s)",
-            nuts_level,
-            nuts_code,
-        )
-
-        if nuts_level is not None and nuts_code is not None:
-            raise ValueError(
-                "Either nuts_level or nuts_code can be specified, not both."
-            )
-
-        if (nuts_level or nuts_code or country) and geom:
-            raise ValueError(
-                "You can query either by NUTS or by custom geometry, not both."
-            )
-
-        if geom is not None:
-            statistics_url = self.RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_BY_GEOM_URL
-            query_params = f"?geom={geom.wkt}"
-        else:
-            statistics_url = self.RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_URL
-            query_params = f"?country={country}"
-            if nuts_level is not None:
-                query_params += f"&nuts_level={nuts_level}"
-            elif nuts_code is not None:
-                query_params += f"&nuts_code={nuts_code}"
-
-        if building_type is not None:
-            query_params += f"&type={building_type}"
-        if use is not None:
-            query_params += f"&use={use}"
-        if commodity is not None:
-            query_params += f"&commodity={commodity}"
-
-        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
-        try:
-            response: requests.Response = requests.get(url, timeout=3600)
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
-
-        results: list = json.loads(response.content)
-        statistics: list[ResidentialEnergyConsumptionStatistics] = []
-        for res in results:
-            statistic = ResidentialEnergyConsumptionStatistics(
-                nuts_code=res["nuts_code"],
-                solids_consumption_mwh=res["solids_consumption_MWh"],
-                lpg_consumption_mwh=res["lpg_consumption_MWh"],
-                gas_diesel_oil_consumption_mwh=res["gas_diesel_oil_consumption_MWh"],
-                gas_consumption_mwh=res["gas_consumption_MWh"],
-                biomass_consumption_mwh=res["biomass_consumption_MWh"],
-                geothermal_consumption_mwh=res["geothermal_consumption_MWh"],
-                derived_heat_consumption_mwh=res["derived_heat_consumption_MWh"],
-                electricity_consumption_mwh=res["electricity_consumption_MWh"],
-            )
-            statistics.append(statistic)
-        return statistics
 
     def get_residential_energy_commodity_statistics(
         self,
@@ -1336,30 +1226,12 @@ class BuildaClient:
         results: list = json.loads(response.content)
         statistics: list[EnergyCommodityStatistics] = []
         for res in results:
-            res_nuts_code: str = res["nuts_code"]
-            res_commodity: str = res["commodity"]
-            res_heating_commodity_count: int = int(
-                res["commodity_count"]["heating_commodity_count"]
-            )
-            res_cooling_commodity_count: int = int(
-                res["commodity_count"]["cooling_commodity_count"]
-            )
-            res_water_heating_commodity_count: int = int(
-                res["commodity_count"]["water_heating_commodity_count"]
-            )
-            res_cooking_commodity_count: int = int(
-                res["commodity_count"]["cooking_commodity_count"]
-            )
-
+         
             statistic = EnergyCommodityStatistics(
-                nuts_code=res_nuts_code,
-                commodity_name=res_commodity,
-                building_count=CommodityCount(
-                    heating_commodity_count=res_heating_commodity_count,
-                    cooling_commodity_count=res_cooling_commodity_count,
-                    water_heating_commodity_count=res_water_heating_commodity_count,
-                    cooking_commodity_count=res_cooking_commodity_count,
-                ),
+                nuts_code=res["nuts_code"],
+                energy_system=res["energy_system"],
+                commodity_name=res["commodity"],
+                commodity_count= res["commodity_count"]
             )
             statistics.append(statistic)
 

@@ -133,7 +133,7 @@ class BuildaDevClient(BuildaClient):
                 username and password given?"""
             )
 
-        if err.response.status_code >= 400 and err.response.status_code >= 499:
+        if err.response.status_code >= 400 and err.response.status_code <= 499:
             raise ClientException("A client side error occured", err) from err
 
         raise ServerException("An unexpected error occurred", err) from err

@@ -13,7 +13,7 @@ class Metadata:
     name: Optional[str]
     provider: Optional[str]
     download_url: Optional[str]
-    referring_website_link: Optional[str]
+    referring_website: Optional[str]
     download_timestamp: Optional[str]
     extent: Optional[str]
     license: Optional[str]
@@ -49,7 +49,7 @@ class Coordinates:
 class MetadataResponseDto:
     name: str
     provider: str
-    refering_website_link: str
+    referring_website: str
     license: str
     citation: str
 
@@ -94,15 +94,6 @@ class ResidentialBuilding(Building):
     energy_system: str
     heat_demand_mwh: float
     norm_heating_load_kw: float
-    solids_consumption_mwh: float
-    lpg_consumption_mwh: float
-    gas_diesel_oil_consumption_mwh: float
-    gas_consumption_mwh: float
-    biomass_consumption_mwh: float
-    geothermal_consumption_mwh: float
-    derived_heat_consumption_mwh: float
-    electricity_consumption_mwh: float
-
 
 @dataclass
 class NonResidentialBuilding(Building):
@@ -337,9 +328,6 @@ class FootprintAreaStatistics(Statistics):
     sum_footprint_area_total_m2: float
     avg_footprint_area_total_m2: float
     median_footprint_area_total_m2: float
-    avg_footprint_area_total_irrelevant_m2: float
-    sum_footprint_area_total_irrelevant_m2: float
-    median_footprint_area_total_irrelevant_m2: float
     sum_footprint_area_residential_m2: float
     avg_footprint_area_residential_m2: float
     median_footprint_area_residential_m2: float
@@ -382,18 +370,12 @@ class HeatDemandStatisticsByBuildingCharacteristics():
     refurbishment_state: str
     heat_demand_mwh: float
 
-@dataclass
-class CommodityCount:
-    heating_commodity_count: int
-    cooling_commodity_count: int
-    water_heating_commodity_count: int
-    cooking_commodity_count: int
-
 
 @dataclass
 class EnergyCommodityStatistics(Statistics):
+    energy_system: str
     commodity_name: str
-    building_count: CommodityCount
+    commodity_count: int
 
 
 @dataclass
@@ -415,7 +397,7 @@ class NonResidentialEnergyConsumptionStatistics(Statistics):
 
 
 @dataclass
-class PvGenerationPotentialStatistics(Statistics):
+class PvPotentialStatistics(Statistics):
     sum_pv_generation_potential_kwh: float
     avg_pv_generation_potential_residential_kwh: float
     median_pv_generation_potential_residential_kwh: float
