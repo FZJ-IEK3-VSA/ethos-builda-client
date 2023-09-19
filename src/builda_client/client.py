@@ -7,7 +7,6 @@ from shapely.geometry import Polygon
 
 from builda_client.exceptions import ServerException
 from builda_client.model import (
-    Address,
     Building,
     HeatDemandStatisticsByBuildingCharacteristics,
     SizeClassStatistics,
@@ -315,9 +314,9 @@ class BuildaClient:
                 useful_area_m2=result["useful_area_m2"],
                 conditioned_living_area_m2=result["conditioned_living_area_m2"],
                 net_floor_area_m2=result["net_floor_area_m2"],
-                heat_demand_mwh=result["heat_demand_MWh"],
+                yearly_heat_demand_mwh=result["yearly_heat_demand_mwh"],
                 housing_unit_count=result["housing_unit_count"],
-                norm_heating_load_kw=result["norm_heating_load_kW"],
+                norm_heating_load_kw=result["norm_heating_load_kw"],
                 households=result["households"],
                 energy_system=result["energy_system"],
                 additional=result["additional"],
@@ -993,7 +992,7 @@ class BuildaClient:
         for res in results:
             statistic = HeatDemandStatistics(
                 nuts_code=res["nuts_code"],
-                heat_demand_mwh=res["heat_demand_MWh"],
+                yearly_heat_demand_mwh=res["yearly_heat_demand_mwh"],
             )
             statistics.append(statistic)
         return statistics
@@ -1057,7 +1056,7 @@ class BuildaClient:
                 construction_year=res["construction_year"],
                 size_class=res["size_class"],
                 refurbishment_state=res["refurbishment_state"],
-                heat_demand_mwh=res["heat_demand_MWh"],
+                yearly_heat_demand_mwh=res["yearly_heat_demand_mwh"],
             )
             statistics.append(statistic)
         return statistics

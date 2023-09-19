@@ -19,6 +19,13 @@ class Metadata:
     license: Optional[str]
     citation: Optional[str]
 
+@dataclass
+class Address:
+    street: str
+    house_number: str
+    postcode: str
+    city: str
+
 
 @dataclass
 class Parcel:
@@ -85,7 +92,7 @@ class ResidentialBuilding(Building):
     housing_unit_count: int
     households: str
     energy_system: str
-    heat_demand_mwh: float
+    yearly_heat_demand_mwh: float
     norm_heating_load_kw: float
 
 @dataclass
@@ -134,7 +141,7 @@ class BuildingEnergyCharacteristics:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
-    heat_demand_mwh: float
+    yearly_heat_demand_mwh: float
     norm_heating_load_kw: float
     pv_generation_potential_kwh: float
 
@@ -348,7 +355,7 @@ class RefurbishmentStateStatistics(Statistics):
 
 @dataclass
 class HeatDemandStatistics(Statistics):
-    heat_demand_mwh: float
+    yearly_heat_demand_mwh: float
 
 @dataclass
 class HeatDemandStatisticsByBuildingCharacteristics():
@@ -356,7 +363,7 @@ class HeatDemandStatisticsByBuildingCharacteristics():
     size_class: str
     construction_year: int
     refurbishment_state: str
-    heat_demand_mwh: float
+    yearly_heat_demand_mwh: float
 
 
 @dataclass
