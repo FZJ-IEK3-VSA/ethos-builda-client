@@ -19,13 +19,6 @@ class Metadata:
     license: Optional[str]
     citation: Optional[str]
 
-@dataclass
-class Address:
-    street: str
-    house_number: str
-    postcode: str
-    city: str
-
 
 @dataclass
 class Parcel:
@@ -176,12 +169,7 @@ class Info:
 
 @dataclass
 class AddressInfo(Info):
-    street: str
-    house_number: str
-    postcode: str
-    city: str
-    priority: int
-
+    address: str
 
 @dataclass
 class TypeInfo(Info):

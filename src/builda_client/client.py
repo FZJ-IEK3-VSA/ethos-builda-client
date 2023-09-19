@@ -177,12 +177,6 @@ class BuildaClient:
         results: list[Dict] = json.loads(response.content)
         buildings: list[Building] = []
         for result in results:
-            address = Address(
-                street=result["street"],
-                house_number=result["house_number"],
-                postcode=result["postcode"],
-                city=result["city"],
-            )
             coordinates = Coordinates(
                 latitude=result["coordinates"]["latitude"],
                 longitude=result["coordinates"]["longitude"],
@@ -190,7 +184,7 @@ class BuildaClient:
             building = Building(
                 id=result["id"],
                 coordinates=coordinates,
-                address=address,
+                address=result["address"],
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
                 elevation_m=result["elevation_m"],
@@ -299,12 +293,6 @@ class BuildaClient:
         results: list[Dict] = json.loads(response.content)
         buildings: list[ResidentialBuilding] = []
         for result in results:
-            address = Address(
-                street=result["street"],
-                house_number=result["house_number"],
-                postcode=result["postcode"],
-                city=result["city"],
-            )
             coordinates = Coordinates(
                 latitude=result["coordinates"]["latitude"],
                 longitude=result["coordinates"]["longitude"],
@@ -313,7 +301,7 @@ class BuildaClient:
             building = ResidentialBuilding(
                 id=result["id"],
                 coordinates=coordinates,
-                address=address,
+                address=result["address"],
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
                 elevation_m=result["elevation_m"],
@@ -396,12 +384,6 @@ class BuildaClient:
         results: list[Dict] = json.loads(response.content)
         buildings: list[NonResidentialBuilding] = []
         for result in results:
-            address = Address(
-                street=result["street"],
-                house_number=result["house_number"],
-                postcode=result["postcode"],
-                city=result["city"],
-            )
             coordinates = Coordinates(
                 latitude=result["coordinates"]["latitude"],
                 longitude=result["coordinates"]["longitude"],
@@ -409,7 +391,7 @@ class BuildaClient:
             building = NonResidentialBuilding(
                 id=result["id"],
                 coordinates=coordinates,
-                address=address,
+                address=result["address"],
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
                 elevation_m=result["elevation_m"],

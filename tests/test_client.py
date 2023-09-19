@@ -50,7 +50,47 @@ class TestBuildaClient:
         self.__then_result_list_min_length_returned(buildings, 1)
         assert all(pd.DataFrame(buildings)["type"] == 'mixed')
 
-    # TODO: test filter by address
+    def test_get_buildings_by_postcode(self):
+        postcode = '26127'
+        self.given_client()
+        buildings = self.testee.get_buildings(
+            postcode=postcode
+        )
+        self.__then_result_list_min_length_returned(buildings, 1)
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["postcode"] == postcode))
+
+    def test_get_buildings_by_city(self):
+        city = 'Edewecht'
+        self.given_client()
+        buildings = self.testee.get_buildings(
+            city=city
+        )
+        self.__then_result_list_min_length_returned(buildings, 1)
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["city"] == city))
+
+    def test_get_buildings_by_street(self):
+        street = 'Kuckucksweg'
+        self.given_client()
+        buildings = self.testee.get_buildings(
+            street=street
+        )
+        self.__then_result_list_min_length_returned(buildings, 1)
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["street"] == street))
+
+    def test_get_buildings_by_address(self):
+        street = 'Rotkehlchenweg'
+        house_number = '11A'
+        postcode = '26215'
+        city = 'Wiefelstede'
+        self.given_client()
+        buildings = self.testee.get_buildings(
+            street=street, housenumber=house_number, postcode=postcode, city=city
+        )
+        self.then_result_list_correct_length_returned(buildings, 1)
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["street"] == street))
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["house_number"] == house_number))
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["postcode"] == postcode))
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["city"] == city))
 
     def test_get_residential_buildings(self):
         self.given_client()
@@ -60,6 +100,21 @@ class TestBuildaClient:
         self.__then_result_list_min_length_returned(buildings, 1)
         assert all(pd.DataFrame(buildings)["type"].isin(['residential', 'mixed']))
 
+    def test_get_residential_buildings_by_address(self):
+        street = 'Rotkehlchenweg'
+        house_number = '11A'
+        postcode = '26215'
+        city = 'Wiefelstede'
+        self.given_client()
+        buildings = self.testee.get_residential_buildings(
+            street=street, housenumber=house_number, postcode=postcode, city=city
+        )
+        self.then_result_list_correct_length_returned(buildings, 1)
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["street"] == street))
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["house_number"] == house_number))
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["postcode"] == postcode))
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["city"] == city))
+
     def test_get_residential_buildings_without_mixed(self):
         self.given_client()
         buildings = self.testee.get_residential_buildings(
@@ -68,8 +123,6 @@ class TestBuildaClient:
         self.__then_result_list_min_length_returned(buildings, 1)
         assert all(pd.DataFrame(buildings)["type"] == 'residential')
 
-    # TODO test filter by address
-
     def test_get_non_residential_buildings(self):
         self.given_client()
         buildings = self.testee.get_non_residential_buildings(
@@ -77,6 +130,21 @@ class TestBuildaClient:
         )
         self.__then_result_list_min_length_returned(buildings, 1)
         assert all(pd.DataFrame(buildings)["type"].isin(['non-residential', 'mixed']))
+
+    def test_get_non_residential_buildings_by_address(self):
+        street = 'Schulweg'
+        house_number = '6B'
+        postcode = '26215'
+        city = 'Wiefelstede'
+        self.given_client()
+        buildings = self.testee.get_non_residential_buildings(
+            street=street, housenumber=house_number, postcode=postcode, city=city
+        )
+        self.then_result_list_correct_length_returned(buildings, 1)
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["street"] == street))
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["house_number"] == house_number))
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["postcode"] == postcode))
+        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["city"] == city))
 
     def test_get_non_residential_buildings_without_mixed(self):
         self.given_client()
