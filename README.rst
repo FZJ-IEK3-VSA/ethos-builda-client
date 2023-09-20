@@ -117,7 +117,7 @@ How to create new version
 
 If you need to do changes to a version later, check out a new branch at the tag.
 
-Create documentation via `tox -e docs`
+Create documentation in HTML and LaTeX format via `tox -e docs_html,docs_latex`
 
 .. _pyscaffold-notes:
 
