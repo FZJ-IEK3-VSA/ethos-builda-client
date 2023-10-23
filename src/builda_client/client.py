@@ -5,26 +5,36 @@ from typing import Dict, Optional
 import requests
 from shapely.geometry import Polygon
 
-from builda_client.exceptions import ServerException
+from builda_client.exceptions import ClientException, ServerException, UnauthorizedException
 from builda_client.model import (
-    Building,
+    Address,
+    AddressSource,
+    BuildingResponseDto,
+    BuildingWithSourceDto,
+    CoordinatesSource,
+    FloatSource,
     HeatDemandStatisticsByBuildingCharacteristics,
+    IntSource,
+    NonResidentialBuildingResponseDto,
+    ResidentialBuildingResponseDto,
+    SourceResponseDto,
+    NonResidentialBuildingWithSourceDto,
+    PvPotential,
+    PvPotentialSource,
+    ResidentialBuildingWithSourceDto,
     SizeClassStatistics,
     BuildingStatistics,
     BuildingUseStatistics,
     ConstructionYearStatistics,
     Coordinates,
-    DataSource,
     EnergyCommodityStatistics,
     FootprintAreaStatistics,
     HeatDemandStatistics,
     HeightStatistics,
-    MetadataResponseDto,
-    NonResidentialBuilding,
     NonResidentialEnergyConsumptionStatistics,
     PvPotentialStatistics,
     RefurbishmentStateStatistics,
-    ResidentialBuilding,
+    StringSource,
 )
 from builda_client.util import determine_nuts_query_param, load_config
 
@@ -33,7 +43,6 @@ class BuildaClient:
 
     # Buildings
     BUILDINGS_URL = "buildings"
-    BUILDINGS_SOURCES_URL = "buildings/{id}/sources"
     RESIDENTIAL_BUILDINGS_URL = "buildings/residential"
     NON_RESIDENTIAL_BUILDINGS_URL = "buildings/non-residential"
     BUILDINGS_GEOMETRY_URL = "buildings-geometry"
@@ -115,6 +124,18 @@ class BuildaClient:
 
         self.base_url = f"""http://{host}:{port}{self.config['base_url']}"""
 
+    def __handle_exception(self, err: requests.exceptions.HTTPError):
+        if err.response.status_code == 403:
+            raise UnauthorizedException(
+                """You are not authorized to perform this operation. Perhaps wrong 
+                username and password given?"""
+            )
+
+        if err.response.status_code >= 400 and err.response.status_code <= 499:
+            raise ClientException("A client side error occured", err) from err
+
+        raise ServerException("An unexpected error occurred. Please contact administrator.", err) from err
+
     def get_buildings(
         self,
         building_type: Optional[str] = "",
@@ -123,7 +144,7 @@ class BuildaClient:
         postcode: str = "",
         city: str = "",
         nuts_code: str = "",
-    ) -> list[Building]:
+    ) -> BuildingResponseDto:
         """Gets all buildings that match the query parameters.
         
         Args:
@@ -142,7 +163,7 @@ class BuildaClient:
             ServerException: When an error occurs on the server side..
 
         Returns:
-            list[Building]: A list of buildings.
+            list[BuildingSource]: A list of buildings with attribute sources.
         """
 
         logging.debug(
@@ -164,84 +185,73 @@ class BuildaClient:
         elif building_type == '':
             type_is_null = ""
 
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&type__isnull={type_is_null}"""
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
         )
-        results: list[Dict] = json.loads(response.content)
-        buildings: list[Building] = []
-        for result in results:
-            coordinates = Coordinates(
-                latitude=result["coordinates"]["latitude"],
-                longitude=result["coordinates"]["longitude"],
+        results: Dict = json.loads(response.content)
+        buildings: list[BuildingWithSourceDto] = []
+        for result in results["buildings"]:
+            coordinates = CoordinatesSource(
+                value = Coordinates(
+                    latitude=result["coordinates"]["value"]["latitude"],
+                    longitude=result["coordinates"]["value"]["longitude"]
+                ),
+                source = result["coordinates"]["source"]
             )
-            building = Building(
+            pv_potential = PvPotentialSource(
+                value = PvPotential(
+                    capacity_kW=result["pv_potential"]["value"]["capacity_kW"],
+                    generation_kWh=result["pv_potential"]["value"]["generation_kWh"]),
+                source = result["pv_potential"]["source"]
+            ) if result["pv_potential"]["value"] else None
+            address = AddressSource(
+                value = Address(
+                    street = result["address"]["value"]["street"],
+                    house_number = result["address"]["value"]["house_number"],
+                    postcode = result["address"]["value"]["postcode"],
+                    city = result["address"]["value"]["city"],
+                ),
+                source = result["address"]["source"]
+            )
+
+            building = BuildingWithSourceDto(
                 id=result["id"],
                 coordinates=coordinates,
-                address=result["address"],
+                address=address,
                 footprint_area_m2=result["footprint_area_m2"],
-                height_m=result["height_m"],
-                elevation_m=result["elevation_m"],
-                type=result["type"],
-                roof_shape=result["roof_shape"],
-                pv_potential=result["pv_potential"],
+                height_m=FloatSource(value=result["height_m"]["value"], source=result["height_m"]["source"]),
+                elevation_m=FloatSource(value=result["elevation_m"]["value"], source=result["elevation_m"]["source"]),
+                type=StringSource(value=result["type"]["value"], source=result["type"]["source"]),
+                roof_shape=StringSource(value=result["roof_shape"]["value"], source=result["roof_shape"]["source"]),
+                pv_potential=pv_potential,
                 additional=result["additional"]
             )
             buildings.append(building)
 
-        return buildings
-
-    def get_building_sources(self, building_id: str) -> list[DataSource]:
-        """Gets sources for building.
-        Args:
-            building_id (str): ID of building
-
-        Raises:
-            ServerException: When an error occurs on the server side..
-
-        Returns:
-            list[DataSource]: A list of sources.
-        """
-
-        logging.debug(
-            """ApiClient: get_building_sources(building_id=%s)""", building_id
-        )
-
-        url: str = f"""{self.base_url}{self.BUILDINGS_SOURCES_URL.replace('{id}', str(building_id))}"""
-        try:
-            response: requests.Response = requests.get(url, timeout=3600)
-            logging.debug("ApiClient: received response. Checking for errors.")
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
-
-        logging.debug(
-            "ApiClient: received ok response, proceeding with deserialization."
-        )
-        result: list[Dict] = json.loads(response.content)
-        data_sources: list[DataSource] = []
-        for entry in result["sources"]:
-            metadata = MetadataResponseDto(
-                name=entry["source"]["name"],
-                provider=entry["source"]["provider"],
-                referring_website=entry["source"]["referring_website"],
-                license=entry["source"]["license"],
-                citation=entry["source"]["citation"],
+        data_sources: list[SourceResponseDto] = []
+        for entry in results["sources"]:
+            source = SourceResponseDto(
+                key=entry["key"],
+                name=entry["name"],
+                provider=entry["provider"],
+                referring_website=entry["referring_website"],
+                license=entry["license"],
+                citation=entry["citation"],
             )
-            data_source = DataSource(
-                attribute=entry["attribute"], lineage=entry["lineage"], source=metadata
-            )
-            data_sources.append(data_source)
+            
+            data_sources.append(source)
 
-        return data_sources
+        return BuildingResponseDto(buildings=buildings, sources=data_sources)
 
+    
     def get_residential_buildings(
         self,
         street: str = "",
@@ -250,7 +260,7 @@ class BuildaClient:
         city: str = "",
         nuts_code: str = "",
         include_mixed: bool = True,
-    ) -> list[ResidentialBuilding]:
+    ) -> ResidentialBuildingResponseDto:
         """Gets all residential buildings that match the query parameters.
 
         Args:
@@ -288,47 +298,76 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
         )
-        results: list[Dict] = json.loads(response.content)
-        buildings: list[ResidentialBuilding] = []
-        for result in results:
-            coordinates = Coordinates(
-                latitude=result["coordinates"]["latitude"],
-                longitude=result["coordinates"]["longitude"],
+        results: Dict = json.loads(response.content)
+        buildings: list[ResidentialBuildingWithSourceDto] = []
+        for result in results["buildings"]:
+            coordinates = CoordinatesSource(
+                value = Coordinates(
+                    latitude=result["coordinates"]['value']["latitude"],
+                    longitude=result["coordinates"]['value']["longitude"]),
+                source = result["coordinates"]["source"]
             )
-
-            building = ResidentialBuilding(
+            pv_potential = PvPotentialSource(
+                value = PvPotential(
+                    capacity_kW=result["pv_potential"]["value"]["capacity_kW"],
+                    generation_kWh=result["pv_potential"]["value"]["generation_kWh"]),
+                source = result["pv_potential"]["source"]
+            ) if result["pv_potential"]["value"] else None
+            address = AddressSource(
+                value = Address(
+                    street = result["address"]["value"]["street"],
+                    house_number = result["address"]["value"]["house_number"],
+                    postcode = result["address"]["value"]["postcode"],
+                    city = result["address"]["value"]["city"],
+                ),
+                source = result["address"]["source"]
+            )
+            building = ResidentialBuildingWithSourceDto(
                 id=result["id"],
                 coordinates=coordinates,
-                address=result["address"],
+                address=address,
                 footprint_area_m2=result["footprint_area_m2"],
-                height_m=result["height_m"],
-                elevation_m=result["elevation_m"],
-                type=result["type"],
+                height_m=FloatSource(value=result["height_m"]["value"], source=result["height_m"]["source"]),
+                elevation_m=FloatSource(value=result["elevation_m"]["value"], source=result["elevation_m"]["source"]),
+                type=StringSource(value=result["type"]["value"], source=result["type"]["source"]),
+                roof_shape=StringSource(value=result["roof_shape"]["value"], source=result["roof_shape"]["source"]),
                 construction_year=result["construction_year"],
-                roof_shape=result["roof_shape"],
-                pv_potential=result["pv_potential"],
-                size_class=result["size_class"],
-                refurbishment_state=result["refurbishment_state"],
-                tabula_type=result["tabula_type"],
-                useful_area_m2=result["useful_area_m2"],
-                conditioned_living_area_m2=result["conditioned_living_area_m2"],
-                net_floor_area_m2=result["net_floor_area_m2"],
-                yearly_heat_demand_mwh=result["yearly_heat_demand_mwh"],
-                housing_unit_count=result["housing_unit_count"],
-                norm_heating_load_kw=result["norm_heating_load_kw"],
-                households=result["households"],
+                pv_potential=pv_potential,
+                size_class=StringSource(value=result["size_class"]["value"], source=result["size_class"]["source"]),
+                refurbishment_state=IntSource(value=result["refurbishment_state"]["value"], source=result["refurbishment_state"]["source"]),
+                tabula_type=StringSource(value=result["tabula_type"]["value"], source=result["tabula_type"]["source"]),
+                useful_area_m2=FloatSource(value=result["useful_area_m2"]["value"], source=result["useful_area_m2"]["source"]),
+                conditioned_living_area_m2=FloatSource(value=result["conditioned_living_area_m2"]["value"], source=result["conditioned_living_area_m2"]["source"]),
+                net_floor_area_m2=FloatSource(value=result["net_floor_area_m2"]["value"], source=result["net_floor_area_m2"]["source"]),
+                yearly_heat_demand_mwh=FloatSource(value=result["yearly_heat_demand_mwh"]["value"], source=result["yearly_heat_demand_mwh"]["source"]),
+                housing_unit_count=IntSource(value=result["housing_unit_count"]["value"], source=result["housing_unit_count"]["source"]),
+                norm_heating_load_kw=FloatSource(value=result["norm_heating_load_kw"]["value"], source=result["norm_heating_load_kw"]["source"]),
+                households=StringSource(value=result["households"]["value"], source=result["households"]["source"]),
                 energy_system=result["energy_system"],
                 additional=result["additional"],
             )
             buildings.append(building)
 
-        return buildings
+        data_sources: list[SourceResponseDto] = []
+        for entry in results["sources"]:
+            source = SourceResponseDto(
+                key=entry["key"],
+                name=entry["name"],
+                provider=entry["provider"],
+                referring_website=entry["referring_website"],
+                license=entry["license"],
+                citation=entry["citation"],
+            )
+            
+            data_sources.append(source)
+
+        return ResidentialBuildingResponseDto(buildings=buildings, sources=data_sources)
     
 
     def get_non_residential_buildings(
@@ -340,7 +379,7 @@ class BuildaClient:
         nuts_code: str = "",
         include_mixed: bool = True,
         exclude_auxiliary: bool = False,
-    ) -> list[NonResidentialBuilding]:
+    ) -> NonResidentialBuildingResponseDto:
         """Gets all non-residential buildings that match the query parameters.
 
         Args:
@@ -380,35 +419,60 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
         )
-        results: list[Dict] = json.loads(response.content)
-        buildings: list[NonResidentialBuilding] = []
-        for result in results:
-            coordinates = Coordinates(
-                latitude=result["coordinates"]["latitude"],
-                longitude=result["coordinates"]["longitude"],
+        results: Dict = json.loads(response.content)
+        buildings: list[NonResidentialBuildingWithSourceDto] = []
+        for result in results["buildings"]:
+            coordinates = CoordinatesSource(
+                value = Coordinates(
+                    latitude=result["coordinates"]["value"]["latitude"],
+                    longitude=result["coordinates"]["value"]["longitude"]
+                ),
+                source = result["coordinates"]["source"]
             )
-            building = NonResidentialBuilding(
+            pv_potential = PvPotentialSource(
+                value = PvPotential(
+                    capacity_kW=result["pv_potential"]["value"]["capacity_kW"],
+                    generation_kWh=result["pv_potential"]["value"]["generation_kWh"]
+                ),
+                source = result["pv_potential"]["source"],
+            ) if result["pv_potential"]["value"] else None
+            building = NonResidentialBuildingWithSourceDto(
                 id=result["id"],
                 coordinates=coordinates,
                 address=result["address"],
                 footprint_area_m2=result["footprint_area_m2"],
-                height_m=result["height_m"],
-                elevation_m=result["elevation_m"],
-                type=result["type"],
-                roof_shape=result["roof_shape"],
-                use=result["use"],
-                pv_potential=result["pv_potential"],
-                electricity_consumption_mwh=result["electricity_consumption_MWh"],
+                height_m=FloatSource(value=result["height_m"]["value"], source=result["height_m"]["source"]),
+                elevation_m=FloatSource(value=result["elevation_m"]["value"], source=result["elevation_m"]["source"]),
+                type=StringSource(value=result["type"]["value"], source=result["type"]["source"]),
+                roof_shape=StringSource(value=result["roof_shape"]["value"], source=result["roof_shape"]["source"]),
+                pv_potential=pv_potential,
+                use=StringSource(value=result["use"]["value"], source=result["use"]["source"]),
+                electricity_consumption_mwh=FloatSource(value=result["electricity_consumption_MWh"]["value"], source=result["electricity_consumption_MWh"]["source"]),
                 additional=result["additional"]
             )
             buildings.append(building)
-        return buildings
+        
+        data_sources: list[SourceResponseDto] = []
+        for entry in results["sources"]:
+            source = SourceResponseDto(
+                key=entry["key"],
+                name=entry["name"],
+                provider=entry["provider"],
+                referring_website=entry["referring_website"],
+                license=entry["license"],
+                citation=entry["citation"],
+            )
+            
+            data_sources.append(source)
+
+        return NonResidentialBuildingResponseDto(buildings=buildings, sources=data_sources)
+    
 
     def get_building_type_statistics(
         self,
@@ -461,8 +525,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list[Dict] = json.loads(response.content)
         statistics: list[BuildingStatistics] = []
@@ -529,8 +593,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[BuildingUseStatistics] = []
@@ -584,8 +648,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[SizeClassStatistics] = []
@@ -642,8 +706,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[ConstructionYearStatistics] = []
@@ -707,8 +771,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[FootprintAreaStatistics] = []
@@ -795,8 +859,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[HeightStatistics] = []
@@ -866,8 +930,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.")
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[RefurbishmentStateStatistics] = []
@@ -921,8 +985,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[PvPotentialStatistics] = []
@@ -1001,8 +1065,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[HeatDemandStatistics] = []
@@ -1063,8 +1127,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[HeatDemandStatisticsByBuildingCharacteristics] = []
@@ -1139,8 +1203,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[NonResidentialEnergyConsumptionStatistics] = []
@@ -1218,8 +1282,8 @@ class BuildaClient:
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
+        except requests.exceptions.HTTPError as err:
+            self.__handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[EnergyCommodityStatistics] = []

@@ -44,20 +44,16 @@ class ParcelMinimalDto:
 class Coordinates:
     latitude: float
     longitude: float
-    
+
+
 @dataclass
-class MetadataResponseDto:
+class SourceResponseDto:
+    key: str
     name: str
     provider: str
     referring_website: str
     license: str
     citation: str
-
-@dataclass
-class DataSource:
-    attribute: str
-    source: MetadataResponseDto
-    lineage: str
 
 @dataclass
 class RoofGeometry:
@@ -66,6 +62,91 @@ class RoofGeometry:
     tilt: float
     area: float
 
+@dataclass 
+class PvPotential:
+    capacity_kW: float
+    generation_kWh: float
+
+### Buildings with sources (for public use)
+@dataclass
+class AddressSource:
+    value: Address
+    source: str
+
+@dataclass
+class FloatSource:
+    value: float
+    source: str
+
+@dataclass
+class IntSource:
+    value: int
+    source: str
+
+@dataclass
+class StringSource:
+    value: str
+    source: str
+
+@dataclass
+class PvPotentialSource:
+    value: PvPotential
+    source: str
+    
+@dataclass
+class CoordinatesSource:
+    value: Coordinates
+    source: str
+
+@dataclass
+class BuildingWithSourceDto:
+    id: str
+    coordinates: CoordinatesSource
+    address: AddressSource
+    footprint_area_m2: float
+    height_m: FloatSource
+    elevation_m: FloatSource
+    roof_shape: StringSource
+    type: StringSource
+    pv_potential: PvPotentialSource
+    additional: StringSource
+
+@dataclass
+class BuildingResponseDto:
+    buildings: list[BuildingWithSourceDto]
+    sources: list[SourceResponseDto]
+
+@dataclass
+class ResidentialBuildingWithSourceDto(BuildingWithSourceDto):
+    size_class: StringSource
+    refurbishment_state: IntSource
+    construction_year: FloatSource
+    tabula_type: StringSource
+    useful_area_m2: FloatSource
+    conditioned_living_area_m2: FloatSource
+    net_floor_area_m2: FloatSource
+    housing_unit_count: IntSource
+    households: StringSource
+    energy_system: StringSource
+    yearly_heat_demand_mwh: FloatSource
+    norm_heating_load_kw: FloatSource
+
+@dataclass
+class ResidentialBuildingResponseDto:
+    buildings: list[ResidentialBuildingWithSourceDto]
+    sources: list[SourceResponseDto]
+
+@dataclass
+class NonResidentialBuildingWithSourceDto(BuildingWithSourceDto):
+    use: StringSource
+    electricity_consumption_mwh: FloatSource
+
+@dataclass
+class NonResidentialBuildingResponseDto:
+    buildings: list[NonResidentialBuildingWithSourceDto]
+    sources: list[SourceResponseDto]
+
+### Buildings without sources (for internal use only)
 @dataclass
 class Building:
     id: str
@@ -76,9 +157,8 @@ class Building:
     elevation_m: float
     roof_shape: str
     type: str
-    pv_potential: str
+    pv_potential: PvPotential | None
     additional: str
-
 
 @dataclass
 class ResidentialBuilding(Building):
@@ -166,7 +246,9 @@ class BuildingStockEntry:
     nuts1: str
     nuts0: str
     lau: str
+    source: str
 
+### Info classes (for posting to DB during development)
 
 @dataclass
 class Info:
@@ -284,6 +366,7 @@ class AdditionalInfo(Info):
     value: str
     lineage: str
 
+### Statistics (for public and internal use)
 
 @dataclass
 class Statistics(ABC):
