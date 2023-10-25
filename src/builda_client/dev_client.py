@@ -17,6 +17,7 @@ from builda_client.model import (
     AddressInfo,
     Building,
     BuildingBase,
+    BuildingStockInfo,
     Coordinates,
     ElevationInfo,
     FloorAreasInfo,
@@ -173,7 +174,7 @@ class BuildaDevClient(BuildaClient):
             response.raise_for_status()
             return json.loads(response.content)["token"]
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def __construct_authorization_header(self, json=True) -> Dict[str, str]:
         """Constructs the header for authorization including the API token.
@@ -304,7 +305,7 @@ class BuildaDevClient(BuildaClient):
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
@@ -393,7 +394,7 @@ class BuildaDevClient(BuildaClient):
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
@@ -497,7 +498,7 @@ class BuildaDevClient(BuildaClient):
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
@@ -561,7 +562,7 @@ class BuildaDevClient(BuildaClient):
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
@@ -586,7 +587,7 @@ class BuildaDevClient(BuildaClient):
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as e:
-            self.__handle_exception(e)
+            self.handle_exception(e)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
@@ -684,7 +685,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def add_parcels(self, parcels: list[Parcel]):
         """
@@ -706,7 +707,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def modify_building(self, building_id: str, building_data: Dict):
         if not self.api_token:
@@ -722,7 +723,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
 
     def refresh_buildings(self, building_type: str) -> None:
@@ -757,7 +758,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def refresh_materialized_view(self, view_name: str):
         """[REQUIRES AUTHENTICATION] Refreshes the materialized view.
@@ -784,7 +785,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def get_building_stock(
         self, geom: Polygon | None = None, nuts_code: str = ""
@@ -856,7 +857,7 @@ class BuildaDevClient(BuildaClient):
 
         return buildings
 
-    def post_building_stock(self, buildings: list[BuildingStockEntry]) -> None:
+    def post_building_stock(self, buildings: list[BuildingStockInfo]) -> None:
         """[REQUIRES AUTHENTICATION]  Posts the building_stock data to the database.
 
         Args:
@@ -887,7 +888,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def get_buildings_geometry(
         self, geom: Polygon | None = None, nuts_code: str = "", building_type: str | None = "",
@@ -1005,7 +1006,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_addresses(self, addresses: list[AddressInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts addresses to the database.
@@ -1038,7 +1039,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_type_info(self, type_infos: list[TypeInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the type info data to the database.
@@ -1073,7 +1074,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_use_info(self, use_infos: list[UseInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the use info data to the database.
@@ -1108,7 +1109,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_height_info(self, height_infos: list[HeightInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
@@ -1141,7 +1142,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_elevation_info(self, infos: list[ElevationInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the elevation data to the database.
@@ -1174,7 +1175,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_floor_areas_info(self, floor_areas_infos: list[FloorAreasInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the floor area data to the database.
@@ -1207,7 +1208,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_occupancy_info(self, occupancy_infos: list[OccupancyInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the housing unit count and households data to 
@@ -1242,7 +1243,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
 
     def post_energy_system_infos(
@@ -1282,7 +1283,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
 
     def post_energy_consumption(
@@ -1321,7 +1322,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_heat_demand(self, heat_demand_infos: list[HeatDemandInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the heat demand data to the database.
@@ -1354,7 +1355,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_norm_heating_load(self, heating_load_infos: list[NormHeatingLoadInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the norm heating load data to the database.
@@ -1387,7 +1388,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_pv_potential(self, pv_potential_infos: list[PvPotentialInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the pv potential data to the database.
@@ -1419,7 +1420,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_construction_year(
         self, construction_year_infos: list[ConstructionYearInfo]
@@ -1453,7 +1454,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_tabula_type(self, tabula_type_infos: list[TabulaTypeInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the tabula type data to the database.
@@ -1483,7 +1484,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_size_class(
         self, size_class_infos: list[SizeClassInfo]
@@ -1515,7 +1516,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
 
     def post_additional_info(self, additional_infos: list[AdditionalInfo]) -> None:
@@ -1549,7 +1550,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
 
     def post_timing_log(self, function_name: str, measured_time: float):
@@ -1571,7 +1572,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def get_nuts_region(self, nuts_code: str):
         logging.debug("ApiClient: get_nuts_region")
@@ -1649,7 +1650,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_roof_characteristics(self, roof_characteristics_infos: list[RoofCharacteristicsInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the roof characteristics data to the database.
@@ -1679,7 +1680,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_metadata(
         self, metadata: list[Metadata]
@@ -1713,7 +1714,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def execute_query(
         self, query: str
@@ -1745,5 +1746,5 @@ class BuildaDevClient(BuildaClient):
             response.raise_for_status()
             return json.loads(response.content)
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 

@@ -124,7 +124,7 @@ class BuildaClient:
 
         self.base_url = f"""http://{host}:{port}{self.config['base_url']}"""
 
-    def __handle_exception(self, err: requests.exceptions.HTTPError):
+    def handle_exception(self, err: requests.exceptions.HTTPError):
         if err.response.status_code == 403:
             raise UnauthorizedException(
                 """You are not authorized to perform this operation. Perhaps wrong 
@@ -191,7 +191,7 @@ class BuildaClient:
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
@@ -299,7 +299,7 @@ class BuildaClient:
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
@@ -420,7 +420,7 @@ class BuildaClient:
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
@@ -526,7 +526,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list[Dict] = json.loads(response.content)
         statistics: list[BuildingStatistics] = []
@@ -594,7 +594,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[BuildingUseStatistics] = []
@@ -649,7 +649,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[SizeClassStatistics] = []
@@ -707,7 +707,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[ConstructionYearStatistics] = []
@@ -772,7 +772,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[FootprintAreaStatistics] = []
@@ -860,7 +860,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[HeightStatistics] = []
@@ -931,7 +931,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[RefurbishmentStateStatistics] = []
@@ -986,7 +986,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[PvPotentialStatistics] = []
@@ -1066,7 +1066,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[HeatDemandStatistics] = []
@@ -1128,7 +1128,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[HeatDemandStatisticsByBuildingCharacteristics] = []
@@ -1204,7 +1204,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[NonResidentialEnergyConsumptionStatistics] = []
@@ -1283,7 +1283,7 @@ class BuildaClient:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         results: list = json.loads(response.content)
         statistics: list[EnergyCommodityStatistics] = []

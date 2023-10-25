@@ -246,7 +246,6 @@ class BuildingStockEntry:
     nuts1: str
     nuts0: str
     lau: str
-    source: str
 
 ### Info classes (for posting to DB during development)
 
@@ -255,7 +254,17 @@ class Info:
     building_id: str
     source: str
 
-
+@dataclass
+class BuildingStockInfo(Info):
+    footprint: Polygon
+    centroid: Point
+    footprint_area: float
+    nuts3: str
+    nuts2: str
+    nuts1: str
+    nuts0: str
+    lau: str
+    
 @dataclass
 class AddressInfo(Info):
     address: str
