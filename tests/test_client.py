@@ -6,6 +6,7 @@ from shapely import wkt
 from shapely.geometry import Polygon
 
 from builda_client.client import BuildaClient
+from builda_client.model import BuildingResponseDto, NonResidentialBuildingResponseDto, ResidentialBuildingResponseDto
 
 __author__ = "k.dabrock"
 __copyright__ = "k.dabrock"
@@ -21,61 +22,67 @@ class TestBuildaClient:
     ### BUILDINGS ###
     def test_get_buildings(self):
         self.given_client()
-        buildings = self.testee.get_buildings(
+        result: BuildingResponseDto = self.testee.get_buildings(
             nuts_code=self.OLDENBURG_LAU
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
 
     def test_get_buildings_type_residential(self):
         self.given_client()
-        buildings = self.testee.get_buildings(
+        result: BuildingResponseDto = self.testee.get_buildings(
             building_type="residential", nuts_code=self.OLDENBURG_LAU,
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["type"] == 'residential')
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] == "residential"))
 
     def test_get_buildings_type_non_residential(self):
         self.given_client()
-        buildings = self.testee.get_buildings(
+        result: BuildingResponseDto = self.testee.get_buildings(
             building_type="non-residential", nuts_code=self.OLDENBURG_LAU,
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["type"] == 'non-residential')
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] == "non-residential"))
 
     def test_get_buildings_type_mixed(self):
         self.given_client()
-        buildings = self.testee.get_buildings(
+        result: BuildingResponseDto = self.testee.get_buildings(
             building_type="mixed", nuts_code=self.OLDENBURG_LAU,
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["type"] == 'mixed')
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] == "mixed"))
 
     def test_get_buildings_by_postcode(self):
         postcode = '26127'
         self.given_client()
-        buildings = self.testee.get_buildings(
+        result: BuildingResponseDto = self.testee.get_buildings(
             postcode=postcode
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["postcode"] == postcode))
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["postcode"] == postcode))
 
     def test_get_buildings_by_city(self):
         city = 'Edewecht'
         self.given_client()
-        buildings = self.testee.get_buildings(
+        result: BuildingResponseDto = self.testee.get_buildings(
             city=city
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["city"] == city))
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["city"] == city))
 
     def test_get_buildings_by_street(self):
         street = 'Kuckucksweg'
         self.given_client()
-        buildings = self.testee.get_buildings(
+        result: BuildingResponseDto = self.testee.get_buildings(
             street=street
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["street"] == street))
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["street"] == street))
 
     def test_get_buildings_by_address(self):
         street = 'Rotkehlchenweg'
@@ -83,53 +90,57 @@ class TestBuildaClient:
         postcode = '26215'
         city = 'Wiefelstede'
         self.given_client()
-        buildings = self.testee.get_buildings(
+        result: BuildingResponseDto = self.testee.get_buildings(
             street=street, housenumber=house_number, postcode=postcode, city=city
         )
-        self.then_result_list_correct_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["street"] == street))
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["house_number"] == house_number))
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["postcode"] == postcode))
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["city"] == city))
+        self.then_result_list_correct_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["street"] == street))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["house_number"] == house_number))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["postcode"] == postcode))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["city"] == city))
 
     def test_get_residential_buildings(self):
         self.given_client()
-        buildings = self.testee.get_residential_buildings(
+        result: ResidentialBuildingResponseDto = self.testee.get_residential_buildings(
             nuts_code=self.OLDENBURG_LAU, include_mixed = True
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["type"].isin(['residential', 'mixed']))
-
+        assert isinstance(result, ResidentialBuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] in ['residential', "mixed"]))
+        
     def test_get_residential_buildings_by_address(self):
         street = 'Rotkehlchenweg'
         house_number = '11A'
         postcode = '26215'
         city = 'Wiefelstede'
         self.given_client()
-        buildings = self.testee.get_residential_buildings(
+        result: ResidentialBuildingResponseDto = self.testee.get_residential_buildings(
             street=street, housenumber=house_number, postcode=postcode, city=city
         )
-        self.then_result_list_correct_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["street"] == street))
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["house_number"] == house_number))
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["postcode"] == postcode))
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["city"] == city))
+        assert isinstance(result, ResidentialBuildingResponseDto)
+        self.then_result_list_correct_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["street"] == street))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["house_number"] == house_number))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["postcode"] == postcode))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["city"] == city))
 
     def test_get_residential_buildings_without_mixed(self):
         self.given_client()
-        buildings = self.testee.get_residential_buildings(
+        result: ResidentialBuildingResponseDto = self.testee.get_residential_buildings(
             nuts_code=self.OLDENBURG_LAU, include_mixed = False
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["type"] == 'residential')
+        assert isinstance(result, ResidentialBuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] == "residential"))
 
     def test_get_non_residential_buildings(self):
         self.given_client()
-        buildings = self.testee.get_non_residential_buildings(
+        result: NonResidentialBuildingResponseDto = self.testee.get_non_residential_buildings(
             nuts_code=self.OLDENBURG_LAU, include_mixed = True
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["type"].isin(['non-residential', 'mixed']))
+        assert isinstance(result, NonResidentialBuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] in ['non-residential', "mixed"]))
 
     def test_get_non_residential_buildings_by_address(self):
         street = 'Schulweg'
@@ -137,37 +148,36 @@ class TestBuildaClient:
         postcode = '26215'
         city = 'Wiefelstede'
         self.given_client()
-        buildings = self.testee.get_non_residential_buildings(
+        result: NonResidentialBuildingResponseDto = self.testee.get_non_residential_buildings(
             street=street, housenumber=house_number, postcode=postcode, city=city
         )
-        self.then_result_list_correct_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["street"] == street))
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["house_number"] == house_number))
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["postcode"] == postcode))
-        assert all(pd.DataFrame(buildings)["address"].apply(lambda x: x["city"] == city))
+        assert isinstance(result, NonResidentialBuildingResponseDto)
+        self.then_result_list_correct_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["street"] == street))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["house_number"] == house_number))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["postcode"] == postcode))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["city"] == city))
 
     def test_get_non_residential_buildings_without_mixed(self):
         self.given_client()
-        buildings = self.testee.get_non_residential_buildings(
+        result: NonResidentialBuildingResponseDto = self.testee.get_non_residential_buildings(
             nuts_code=self.OLDENBURG_LAU, include_mixed = False
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["type"] == 'non-residential')
+        assert isinstance(result, NonResidentialBuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] == "non-residential"))
 
     def test_get_non_residential_buildings_without_auxiliary(self):
         self.given_client()
-        buildings = self.testee.get_non_residential_buildings(
+        result: NonResidentialBuildingResponseDto = self.testee.get_non_residential_buildings(
             nuts_code=self.OLDENBURG_LAU, include_mixed = True, exclude_auxiliary=True
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-        assert all(pd.DataFrame(buildings)["type"].isin(['non-residential', 'mixed']))
-        assert all(pd.DataFrame(buildings)["use"].apply(lambda x: x["sector"] != "auxiliary"))
+        assert isinstance(result, NonResidentialBuildingResponseDto)
+
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] in ['non-residential', "mixed"]))
+        assert all(pd.DataFrame(result.buildings)["use"].apply(lambda x: x["value"]["sector"] != "auxiliary"))
    
-    ### METADATA ###
-    def test_get_building_sources(self):
-        self.given_client()
-        sources = self.testee.get_building_sources("DE9_DENILD1100000hW4")
-        self.__then_result_list_min_length_returned(sources, 1)
 
     ### GENERAL STATISTICS ###
 

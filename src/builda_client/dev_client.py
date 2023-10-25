@@ -8,7 +8,6 @@ from shapely.geometry import Polygon, shape
 
 from builda_client.client import BuildaClient
 from builda_client.exceptions import (
-    ClientException,
     MissingCredentialsException,
     ServerException,
     UnauthorizedException,
@@ -16,12 +15,17 @@ from builda_client.exceptions import (
 from builda_client.model import (
     AdditionalInfo,
     AddressInfo,
+    Building,
     BuildingBase,
+    BuildingStockInfo,
+    Coordinates,
     ElevationInfo,
     FloorAreasInfo,
+    NonResidentialBuilding,
     NormHeatingLoadInfo,
+    PvPotential,
+    ResidentialBuilding,
     SizeClassInfo,
-    BuildingEnergyCharacteristics,
     BuildingParcel,
     BuildingStockEntry,
     ConstructionYearInfo,
@@ -48,8 +52,28 @@ from builda_client.util import determine_nuts_query_param, ewkt_loads
 
 
 class BuildaDevClient(BuildaClient):
+    """A client for the ETHOS.BUILDA API for internal use.
 
+    Args:
+        BuildaClient (BuildaClient): Base implementation for client.
+
+    Raises:
+        UnauthorizedException: If current user is not authorized to execute method.
+        ClientException: If a client side error occurs.
+        ServerException: If a server side error occurs.
+        MissingCredentialsException: If no credentials were provided to a method that 
+            requires authentication.
+
+    Returns:
+        BuildaDevClient: Client for ETHOS.BUILDA API access with methods for internal use.
+    """
     # For developpers/ write users of database
+
+    # Buildings
+    BUILDINGS_URL = "buildings/stripped"
+    RESIDENTIAL_BUILDINGS_URL = "buildings/residential/stripped"
+    NON_RESIDENTIAL_BUILDINGS_URL = "buildings/non-residential/stripped"
+
     AUTH_URL = "/auth/api-token"
     BUILDINGS_BASE_URL = "buildings-base/"
     ADDRESS_URL = "address/"
@@ -126,18 +150,6 @@ class BuildaDevClient(BuildaClient):
         self.authentication_url = f"""http://{host}:{port}{self.AUTH_URL}"""
         self.api_token = self.__get_authentication_token()
 
-    def __handle_exception(self, err: requests.exceptions.HTTPError):
-        if err.response.status_code == 403:
-            raise UnauthorizedException(
-                """You are not authorized to perform this operation. Perhaps wrong 
-                username and password given?"""
-            )
-
-        if err.response.status_code >= 400 and err.response.status_code <= 499:
-            raise ClientException("A client side error occured", err) from err
-
-        raise ServerException("An unexpected error occurred", err) from err
-
     def __get_authentication_token(self) -> str:
         """Retrieves the authentication token for the given username and password from the token endpoint.
 
@@ -162,7 +174,7 @@ class BuildaDevClient(BuildaClient):
             response.raise_for_status()
             return json.loads(response.content)["token"]
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def __construct_authorization_header(self, json=True) -> Dict[str, str]:
         """Constructs the header for authorization including the API token.
@@ -232,6 +244,292 @@ class BuildaDevClient(BuildaClient):
         buildings = self.__deserialize(response.content)
         return buildings
 
+    def get_buildings(
+        self,
+        building_type: Optional[str] = "",
+        street: str = "",
+        housenumber: str = "",
+        postcode: str = "",
+        city: str = "",
+        nuts_code: str = "",
+    ) -> list[Building]:
+        """[REQUIRES AUTHENTICATION] 
+        Gets all buildings that match the query parameters without sources.
+        
+        Args:
+            building_type (str): The type of building ('residential', 'non-residential', 'mixed'). 
+                If building_type = None returns all buildings without type.
+                If building_type = "", returns all buildings independent of type.
+            street (str, optional): The name of the street. Defaults to "".
+            housenumber (str, optional): The house number. Defaults to "".
+            postcode (str, optional): The postcode. Defaults to "".
+            city (str, optional): The city. Defaults to "".
+            nuts_code (str, optional): The NUTS-code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions or 2019 LAU definition.
+                Defaults to None.
+
+        Raises:
+            ServerException: When an error occurs on the server side..
+
+        Returns:
+            list[Building]: A list of buildings.
+        """
+
+        logging.debug(
+            """ApiClient: get_buildings(street=%s, housenumber=%s, postcode=%s, city=%s, 
+            nuts_code=%s, type=%s)""",
+            street,
+            housenumber,
+            postcode,
+            city,
+            nuts_code,
+            building_type,
+        )
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+
+        type_is_null = "False"
+        if building_type is None:
+            type_is_null = "True"
+            building_type = ""
+        elif building_type == '':
+            type_is_null = ""
+
+        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&type__isnull={type_is_null}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
+            logging.debug("ApiClient: received response. Checking for errors.")
+            response.raise_for_status()
+        except requests.HTTPError as err:
+            self.handle_exception(err)
+
+        logging.debug(
+            "ApiClient: received ok response, proceeding with deserialization."
+        )
+        results: list[Dict] = json.loads(response.content)
+        buildings: list[Building] = []
+        for result in results:
+            coordinates = Coordinates(
+                latitude=result["coordinates"]["latitude"],
+                longitude=result["coordinates"]["longitude"],
+            )
+            pv_potential = PvPotential(
+                capacity_kW=result["pv_potential"]["capacity_kW"],
+                generation_kWh=result["pv_potential"]["generation_kWh"],
+            ) if result["pv_potential"] else None
+            building = Building(
+                id=result["id"],
+                coordinates=coordinates,
+                address=result["address"],
+                footprint_area_m2=result["footprint_area_m2"],
+                height_m=result["height_m"],
+                elevation_m=result["elevation_m"],
+                type=result["type"],
+                roof_shape=result["roof_shape"],
+                pv_potential=pv_potential,
+                additional=result["additional"]
+            )
+            buildings.append(building)
+
+        return buildings
+    
+    def get_residential_buildings(
+        self,
+        street: str = "",
+        housenumber: str = "",
+        postcode: str = "",
+        city: str = "",
+        nuts_code: str = "",
+        include_mixed: bool = True,
+    ) -> list[ResidentialBuilding]:
+        """[REQUIRES AUTHENTICATION] 
+        Gets all residential buildings that match the query parameters.
+
+        Args:
+            street (str, optional): The name of the street. Defaults to "".
+            housenumber (str, optional): The house number. Defaults to "".
+            postcode (str, optional): The postcode. Defaults to "".
+            city (str, optional): The city. Defaults to "".
+            nuts_code (str, optional): The NUTS-code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions or 2019 LAU definition.
+                Defaults to "".
+            include_mixed (bool, optional): Whether or not to include mixed buildings.
+                Defaults to True.
+
+        Raises:
+            ServerException: When an error occurs on the server side..
+
+        Returns:
+            list[ResidentialBuilding]: A list of residential buildings.
+        """
+
+        logging.debug(
+            """ApiClient: get_buildings(street=%s, housenumber=%s, postcode=%s, city=%s, 
+            nuts_code=%s)""",
+            street,
+            housenumber,
+            postcode,
+            city,
+            nuts_code,
+        )
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        building_type = "" if include_mixed else "residential"
+
+        url: str = f"""{self.base_url}{self.RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}"""
+        try:
+            response: requests.Response = requests.get(
+                url, 
+                timeout=3600, 
+                headers=self.__construct_authorization_header()
+            )
+            logging.debug("ApiClient: received response. Checking for errors.")
+            response.raise_for_status()
+        except requests.HTTPError as err:
+            self.handle_exception(err)
+
+        logging.debug(
+            "ApiClient: received ok response, proceeding with deserialization."
+        )
+        results: list[Dict] = json.loads(response.content)
+        buildings: list[ResidentialBuilding] = []
+        for result in results:
+            coordinates = Coordinates(
+                latitude=result["coordinates"]["latitude"],
+                longitude=result["coordinates"]["longitude"],
+            )
+            pv_potential = PvPotential(
+                capacity_kW=result["pv_potential"]["capacity_kW"],
+                generation_kWh=result["pv_potential"]["generation_kWh"],
+            ) if result["pv_potential"] else None
+            building = ResidentialBuilding(
+                id=result["id"],
+                coordinates=coordinates,
+                address=result["address"],
+                footprint_area_m2=result["footprint_area_m2"],
+                height_m=result["height_m"],
+                elevation_m=result["elevation_m"],
+                type=result["type"],
+                construction_year=result["construction_year"],
+                roof_shape=result["roof_shape"],
+                pv_potential=pv_potential,
+                size_class=result["size_class"],
+                refurbishment_state=result["refurbishment_state"],
+                tabula_type=result["tabula_type"],
+                useful_area_m2=result["useful_area_m2"],
+                conditioned_living_area_m2=result["conditioned_living_area_m2"],
+                net_floor_area_m2=result["net_floor_area_m2"],
+                yearly_heat_demand_mwh=result["yearly_heat_demand_mwh"],
+                housing_unit_count=result["housing_unit_count"],
+                norm_heating_load_kw=result["norm_heating_load_kw"],
+                households=result["households"],
+                energy_system=result["energy_system"],
+                additional=result["additional"],
+            )
+            buildings.append(building)
+
+        return buildings
+    
+
+    def get_non_residential_buildings(
+        self,
+        street: str = "",
+        housenumber: str = "",
+        postcode: str = "",
+        city: str = "",
+        nuts_code: str = "",
+        include_mixed: bool = True,
+        exclude_auxiliary: bool = False,
+    ) -> list[NonResidentialBuilding]:
+        """[REQUIRES AUTHENTICATION] 
+        Gets all non-residential buildings that match the query parameters.
+
+        Args:
+            street (str, optional): The name of the street. Defaults to "".
+            housenumber (str, optional): The house number. Defaults to "".
+            postcode (str, optional): The postcode. Defaults to "".
+            city (str, optional): The city. Defaults to "".
+            nuts_code (str, optional): The NUTS-code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions or 2019 LAU definition.
+                Defaults to "".
+            include_mixed (bool, optional): Whether or not to include mixed buildings.
+                Defaults to True.
+            exclude_auxiliary (bool, optional): Whether to exclude auxiliary buildings.
+                Defaults to False.
+
+        Raises:
+            ServerException: When an error occurs on the server side..
+
+        Returns:
+            list[NonResidentialBuilding]: A list of non-residential buildings.
+        """
+
+        logging.debug(
+            """ApiClient: get_non_residential_buildings(street=%s, housenumber=%s, 
+            postcode=%s, city=%s, nuts_code=%s)""",
+            street,
+            housenumber,
+            postcode,
+            city,
+            nuts_code,
+        )
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        building_type = "" if include_mixed else "non-residential"
+
+        url: str = f"""{self.base_url}{self.NON_RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&exclude_auxiliary={exclude_auxiliary}"""
+        try:
+            response: requests.Response = requests.get(
+                url, 
+                timeout=3600,
+                headers=self.__construct_authorization_header())
+            logging.debug("ApiClient: received response. Checking for errors.")
+            response.raise_for_status()
+        except requests.HTTPError as err:
+            self.handle_exception(err)
+
+        logging.debug(
+            "ApiClient: received ok response, proceeding with deserialization."
+        )
+        results: list[Dict] = json.loads(response.content)
+        buildings: list[NonResidentialBuilding] = []
+        for result in results:
+            coordinates = Coordinates(
+                latitude=result["coordinates"]["latitude"],
+                longitude=result["coordinates"]["longitude"],
+            )
+            pv_potential = PvPotential(
+                capacity_kW=result["pv_potential"]["capacity_kW"],
+                generation_kWh=result["pv_potential"]["generation_kWh"],
+            ) if result["pv_potential"] else None
+            building = NonResidentialBuilding(
+                id=result["id"],
+                coordinates=coordinates,
+                address=result["address"],
+                footprint_area_m2=result["footprint_area_m2"],
+                height_m=result["height_m"],
+                elevation_m=result["elevation_m"],
+                type=result["type"],
+                roof_shape=result["roof_shape"],
+                use=result["use"],
+                pv_potential=pv_potential,
+                electricity_consumption_mwh=result["electricity_consumption_MWh"],
+                additional=result["additional"]
+            )
+            buildings.append(building)
+        return buildings
 
     def get_buildings_parcel(
         self, nuts_code: str = "", type: str = "", geom: Optional[Polygon] = None
@@ -264,7 +562,7 @@ class BuildaDevClient(BuildaClient):
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
@@ -289,7 +587,7 @@ class BuildaDevClient(BuildaClient):
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.")
+            self.handle_exception(e)
 
         logging.debug(
             "ApiClient: received ok response, proceeding with deserialization."
@@ -387,7 +685,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def add_parcels(self, parcels: list[Parcel]):
         """
@@ -409,7 +707,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def modify_building(self, building_id: str, building_data: Dict):
         if not self.api_token:
@@ -425,69 +723,8 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
-    def get_residential_buildings_energy_characteristics(
-        self,
-        nuts_code: str = "",
-        type: str = "",
-        geom: Optional[Polygon] = None,
-        heating_type: str = "",
-    ) -> list[BuildingEnergyCharacteristics]:
-        """Get energy related building information (commodities, heat demand [MWh], pv
-        generation [kWh]) for each building that fulfills the query parameters.
-
-        Args:
-            nuts_code (str | None, optional): The NUTS or LAU code, e.g. 'DE' for
-                Germany according to the 2021 NUTS code definitions. Defaults to None.
-            type (str): The type of building e.g. 'residential'
-        Raises:
-            ServerException: If an unexpected error occurrs on the server side.
-
-        Returns:
-            list[BuildingEnergyCharacteristics]: A list of building objects with energy
-                characteristics.
-        """
-        logging.debug(
-            "ApiClient: get_building_energy_characteristics(nuts_code=%s, type=%s)",
-            nuts_code,
-            type,
-        )
-        nuts_query_param: str = determine_nuts_query_param(nuts_code)
-
-        url: str = f"""{self.base_url}{self.BUILDINGS_ENERGY_CHARACTERISTICS_URL}?{nuts_query_param}={nuts_code}&type={type}&heating_commodity={heating_type}"""
-
-        if geom:
-            url += f"&geom={geom}"
-
-        try:
-            response: requests.Response = requests.get(url)
-            logging.debug("ApiClient: received response. Checking for errors.")
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.") from e
-
-        logging.debug(
-            "ApiClient: received ok response, proceeding with deserialization."
-        )
-
-        results: list[Dict] = json.loads(response.content)
-        buildings: list[BuildingEnergyCharacteristics] = []
-        for res in results:
-            building = BuildingEnergyCharacteristics(
-                id=res["id"],
-                type=res["type"],
-                heating_commodity=res["heating_commodity"],
-                cooling_commodity=res["cooling_commodity"],
-                water_heating_commodity=res["water_heating_commodity"],
-                cooking_commodity=res["cooking_commodity"],
-                heat_demand_mwh=res["heat_demand_MWh"],
-                norm_heating_load_kw=res["norm_heating_load_kW"],
-                pv_generation_potential_kwh=res["pv_generation_potential_kWh"],
-            )
-            buildings.append(building)
-
-        return buildings
 
     def refresh_buildings(self, building_type: str) -> None:
         """[REQUIRES AUTHENTICATION] Refreshes the materialized view 'buildings'.
@@ -521,7 +758,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def refresh_materialized_view(self, view_name: str):
         """[REQUIRES AUTHENTICATION] Refreshes the materialized view.
@@ -548,7 +785,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def get_building_stock(
         self, geom: Polygon | None = None, nuts_code: str = ""
@@ -620,7 +857,7 @@ class BuildaDevClient(BuildaClient):
 
         return buildings
 
-    def post_building_stock(self, buildings: list[BuildingStockEntry]) -> None:
+    def post_building_stock(self, buildings: list[BuildingStockInfo]) -> None:
         """[REQUIRES AUTHENTICATION]  Posts the building_stock data to the database.
 
         Args:
@@ -651,7 +888,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def get_buildings_geometry(
         self, geom: Polygon | None = None, nuts_code: str = "", building_type: str | None = "",
@@ -769,7 +1006,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_addresses(self, addresses: list[AddressInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts addresses to the database.
@@ -802,7 +1039,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_type_info(self, type_infos: list[TypeInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the type info data to the database.
@@ -837,7 +1074,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_use_info(self, use_infos: list[UseInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the use info data to the database.
@@ -872,7 +1109,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_height_info(self, height_infos: list[HeightInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
@@ -905,7 +1142,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_elevation_info(self, infos: list[ElevationInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the elevation data to the database.
@@ -938,7 +1175,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_floor_areas_info(self, floor_areas_infos: list[FloorAreasInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the floor area data to the database.
@@ -971,7 +1208,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_occupancy_info(self, occupancy_infos: list[OccupancyInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the housing unit count and households data to 
@@ -1006,7 +1243,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
 
     def post_energy_system_infos(
@@ -1046,7 +1283,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
 
     def post_energy_consumption(
@@ -1085,7 +1322,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_heat_demand(self, heat_demand_infos: list[HeatDemandInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the heat demand data to the database.
@@ -1118,7 +1355,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_norm_heating_load(self, heating_load_infos: list[NormHeatingLoadInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the norm heating load data to the database.
@@ -1151,7 +1388,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_pv_potential(self, pv_potential_infos: list[PvPotentialInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the pv potential data to the database.
@@ -1183,7 +1420,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_construction_year(
         self, construction_year_infos: list[ConstructionYearInfo]
@@ -1217,7 +1454,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_tabula_type(self, tabula_type_infos: list[TabulaTypeInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the tabula type data to the database.
@@ -1247,7 +1484,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_size_class(
         self, size_class_infos: list[SizeClassInfo]
@@ -1279,7 +1516,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
 
     def post_additional_info(self, additional_infos: list[AdditionalInfo]) -> None:
@@ -1313,7 +1550,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
 
     def post_timing_log(self, function_name: str, measured_time: float):
@@ -1335,7 +1572,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def get_nuts_region(self, nuts_code: str):
         logging.debug("ApiClient: get_nuts_region")
@@ -1413,7 +1650,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_roof_characteristics(self, roof_characteristics_infos: list[RoofCharacteristicsInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the roof characteristics data to the database.
@@ -1443,7 +1680,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def post_metadata(
         self, metadata: list[Metadata]
@@ -1477,7 +1714,7 @@ class BuildaDevClient(BuildaClient):
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
     def execute_query(
         self, query: str
@@ -1509,5 +1746,5 @@ class BuildaDevClient(BuildaClient):
             response.raise_for_status()
             return json.loads(response.content)
         except requests.exceptions.HTTPError as err:
-            self.__handle_exception(err)
+            self.handle_exception(err)
 
