@@ -15,6 +15,7 @@ from builda_client.model import (
     FloatSource,
     HeatDemandStatisticsByBuildingCharacteristics,
     IntSource,
+    LineageResponseDto,
     NonResidentialBuildingResponseDto,
     ResidentialBuildingResponseDto,
     SourceResponseDto,
@@ -204,13 +205,15 @@ class BuildaClient:
                     latitude=result["coordinates"]["value"]["latitude"],
                     longitude=result["coordinates"]["value"]["longitude"]
                 ),
-                source = result["coordinates"]["source"]
+                source = result["coordinates"]["source"],
+                lineage = result["coordinates"]["lineage"],
             )
             pv_potential = PvPotentialSource(
                 value = PvPotential(
                     capacity_kW=result["pv_potential"]["value"]["capacity_kW"],
                     generation_kWh=result["pv_potential"]["value"]["generation_kWh"]),
-                source = result["pv_potential"]["source"]
+                source = result["pv_potential"]["source"],
+                lineage = result["pv_potential"]["lineage"],
             ) if result["pv_potential"]["value"] else None
             address = AddressSource(
                 value = Address(
@@ -219,7 +222,8 @@ class BuildaClient:
                     postcode = result["address"]["value"]["postcode"],
                     city = result["address"]["value"]["city"],
                 ),
-                source = result["address"]["source"]
+                source = result["address"]["source"],
+                lineage = result["address"]["lineage"],
             )
 
             building = BuildingWithSourceDto(
@@ -227,10 +231,26 @@ class BuildaClient:
                 coordinates=coordinates,
                 address=address,
                 footprint_area_m2=result["footprint_area_m2"],
-                height_m=FloatSource(value=result["height_m"]["value"], source=result["height_m"]["source"]),
-                elevation_m=FloatSource(value=result["elevation_m"]["value"], source=result["elevation_m"]["source"]),
-                type=StringSource(value=result["type"]["value"], source=result["type"]["source"]),
-                roof_shape=StringSource(value=result["roof_shape"]["value"], source=result["roof_shape"]["source"]),
+                height_m=FloatSource(
+                    value=result["height_m"]["value"], 
+                    source=result["height_m"]["source"],
+                    lineage=result["height_m"]["lineage"],
+                    ),
+                elevation_m=FloatSource(
+                    value=result["elevation_m"]["value"], 
+                    source=result["elevation_m"]["source"],
+                    lineage=result["elevation_m"]["lineage"],
+                    ),
+                type=StringSource(
+                    value=result["type"]["value"], 
+                    source=result["type"]["source"],
+                    lineage=result["type"]["lineage"],
+                    ),
+                roof_shape=StringSource(
+                    value=result["roof_shape"]["value"], 
+                    source=result["roof_shape"]["source"],
+                    lineage=result["roof_shape"]["lineage"],
+                    ),
                 pv_potential=pv_potential,
                 additional=result["additional"]
             )
@@ -249,7 +269,19 @@ class BuildaClient:
             
             data_sources.append(source)
 
-        return BuildingResponseDto(buildings=buildings, sources=data_sources)
+        lineages: list[LineageResponseDto] = []
+        for entry in results["lineages"]:
+            lineage = LineageResponseDto(
+                key=entry["key"],
+                description=entry["description"],
+            )
+            
+            lineages.append(lineage)
+
+        return BuildingResponseDto(
+            buildings=buildings, 
+            sources=data_sources, 
+            lineages=lineages)
 
     
     def get_residential_buildings(
@@ -311,13 +343,15 @@ class BuildaClient:
                 value = Coordinates(
                     latitude=result["coordinates"]['value']["latitude"],
                     longitude=result["coordinates"]['value']["longitude"]),
-                source = result["coordinates"]["source"]
+                source = result["coordinates"]["source"],
+                lineage = result["coordinates"]["lineage"],
             )
             pv_potential = PvPotentialSource(
                 value = PvPotential(
                     capacity_kW=result["pv_potential"]["value"]["capacity_kW"],
                     generation_kWh=result["pv_potential"]["value"]["generation_kWh"]),
-                source = result["pv_potential"]["source"]
+                source = result["pv_potential"]["source"],
+                lineage = result["pv_potential"]["lineage"],
             ) if result["pv_potential"]["value"] else None
             address = AddressSource(
                 value = Address(
@@ -326,29 +360,90 @@ class BuildaClient:
                     postcode = result["address"]["value"]["postcode"],
                     city = result["address"]["value"]["city"],
                 ),
-                source = result["address"]["source"]
+                source = result["address"]["source"],
+                lineage = result["address"]["lineage"],
             )
             building = ResidentialBuildingWithSourceDto(
                 id=result["id"],
                 coordinates=coordinates,
                 address=address,
                 footprint_area_m2=result["footprint_area_m2"],
-                height_m=FloatSource(value=result["height_m"]["value"], source=result["height_m"]["source"]),
-                elevation_m=FloatSource(value=result["elevation_m"]["value"], source=result["elevation_m"]["source"]),
-                type=StringSource(value=result["type"]["value"], source=result["type"]["source"]),
-                roof_shape=StringSource(value=result["roof_shape"]["value"], source=result["roof_shape"]["source"]),
-                construction_year=result["construction_year"],
+                height_m=FloatSource(
+                    value=result["height_m"]["value"], 
+                    source=result["height_m"]["source"],
+                    lineage=result["height_m"]["lineage"],
+                    ),
+                elevation_m=FloatSource(
+                    value=result["elevation_m"]["value"], 
+                    source=result["elevation_m"]["source"],
+                    lineage=result["elevation_m"]["lineage"],
+                    ),
+                type=StringSource(
+                    value=result["type"]["value"], 
+                    source=result["type"]["source"],
+                    lineage=result["type"]["source"],
+                    ),
+                roof_shape=StringSource(
+                    value=result["roof_shape"]["value"], 
+                    source=result["roof_shape"]["source"],
+                    lineage=result["roof_shape"]["lineage"],
+                    ),
+                construction_year=IntSource(
+                    value=result["construction_year"]["value"],
+                    source=result["construction_year"]["source"],
+                    lineage=result["construction_year"]["lineage"],
+                    ),
                 pv_potential=pv_potential,
-                size_class=StringSource(value=result["size_class"]["value"], source=result["size_class"]["source"]),
-                refurbishment_state=IntSource(value=result["refurbishment_state"]["value"], source=result["refurbishment_state"]["source"]),
-                tabula_type=StringSource(value=result["tabula_type"]["value"], source=result["tabula_type"]["source"]),
-                useful_area_m2=FloatSource(value=result["useful_area_m2"]["value"], source=result["useful_area_m2"]["source"]),
-                conditioned_living_area_m2=FloatSource(value=result["conditioned_living_area_m2"]["value"], source=result["conditioned_living_area_m2"]["source"]),
-                net_floor_area_m2=FloatSource(value=result["net_floor_area_m2"]["value"], source=result["net_floor_area_m2"]["source"]),
-                yearly_heat_demand_mwh=FloatSource(value=result["yearly_heat_demand_mwh"]["value"], source=result["yearly_heat_demand_mwh"]["source"]),
-                housing_unit_count=IntSource(value=result["housing_unit_count"]["value"], source=result["housing_unit_count"]["source"]),
-                norm_heating_load_kw=FloatSource(value=result["norm_heating_load_kw"]["value"], source=result["norm_heating_load_kw"]["source"]),
-                households=StringSource(value=result["households"]["value"], source=result["households"]["source"]),
+                size_class=StringSource(
+                    value=result["size_class"]["value"], 
+                    source=result["size_class"]["source"],
+                    lineage=result["size_class"]["lineage"],
+                    ),
+                refurbishment_state=IntSource(
+                    value=result["refurbishment_state"]["value"], 
+                    source=result["refurbishment_state"]["source"],
+                    lineage=result["refurbishment_state"]["lineage"],
+                    ),
+                tabula_type=StringSource(
+                    value=result["tabula_type"]["value"], 
+                    source=result["tabula_type"]["source"],
+                    lineage=result["tabula_type"]["lineage"],
+                    ),
+                useful_area_m2=FloatSource(
+                    value=result["useful_area_m2"]["value"], 
+                    source=result["useful_area_m2"]["source"],
+                    lineage=result["useful_area_m2"]["lineage"],
+                    ),
+                conditioned_living_area_m2=FloatSource(
+                    value=result["conditioned_living_area_m2"]["value"], 
+                    source=result["conditioned_living_area_m2"]["source"],
+                    lineage=result["conditioned_living_area_m2"]["lineage"],
+                    ),
+                net_floor_area_m2=FloatSource(
+                    value=result["net_floor_area_m2"]["value"], 
+                    source=result["net_floor_area_m2"]["source"],
+                    lineage=result["net_floor_area_m2"]["lineage"],
+                    ),
+                yearly_heat_demand_mwh=FloatSource(
+                    value=result["yearly_heat_demand_mwh"]["value"], 
+                    source=result["yearly_heat_demand_mwh"]["source"],
+                    lineage=result["yearly_heat_demand_mwh"]["lineage"],
+                    ),
+                housing_unit_count=IntSource(
+                    value=result["housing_unit_count"]["value"], 
+                    source=result["housing_unit_count"]["source"],
+                    lineage=result["housing_unit_count"]["lineage"],
+                    ),
+                norm_heating_load_kw=FloatSource(
+                    value=result["norm_heating_load_kw"]["value"], 
+                    source=result["norm_heating_load_kw"]["source"],
+                    lineage=result["norm_heating_load_kw"]["lineage"],
+                    ),
+                households=StringSource(
+                    value=result["households"]["value"], 
+                    source=result["households"]["source"],
+                    lineage=result["households"]["lineage"],
+                    ),
                 energy_system=result["energy_system"],
                 additional=result["additional"],
             )
@@ -366,8 +461,20 @@ class BuildaClient:
             )
             
             data_sources.append(source)
+        
+        data_lineages: list[LineageResponseDto] = []
+        for entry in results["lineages"]:
+            lineage = LineageResponseDto(
+                key=entry["key"],
+                description=entry["description"],
+            )
+            
+            data_lineages.append(lineage)
 
-        return ResidentialBuildingResponseDto(buildings=buildings, sources=data_sources)
+        return ResidentialBuildingResponseDto(
+            buildings=buildings, 
+            sources=data_sources, 
+            lineages=data_lineages)
     
 
     def get_non_residential_buildings(
@@ -433,7 +540,8 @@ class BuildaClient:
                     latitude=result["coordinates"]["value"]["latitude"],
                     longitude=result["coordinates"]["value"]["longitude"]
                 ),
-                source = result["coordinates"]["source"]
+                source = result["coordinates"]["source"],
+                lineage = result["coordinates"]["lineage"],
             )
             pv_potential = PvPotentialSource(
                 value = PvPotential(
@@ -441,19 +549,44 @@ class BuildaClient:
                     generation_kWh=result["pv_potential"]["value"]["generation_kWh"]
                 ),
                 source = result["pv_potential"]["source"],
+                lineage = result["pv_potential"]["lineage"],
             ) if result["pv_potential"]["value"] else None
             building = NonResidentialBuildingWithSourceDto(
                 id=result["id"],
                 coordinates=coordinates,
                 address=result["address"],
                 footprint_area_m2=result["footprint_area_m2"],
-                height_m=FloatSource(value=result["height_m"]["value"], source=result["height_m"]["source"]),
-                elevation_m=FloatSource(value=result["elevation_m"]["value"], source=result["elevation_m"]["source"]),
-                type=StringSource(value=result["type"]["value"], source=result["type"]["source"]),
-                roof_shape=StringSource(value=result["roof_shape"]["value"], source=result["roof_shape"]["source"]),
+                height_m=FloatSource(
+                    value=result["height_m"]["value"], 
+                    source=result["height_m"]["source"],
+                    lineage=result["height_m"]["lineage"],
+                    ),
+                elevation_m=FloatSource(
+                    value=result["elevation_m"]["value"], 
+                    source=result["elevation_m"]["source"],
+                    lineage=result["elevation_m"]["lineage"],
+                    ),
+                type=StringSource(
+                    value=result["type"]["value"], 
+                    source=result["type"]["source"],
+                    lineage=result["type"]["lineage"],
+                    ),
+                roof_shape=StringSource(
+                    value=result["roof_shape"]["value"], 
+                    source=result["roof_shape"]["source"],
+                    lineage=result["roof_shape"]["lineage"],
+                    ),
                 pv_potential=pv_potential,
-                use=StringSource(value=result["use"]["value"], source=result["use"]["source"]),
-                electricity_consumption_mwh=FloatSource(value=result["electricity_consumption_MWh"]["value"], source=result["electricity_consumption_MWh"]["source"]),
+                use=StringSource(
+                    value=result["use"]["value"], 
+                    source=result["use"]["source"],
+                    lineage=result["use"]["lineage"],
+                    ),
+                electricity_consumption_mwh=FloatSource(
+                    value=result["electricity_consumption_MWh"]["value"], 
+                    source=result["electricity_consumption_MWh"]["source"],
+                    lineage=result["electricity_consumption_MWh"]["lineage"],
+                    ),
                 additional=result["additional"]
             )
             buildings.append(building)
@@ -471,7 +604,19 @@ class BuildaClient:
             
             data_sources.append(source)
 
-        return NonResidentialBuildingResponseDto(buildings=buildings, sources=data_sources)
+        data_lineages: list[LineageResponseDto] = []
+        for entry in results["lineages"]:
+            lineage = LineageResponseDto(
+                key=entry["key"],
+                description=entry["description"],
+            )
+            
+            data_lineages.append(lineage)
+
+        return NonResidentialBuildingResponseDto(
+            buildings=buildings, 
+            sources=data_sources, 
+            lineages=data_lineages)
     
 
     def get_building_type_statistics(

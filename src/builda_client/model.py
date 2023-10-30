@@ -7,6 +7,7 @@ from uuid import UUID
 
 from shapely.geometry import MultiPolygon, Point, Polygon
 
+
 @dataclass
 class Metadata:
     key: str
@@ -18,6 +19,13 @@ class Metadata:
     extent: Optional[str]
     license: Optional[str]
     citation: Optional[str]
+
+
+@dataclass
+class Lineage:
+    key: str
+    description: str
+
 
 @dataclass
 class Address:
@@ -31,7 +39,6 @@ class Address:
 class Parcel:
     id: UUID
     shape: Polygon
-    source: str
 
 
 @dataclass
@@ -55,6 +62,13 @@ class SourceResponseDto:
     license: str
     citation: str
 
+
+@dataclass
+class LineageResponseDto:
+    key: str
+    description: str
+
+
 @dataclass
 class RoofGeometry:
     centroid: Coordinates
@@ -62,41 +76,49 @@ class RoofGeometry:
     tilt: float
     area: float
 
-@dataclass 
+
+@dataclass
 class PvPotential:
     capacity_kW: float
     generation_kWh: float
 
+
 ### Buildings with sources (for public use)
 @dataclass
-class AddressSource:
+class SourceLineageResponseDto:
+    source: str
+    lineage: str
+
+
+@dataclass
+class AddressSource(SourceLineageResponseDto):
     value: Address
-    source: str
+
 
 @dataclass
-class FloatSource:
+class FloatSource(SourceLineageResponseDto):
     value: float
-    source: str
+
 
 @dataclass
-class IntSource:
+class IntSource(SourceLineageResponseDto):
     value: int
-    source: str
+
 
 @dataclass
-class StringSource:
+class StringSource(SourceLineageResponseDto):
     value: str
-    source: str
+
 
 @dataclass
-class PvPotentialSource:
+class PvPotentialSource(SourceLineageResponseDto):
     value: PvPotential
-    source: str
-    
+
+
 @dataclass
-class CoordinatesSource:
+class CoordinatesSource(SourceLineageResponseDto):
     value: Coordinates
-    source: str
+
 
 @dataclass
 class BuildingWithSourceDto:
@@ -111,16 +133,19 @@ class BuildingWithSourceDto:
     pv_potential: PvPotentialSource
     additional: StringSource
 
+
 @dataclass
 class BuildingResponseDto:
     buildings: list[BuildingWithSourceDto]
     sources: list[SourceResponseDto]
+    lineages: list[LineageResponseDto]
+
 
 @dataclass
 class ResidentialBuildingWithSourceDto(BuildingWithSourceDto):
     size_class: StringSource
     refurbishment_state: IntSource
-    construction_year: FloatSource
+    construction_year: IntSource
     tabula_type: StringSource
     useful_area_m2: FloatSource
     conditioned_living_area_m2: FloatSource
@@ -131,20 +156,26 @@ class ResidentialBuildingWithSourceDto(BuildingWithSourceDto):
     yearly_heat_demand_mwh: FloatSource
     norm_heating_load_kw: FloatSource
 
+
 @dataclass
 class ResidentialBuildingResponseDto:
     buildings: list[ResidentialBuildingWithSourceDto]
     sources: list[SourceResponseDto]
+    lineages: list[LineageResponseDto]
+
 
 @dataclass
 class NonResidentialBuildingWithSourceDto(BuildingWithSourceDto):
     use: StringSource
     electricity_consumption_mwh: FloatSource
 
+
 @dataclass
 class NonResidentialBuildingResponseDto:
     buildings: list[NonResidentialBuildingWithSourceDto]
     sources: list[SourceResponseDto]
+    lineages: list[LineageResponseDto]
+
 
 ### Buildings without sources (for internal use only)
 @dataclass
@@ -159,6 +190,7 @@ class Building:
     type: str
     pv_potential: PvPotential | None
     additional: str
+
 
 @dataclass
 class ResidentialBuilding(Building):
@@ -175,6 +207,7 @@ class ResidentialBuilding(Building):
     yearly_heat_demand_mwh: float
     norm_heating_load_kw: float
 
+
 @dataclass
 class NonResidentialBuilding(Building):
     use: str
@@ -187,6 +220,7 @@ class BuildingBase:
     footprint: MultiPolygon
     centroid: Point
     type: str
+
 
 @dataclass
 class BuildingGeometry:
@@ -247,12 +281,16 @@ class BuildingStockEntry:
     nuts0: str
     lau: str
 
+
 ### Info classes (for posting to DB during development)
+
 
 @dataclass
 class Info:
     building_id: str
     source: str
+    lineage: str
+
 
 @dataclass
 class BuildingStockInfo(Info):
@@ -264,15 +302,16 @@ class BuildingStockInfo(Info):
     nuts1: str
     nuts0: str
     lau: str
-    
+
+
 @dataclass
 class AddressInfo(Info):
     address: str
 
+
 @dataclass
 class TypeInfo(Info):
     value: str
-    lineage: str
     priority: int  # TODO use metadata table reference instead
 
 
@@ -280,21 +319,20 @@ class TypeInfo(Info):
 class UseInfo(Info):
     value: str
     value_raw: str
-    lineage: str
     priority: int  # TODO use metadata table reference instead
 
 
 @dataclass
 class HeightInfo(Info):
     value: float
-    lineage: str
     priority: int
+
 
 @dataclass
 class ElevationInfo(Info):
     value: float
-    lineage: str
     priority: int
+
 
 @dataclass
 class ParcelInfo(Info):
@@ -306,11 +344,12 @@ class OccupancyInfo(Info):
     housing_unit_count: int
     households: str
     priority: int
-    lineage: str
+
 
 @dataclass
 class EnergySystemInfo(Info):
     value: str
+
 
 @dataclass
 class EnergyConsumption(Info):
@@ -350,6 +389,7 @@ class RoofCharacteristicsInfo(Info):
     shape: str
     geometry: str
 
+
 @dataclass
 class SizeClassInfo(Info):
     value: str
@@ -375,7 +415,9 @@ class AdditionalInfo(Info):
     value: str
     lineage: str
 
+
 ### Statistics (for public and internal use)
+
 
 @dataclass
 class Statistics(ABC):
@@ -449,8 +491,9 @@ class RefurbishmentStateStatistics(Statistics):
 class HeatDemandStatistics(Statistics):
     yearly_heat_demand_mwh: float
 
+
 @dataclass
-class HeatDemandStatisticsByBuildingCharacteristics():
+class HeatDemandStatisticsByBuildingCharacteristics:
     country: str
     size_class: str
     construction_year: int
