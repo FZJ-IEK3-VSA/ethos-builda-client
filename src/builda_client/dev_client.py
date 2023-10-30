@@ -21,6 +21,7 @@ from builda_client.model import (
     Coordinates,
     ElevationInfo,
     FloorAreasInfo,
+    Lineage,
     NonResidentialBuilding,
     NormHeatingLoadInfo,
     PvPotential,
@@ -110,6 +111,7 @@ class BuildaDevClient(BuildaClient):
     ADDITIONAL_URL = "additional"
 
     METADATA_URL = "metadata"
+    LINEAGE_URL = "lineage"
 
     CUSTOM_QUERY_URL = "custom-query"
 
@@ -1705,6 +1707,40 @@ class BuildaDevClient(BuildaClient):
         url: str = f"""{self.base_url}{self.METADATA_URL}"""
         metadata_json = json.dumps(
             metadata, cls=EnhancedJSONEncoder
+        )
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=metadata_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+    def post_lineage(
+        self, lineage: list[Lineage]
+    ) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the lineage descriptions to the database.
+
+        Args:
+            metadata (list[Metadata]): The metadata to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the case because username and password were not specified when initializing the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_metadata")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                "This endpoint is private. You need to provide username and password when initializing the client."
+            )
+
+        url: str = f"""{self.base_url}{self.LINEAGE_URL}"""
+        metadata_json = json.dumps(
+            lineage, cls=EnhancedJSONEncoder
         )
         try:
             response: requests.Response = requests.post(
