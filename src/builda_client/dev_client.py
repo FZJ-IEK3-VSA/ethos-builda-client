@@ -254,6 +254,7 @@ class BuildaDevClient(BuildaClient):
         postcode: str = "",
         city: str = "",
         nuts_code: str = "",
+        ids: Optional[list[str]] = None
     ) -> list[Building]:
         """[REQUIRES AUTHENTICATION] 
         Gets all buildings that match the query parameters without sources.
@@ -302,6 +303,9 @@ class BuildaDevClient(BuildaClient):
             type_is_null = ""
 
         url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}&type__isnull={type_is_null}"""
+        if ids:
+            url += f"&id__in={','.join(ids)}"
+
         try:
             response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
             logging.debug("ApiClient: received response. Checking for errors.")

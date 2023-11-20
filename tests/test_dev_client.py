@@ -39,6 +39,11 @@ class TestDevBuildaClient:
         buildings = self.testee.get_buildings()
         self.__then_result_list_min_length_returned(buildings, 1)
 
+    def test_get_buildings_by_id(self):
+        self.__given_client_authenticated()
+        buildings = self.testee.get_buildings(ids=["DE9_DENILD1100000hW0", "DE9_DENILD1100000hW1"])
+        self.then_result_list_correct_length_returned(buildings, 2)
+
     def test_get_buildings_type_residential(self):
         self.__given_client_authenticated()
         buildings = self.testee.get_buildings(
@@ -46,6 +51,13 @@ class TestDevBuildaClient:
         )
         self.__then_result_list_min_length_returned(buildings, 1)
         assert all(pd.DataFrame(buildings)["type"] == 'residential')
+
+    def test_get_buildings_by_type_and_id(self):
+        self.__given_client_authenticated()
+        buildings = self.testee.get_buildings(
+            ids=["DE9_DENILD1100000hW0", "DE9_DENILD1100000hW4"],
+            building_type='residential')
+        self.then_result_list_correct_length_returned(buildings, 1)
 
     def test_get_buildings_type_non_residential(self):
         self.__given_client_authenticated()
