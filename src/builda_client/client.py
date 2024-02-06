@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, Tupel
 
 import requests
 from shapely.geometry import Polygon
@@ -96,32 +96,30 @@ class BuildaClient:
 
     def __init__(
         self,
-        proxy: bool = False,
-        phase: str = 'staging'
+        proxy: Tuple[str, str] = None,
     ):
         """Constructor.
 
         Args:
-            proxy (bool, optional): Whether to use a proxy or not. Proxy should be used
-                when using client on cluster compute nodes. Defaults to False.
+            proxy (Tuple[str, str], optional): Proxy host and port. Proxy should be used
+                when using client on cluster compute nodes. Defaults to None.
             phase (str, optional): The phase of the release process. For normal users
                 this should not be modified; developpers might set to 'dev'. Defaults 
-                to 'staging'.
+                to 'production'.
         """
         logging.basicConfig(level=logging.WARN)
 
-        self.phase: str = phase
         requests_log = logging.getLogger("urllib3")
         requests_log.setLevel(logging.WARN)
         requests_log.propagate = True
 
         self.config = load_config()
         if proxy:
-            host = self.config["proxy"]["host"]
-            port = self.config["proxy"]["port"]
+            host = proxy[0]
+            port = proxy[1]
         else:
-            host = self.config[self.phase]["api"]["host"]
-            port = self.config[self.phase]["api"]["port"]
+            host = self.config["production"]["api"]["host"]
+            port = self.config["production"]["api"]["port"]
 
         self.base_url = f"""http://{host}:{port}{self.config['base_url']}"""
 
