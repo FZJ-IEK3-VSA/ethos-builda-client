@@ -10,8 +10,7 @@ from builda_client.dev_client import BuildaDevClient
 from builda_client.exceptions import MissingCredentialsException
 from builda_client.model import (AddressInfo, Building,
                                  BuildingEnergyCharacteristics,
-                                 BuildingHouseholds, BuildingParcel,
-                                 BuildingStockEntry,
+                                 BuildingParcel,
                                  ConstructionYearStatistics, NutsRegion,
                                  Parcel)
 
@@ -27,8 +26,64 @@ class TestDevBuildaClient:
 
     def test_get_building_ids(self):
         self.__given_client_unauthenticated()
-        building_ids = self.testee.get_building_ids(nuts_code='DE5', type='residential')
+        building_ids = self.testee.get_building_ids(nuts_code='DE9', type='residential')
         self.__then_result_list_min_length_returned(building_ids, 1)
+
+    def test_get_buildings_raises_missing_credentials_exception(self):
+        self.__given_client_unauthenticated()
+        with pytest.raises(MissingCredentialsException):
+            self.testee.get_buildings()
+
+    def test_get_buildings(self):
+        self.__given_client_authenticated()
+        buildings = self.testee.get_buildings()
+        self.__then_result_list_min_length_returned(buildings, 1)
+
+    def test_get_buildings_by_id(self):
+        self.__given_client_authenticated()
+        buildings = self.testee.get_buildings(ids=["DE9_DENILD1100000hW0", "DE9_DENILD1100000hW1"])
+        self.then_result_list_correct_length_returned(buildings, 2)
+
+    def test_get_buildings_type_residential(self):
+        self.__given_client_authenticated()
+        buildings = self.testee.get_buildings(
+            building_type="residential",
+        )
+        self.__then_result_list_min_length_returned(buildings, 1)
+        assert all(pd.DataFrame(buildings)["type"] == 'residential')
+
+    def test_get_buildings_by_type_and_id(self):
+        self.__given_client_authenticated()
+        buildings = self.testee.get_buildings(
+            ids=["DE9_DENILD1100000hW0", "DE9_DENILD1100000hW4"],
+            building_type='residential')
+        self.then_result_list_correct_length_returned(buildings, 1)
+
+    def test_get_buildings_type_non_residential(self):
+        self.__given_client_authenticated()
+        buildings = self.testee.get_buildings(
+            building_type="non-residential",
+        )
+        self.__then_result_list_min_length_returned(buildings, 1)
+        assert all(pd.DataFrame(buildings)["type"] == 'non-residential')
+
+    def test_get_buildings_type_mixed(self):
+        self.__given_client_authenticated()
+        buildings = self.testee.get_buildings(
+            building_type="mixed"
+        )
+        self.__then_result_list_min_length_returned(buildings, 1)
+        assert all(pd.DataFrame(buildings)["type"] == 'mixed')
+
+    def test_get_residential_buildings(self):
+        self.__given_client_authenticated()
+        buildings = self.testee.get_residential_buildings()
+        self.__then_result_list_min_length_returned(buildings, 1)
+
+    def test_get_non_residential_buildings_exclude_auxiliary(self):
+        self.__given_client_authenticated()
+        non_residential_buildings = self.testee.get_non_residential_buildings(exclude_auxiliary=True)
+        assert (pd.json_normalize(pd.DataFrame(non_residential_buildings)['use'])['sector'] == 'auxiliary').sum() == 0
 
     def test_get_building_ids_geom(self):
         self.__given_client_unauthenticated()
@@ -37,38 +92,28 @@ class TestDevBuildaClient:
         self.__then_result_list_min_length_returned(building_ids, 1)
 
     def test_get_buildings_geometry_with_no_type(self):
-        self.__given_client_unauthenticated()
+        self.__given_client_authenticated()
         buildings = self.testee.get_buildings_geometry(building_type=None, nuts_code='DE943')
-        assert all([b.type == None for b in buildings])
+        assert all([b.type is None for b in buildings])
 
     def test_get_buildings_geometry_type_mixed(self):
-        self.__given_client_unauthenticated()
+        self.__given_client_authenticated()
         buildings = self.testee.get_buildings_geometry(building_type="mixed", nuts_code='DE943')
         assert all([b.type == "mixed" for b in buildings])
 
     def test_get_buildings_geometry_all_types(self):
-        self.__given_client_unauthenticated()
+        self.__given_client_authenticated()
         buildings = self.testee.get_buildings_geometry(building_type="", nuts_code='DE943')
         assert all([b.type in ["residential", "non-residential", "mixed", None] for b in buildings])
-
-    def test_get_building_energy_characteristics_succeeds(self):
-        self.__given_client_unauthenticated()
-        bu_energy = self.testee.get_residential_buildings_energy_characteristics(nuts_code="DE80N")
-        self.__then_building_energy_characteristics_returned(bu_energy)
 
     def test_get_nuts_region(self):
         self.__given_client_unauthenticated()
         result = self.testee.get_nuts_region("DE")
         self.__then_nuts_region_with_code_returned(result, "DE")
 
-    def test_get_buildings_households(self):
-        self.__given_client_unauthenticated()
-        buildings_households = self.testee.get_buildings_households(nuts_code="DE80N")
-        self.__then_buildings_with_households_returned(buildings_households)
-
     def test_get_building_parcel_succeeds(self):
         self.__given_client_unauthenticated()
-        building_parcel = self.testee.get_buildings_parcel(nuts_code="DE80N")
+        building_parcel = self.testee.get_buildings_parcel(nuts_code="DE943")
         self.__then_buildings_with_parcel_returned(building_parcel)
 
     def test_get_nuts_children_succeeds(self):
@@ -83,12 +128,12 @@ class TestDevBuildaClient:
 
     def test_get_buildings_base_no_type(self):
         self.__given_client_unauthenticated()
-        buildings = self.testee.get_buildings_base('ES11')
-        buildings
+        buildings = self.testee.get_buildings_base('DE943')
+        self.__then_result_list_min_length_returned(buildings, 1)
 
     def test_execute_custom_query(self):
         self.__given_client_authenticated()
-        result = self.testee.execute_query("SELECT COUNT(*) FROM result.old_all_buildings")
+        result = self.testee.execute_query("SELECT COUNT(*) FROM result.all_buildings")
         assert result
 
     # TODO comment in once test db is in place
@@ -187,9 +232,6 @@ class TestDevBuildaClient:
         assert isinstance(result, NutsRegion)
         assert result.code == code
 
-    def __then_buildings_with_households_returned(self, result):
-        assert len(result) > 0
-        assert isinstance(result[0], BuildingHouseholds)
 
     def __then_buildings_with_parcel_returned(self, result):
         assert len(result) > 0

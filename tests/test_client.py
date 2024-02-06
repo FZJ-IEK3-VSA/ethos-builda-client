@@ -6,6 +6,7 @@ from shapely import wkt
 from shapely.geometry import Polygon
 
 from builda_client.client import BuildaClient
+from builda_client.model import BuildingResponseDto, NonResidentialBuildingResponseDto, ResidentialBuildingResponseDto
 
 __author__ = "k.dabrock"
 __copyright__ = "k.dabrock"
@@ -16,55 +17,167 @@ class TestBuildaClient:
     """Integration tests for API client for reading methods."""
 
     testee: BuildaClient
+    OLDENBURG_LAU = '03403000'
 
     ### BUILDINGS ###
     def test_get_buildings(self):
         self.given_client()
-        buildings = self.testee.get_buildings(
-            nuts_code='DE943'
+        result: BuildingResponseDto = self.testee.get_buildings(
+            nuts_code=self.OLDENBURG_LAU
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-
-    def test_get_buildings_geometry(self):
-        self.given_client()
-        buildings = self.testee.get_buildings_geometry(
-            nuts_code='09780133'
-        )
-        self.__then_result_list_min_length_returned(buildings, 1)
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
 
     def test_get_buildings_type_residential(self):
         self.given_client()
-        buildings = self.testee.get_buildings(
-            building_type="residential", city="Arpsdorf", street="Dorfstraße"
+        result: BuildingResponseDto = self.testee.get_buildings(
+            building_type="residential", nuts_code=self.OLDENBURG_LAU,
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] == "residential"))
+
+    def test_get_buildings_type_non_residential(self):
+        self.given_client()
+        result: BuildingResponseDto = self.testee.get_buildings(
+            building_type="non-residential", nuts_code=self.OLDENBURG_LAU,
+        )
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] == "non-residential"))
+
+    def test_get_buildings_type_mixed(self):
+        self.given_client()
+        result: BuildingResponseDto = self.testee.get_buildings(
+            building_type="mixed", nuts_code=self.OLDENBURG_LAU,
+        )
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] == "mixed"))
+
+    def test_get_buildings_by_postcode(self):
+        postcode = '26127'
+        self.given_client()
+        result: BuildingResponseDto = self.testee.get_buildings(
+            postcode=postcode
+        )
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["postcode"] == postcode))
+
+    def test_get_buildings_by_city(self):
+        city = 'Edewecht'
+        self.given_client()
+        result: BuildingResponseDto = self.testee.get_buildings(
+            city=city
+        )
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["city"] == city))
+
+    def test_get_buildings_by_street(self):
+        street = 'Kuckucksweg'
+        self.given_client()
+        result: BuildingResponseDto = self.testee.get_buildings(
+            street=street
+        )
+        assert isinstance(result, BuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["street"] == street))
+
+    def test_get_buildings_by_address(self):
+        street = 'Rotkehlchenweg'
+        house_number = '11A'
+        postcode = '26215'
+        city = 'Wiefelstede'
+        self.given_client()
+        result: BuildingResponseDto = self.testee.get_buildings(
+            street=street, housenumber=house_number, postcode=postcode, city=city
+        )
+        self.then_result_list_correct_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["street"] == street))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["house_number"] == house_number))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["postcode"] == postcode))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["city"] == city))
 
     def test_get_residential_buildings(self):
         self.given_client()
-        buildings = self.testee.get_residential_buildings(
-            city="Arpsdorf", street="Dorfstraße"
+        result: ResidentialBuildingResponseDto = self.testee.get_residential_buildings(
+            nuts_code=self.OLDENBURG_LAU, include_mixed = True
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
-
-    def test_get_residential_buildings_by_lau(self):
+        assert isinstance(result, ResidentialBuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] in ['residential', "mixed"]))
+        
+    def test_get_residential_buildings_by_address(self):
+        street = 'Rotkehlchenweg'
+        house_number = '11A'
+        postcode = '26215'
+        city = 'Wiefelstede'
         self.given_client()
-        buildings = self.testee.get_residential_buildings(
-            nuts_code="01058007"
+        result: ResidentialBuildingResponseDto = self.testee.get_residential_buildings(
+            street=street, housenumber=house_number, postcode=postcode, city=city
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
+        assert isinstance(result, ResidentialBuildingResponseDto)
+        self.then_result_list_correct_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["street"] == street))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["house_number"] == house_number))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["postcode"] == postcode))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["city"] == city))
+
+    def test_get_residential_buildings_without_mixed(self):
+        self.given_client()
+        result: ResidentialBuildingResponseDto = self.testee.get_residential_buildings(
+            nuts_code=self.OLDENBURG_LAU, include_mixed = False
+        )
+        assert isinstance(result, ResidentialBuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] == "residential"))
 
     def test_get_non_residential_buildings(self):
         self.given_client()
-        buildings = self.testee.get_non_residential_buildings(
-            city="Arpsdorf", street="Dorfstraße"
+        result: NonResidentialBuildingResponseDto = self.testee.get_non_residential_buildings(
+            nuts_code=self.OLDENBURG_LAU, include_mixed = True
         )
-        self.__then_result_list_min_length_returned(buildings, 1)
+        assert isinstance(result, NonResidentialBuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] in ['non-residential', "mixed"]))
 
-    ### METADATA ###
-    def test_get_building_sources(self):
+    def test_get_non_residential_buildings_by_address(self):
+        street = 'Schulweg'
+        house_number = '6B'
+        postcode = '26215'
+        city = 'Wiefelstede'
         self.given_client()
-        sources = self.testee.get_building_sources("DE1_1000010573")
-        self.__then_result_list_min_length_returned(sources, 1)
+        result: NonResidentialBuildingResponseDto = self.testee.get_non_residential_buildings(
+            street=street, housenumber=house_number, postcode=postcode, city=city
+        )
+        assert isinstance(result, NonResidentialBuildingResponseDto)
+        self.then_result_list_correct_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["street"] == street))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["house_number"] == house_number))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["postcode"] == postcode))
+        assert all(pd.DataFrame(result.buildings)["address"].apply(lambda x: x["value"]["city"] == city))
+
+    def test_get_non_residential_buildings_without_mixed(self):
+        self.given_client()
+        result: NonResidentialBuildingResponseDto = self.testee.get_non_residential_buildings(
+            nuts_code=self.OLDENBURG_LAU, include_mixed = False
+        )
+        assert isinstance(result, NonResidentialBuildingResponseDto)
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] == "non-residential"))
+
+    def test_get_non_residential_buildings_without_auxiliary(self):
+        self.given_client()
+        result: NonResidentialBuildingResponseDto = self.testee.get_non_residential_buildings(
+            nuts_code=self.OLDENBURG_LAU, include_mixed = True, exclude_auxiliary=True
+        )
+        assert isinstance(result, NonResidentialBuildingResponseDto)
+
+        self.__then_result_list_min_length_returned(result.buildings, 1)
+        assert all(pd.DataFrame(result.buildings)["type"].apply(lambda x: x["value"] in ['non-residential', "mixed"]))
+        assert all(pd.DataFrame(result.buildings)["use"].apply(lambda x: x["value"]["sector"] != "auxiliary"))
+   
 
     ### GENERAL STATISTICS ###
 
@@ -91,21 +204,21 @@ class TestBuildaClient:
     @pytest.mark.parametrize(
         "nuts_level,country,expected_count", [(0, "DE", 1), (1, "DE", 16)]
     )
-    def test_get_construction_year_statistics_succeeds(
+    def test_get_residential_construction_year_statistics_succeeds(
         self, nuts_level, country, expected_count
     ):
         self.given_client()
-        construction_year_statistic = self.testee.get_construction_year_statistics(
+        construction_year_statistic = self.testee.get_residential_construction_year_statistics(
             nuts_level=nuts_level, country=country
         )
         self.then_result_list_correct_length_returned(
             construction_year_statistic, expected_count
         )
 
-    def test_get_construction_year_statistics_for_lau_succeeds(self):
+    def test_get_residential_construction_year_statistics_for_lau_succeeds(self):
         self.given_client()
-        construction_year_statistic = self.testee.get_construction_year_statistics(
-            country="DE", nuts_code="05958048"
+        construction_year_statistic = self.testee.get_residential_construction_year_statistics(
+            country="DE", nuts_code=self.OLDENBURG_LAU
         )
         self.then_result_list_correct_length_returned(construction_year_statistic, 1)
 
@@ -152,9 +265,9 @@ class TestBuildaClient:
     @pytest.mark.parametrize(
         "nuts_level,country,expected_count", [(0, "DE", 1), (1, "DE", 16)]
     )
-    def test_get_pv_generation_potential_statistics_succeeds(self, nuts_level, country, expected_count):
+    def test_get_pv_potential_statistics_succeeds(self, nuts_level, country, expected_count):
         self.given_client()
-        height_statistics = self.testee.get_pv_generation_potential_statistics(
+        height_statistics = self.testee.get_pv_potential_statistics(
             nuts_level=nuts_level, country=country
         )
         self.then_result_list_correct_length_returned(
@@ -188,25 +301,24 @@ class TestBuildaClient:
         self.__then_result_list_min_length_returned(building_use_statistic, 1)
 
     @pytest.mark.parametrize(
-        "nuts_level,country,use,expected_count",
+        "nuts_level,country,expected_min_count",
         [
-            (0, "DE", "1_crop_animal_production", 1),
-            (1, "DE", "1_crop_animal_production", 16),
+            (0, "DE", 1),
+            (1, "DE", 16),
         ],
     )
     def test_get_non_residential_energy_consumption_statistics_succeeds(
-        self, nuts_level, country, use, expected_count
+        self, nuts_level, country, expected_min_count
     ):
         self.given_client()
         energy_consumption_statistics = (
             self.testee.get_non_residential_energy_consumption_statistics(
                 nuts_level=nuts_level,
                 country=country,
-                use=use,
             )
         )
-        self.then_result_list_correct_length_returned(
-            energy_consumption_statistics, expected_count
+        self.__then_result_list_min_length_returned(
+            energy_consumption_statistics, expected_min_count
         )
 
     def test_get_non_residential_energy_consumption_statistics_custom_geom_succeeds(
@@ -240,7 +352,7 @@ class TestBuildaClient:
     def test_get_residential_size_class_statistics_for_lau_succeeds(self):
         self.given_client()
         building_class_statistic = self.testee.get_residential_size_class_statistics(
-            country="DE", nuts_code="05958048"
+            country="DE", nuts_code=self.OLDENBURG_LAU
         )
         self.then_result_list_correct_length_returned(building_class_statistic, 1)
 
@@ -264,34 +376,6 @@ class TestBuildaClient:
     @pytest.mark.parametrize(
         "nuts_level,country,expected_count", [(0, "DE", 1), (1, "DE", 16)]
     )
-    def test_get_residential_energy_consumption_statistics_succeeds(
-        self, nuts_level, country, expected_count
-    ):
-        self.given_client()
-        energy_consumption_statistics = (
-            self.testee.get_residential_energy_consumption_statistics(
-                nuts_level=nuts_level,
-                country=country,
-            )
-        )
-        self.then_result_list_correct_length_returned(
-            energy_consumption_statistics, expected_count
-        )
-        self.__then_statistics_for_correct_country_returned(
-            energy_consumption_statistics, country
-        )
-
-    def test_get_residential_energy_consumption_statistics_by_geom_succeeds(self):
-        self.given_client()
-        custom_geom = self.given_valid_custom_geom()
-        energy_consumption_statistics = (
-            self.testee.get_residential_energy_consumption_statistics(geom=custom_geom)
-        )
-        self.then_result_list_correct_length_returned(energy_consumption_statistics, 1)
-
-    @pytest.mark.parametrize(
-        "nuts_level,country,expected_count", [(0, "DE", 1), (1, "DE", 16)]
-    )
     def test_get_residential_heat_demand_statistics_succeeds(
         self, nuts_level, country, expected_count
     ):
@@ -304,35 +388,35 @@ class TestBuildaClient:
         )
 
     @pytest.mark.parametrize(
-        "country, construction_year, construction_year_after, construction_year_before, size_class, expected_count",
-        [("DE", 1860, None, None, 'AB', 1)]
+        "country, construction_year, construction_year_after, construction_year_before, size_class, expected_min_count",
+        [("DE", None, 1900, 2000, 'AB', 1)]
     )
-    def test_get_residential_heat_demand_statistics_by_building_characteristics_succeeds(
-        self, country, construction_year, construction_year_after, construction_year_before, size_class, expected_count
+    def test_get_residential_heat_demand_statistics_by_building_info_succeeds(
+        self, country, construction_year, construction_year_after, construction_year_before, size_class, expected_min_count
     ):
         self.given_client()
-        heat_demand_statistics = self.testee.get_residential_heat_demand_statistics_by_building_characteristics(
+        heat_demand_statistics = self.testee.get_residential_heat_demand_statistics_by_building_info(
             country=country,
             construction_year=construction_year,
             construction_year_after=construction_year_after, 
             construction_year_before=construction_year_before,
             size_class=size_class
         )
-        self.then_result_list_correct_length_returned(
-            heat_demand_statistics, expected_count
+        self.__then_result_list_min_length_returned(
+            heat_demand_statistics, expected_min_count
         )
 
     def test_get_refurbishment_state_statistics_succeeds(self):
         self.given_client()
         refurbishment_state_statistics = self.testee.get_refurbishment_state_statistics(
-            nuts_code="05958048", country="DE"
+            nuts_code=self.OLDENBURG_LAU, country="DE"
         )
         self.then_result_list_correct_length_returned(refurbishment_state_statistics, 1)
 
 
     # GIVEN
     def given_client(self) -> None:
-        self.testee = BuildaClient()
+        self.testee = BuildaClient(phase='dev')
 
     def given_valid_custom_geom(self) -> Polygon:
         return Polygon(

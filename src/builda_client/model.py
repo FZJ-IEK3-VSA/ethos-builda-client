@@ -7,17 +7,25 @@ from uuid import UUID
 
 from shapely.geometry import MultiPolygon, Point, Polygon
 
+
 @dataclass
 class Metadata:
     key: str
     name: Optional[str]
     provider: Optional[str]
     download_url: Optional[str]
-    refering_website_link: Optional[str]
+    referring_website: Optional[str]
     download_timestamp: Optional[str]
     extent: Optional[str]
     license: Optional[str]
     citation: Optional[str]
+
+
+@dataclass
+class Lineage:
+    key: str
+    description: str
+
 
 @dataclass
 class Address:
@@ -31,7 +39,6 @@ class Address:
 class Parcel:
     id: UUID
     shape: Polygon
-    source: str
 
 
 @dataclass
@@ -44,22 +51,133 @@ class ParcelMinimalDto:
 class Coordinates:
     latitude: float
     longitude: float
-    
+
+
 @dataclass
-class MetadataResponseDto:
+class SourceResponseDto:
+    key: str
     name: str
     provider: str
-    refering_website_link: str
+    referring_website: str
     license: str
     citation: str
 
+
 @dataclass
-class DataSource:
-    attribute: str
-    source: MetadataResponseDto
+class LineageResponseDto:
+    key: str
+    description: str
+
+
+@dataclass
+class RoofGeometry:
+    centroid: Coordinates
+    orientation: str
+    tilt: float
+    area: float
+
+
+@dataclass
+class PvPotential:
+    capacity_kW: float
+    generation_kWh: float
+
+
+### Buildings with sources (for public use)
+@dataclass
+class SourceLineageResponseDto:
+    source: str
     lineage: str
 
 
+@dataclass
+class AddressSource(SourceLineageResponseDto):
+    value: Address
+
+
+@dataclass
+class FloatSource(SourceLineageResponseDto):
+    value: float
+
+
+@dataclass
+class IntSource(SourceLineageResponseDto):
+    value: int
+
+
+@dataclass
+class StringSource(SourceLineageResponseDto):
+    value: str
+
+
+@dataclass
+class PvPotentialSource(SourceLineageResponseDto):
+    value: PvPotential
+
+
+@dataclass
+class CoordinatesSource(SourceLineageResponseDto):
+    value: Coordinates
+
+
+@dataclass
+class BuildingWithSourceDto:
+    id: str
+    coordinates: CoordinatesSource
+    address: AddressSource
+    footprint_area_m2: float
+    height_m: FloatSource
+    elevation_m: FloatSource
+    roof_shape: StringSource
+    type: StringSource
+    pv_potential: PvPotentialSource
+    additional: StringSource
+
+
+@dataclass
+class BuildingResponseDto:
+    buildings: list[BuildingWithSourceDto]
+    sources: list[SourceResponseDto]
+    lineages: list[LineageResponseDto]
+
+
+@dataclass
+class ResidentialBuildingWithSourceDto(BuildingWithSourceDto):
+    size_class: StringSource
+    refurbishment_state: IntSource
+    construction_year: IntSource
+    tabula_type: StringSource
+    useful_area_m2: FloatSource
+    conditioned_living_area_m2: FloatSource
+    net_floor_area_m2: FloatSource
+    housing_unit_count: IntSource
+    households: StringSource
+    energy_system: StringSource
+    yearly_heat_demand_mwh: FloatSource
+    norm_heating_load_kw: FloatSource
+
+
+@dataclass
+class ResidentialBuildingResponseDto:
+    buildings: list[ResidentialBuildingWithSourceDto]
+    sources: list[SourceResponseDto]
+    lineages: list[LineageResponseDto]
+
+
+@dataclass
+class NonResidentialBuildingWithSourceDto(BuildingWithSourceDto):
+    use: StringSource
+    electricity_consumption_mwh: FloatSource
+
+
+@dataclass
+class NonResidentialBuildingResponseDto:
+    buildings: list[NonResidentialBuildingWithSourceDto]
+    sources: list[SourceResponseDto]
+    lineages: list[LineageResponseDto]
+
+
+### Buildings without sources (for internal use only)
 @dataclass
 class Building:
     id: str
@@ -68,10 +186,9 @@ class Building:
     footprint_area_m2: float
     height_m: float
     elevation_m: float
-    roof_type: str
+    roof_shape: str
     type: str
-    use: str
-    pv_generation_potential_kwh: float
+    pv_potential: PvPotential | None
     additional: str
 
 
@@ -84,24 +201,16 @@ class ResidentialBuilding(Building):
     useful_area_m2: float
     conditioned_living_area_m2: float
     net_floor_area_m2: float
-    household_count: int
-    heating_commodity: str
-    cooling_commodity: str
-    water_heating_commodity: str
-    cooking_commodity: str
-    heat_demand_mwh: float
-    solids_consumption_mwh: float
-    lpg_consumption_mwh: float
-    gas_diesel_oil_consumption_mwh: float
-    gas_consumption_mwh: float
-    biomass_consumption_mwh: float
-    geothermal_consumption_mwh: float
-    derived_heat_consumption_mwh: float
-    electricity_consumption_mwh: float
+    housing_unit_count: int
+    households: str
+    energy_system: str
+    yearly_heat_demand_mwh: float
+    norm_heating_load_kw: float
 
 
 @dataclass
 class NonResidentialBuilding(Building):
+    use: str
     electricity_consumption_mwh: float
 
 
@@ -112,19 +221,21 @@ class BuildingBase:
     centroid: Point
     type: str
 
+
 @dataclass
 class BuildingGeometry:
     id: str
     footprint: MultiPolygon
     centroid: Point
-    height: float
-    roof_type: str
+    height_m: float
+    roof_shape: str
+    roof_geometry: RoofGeometry
     type: str
-
-@dataclass
-class BuildingHouseholds:
-    id: str
-    household_count: int
+    nuts3: str
+    nuts2: str
+    nuts1: str
+    nuts0: str
+    lau: str
 
 
 @dataclass
@@ -144,7 +255,8 @@ class BuildingEnergyCharacteristics:
     cooling_commodity: str
     water_heating_commodity: str
     cooking_commodity: str
-    heat_demand_mwh: float
+    yearly_heat_demand_mwh: float
+    norm_heating_load_kw: float
     pv_generation_potential_kwh: float
 
 
@@ -170,55 +282,57 @@ class BuildingStockEntry:
     lau: str
 
 
-@dataclass
-class RoofStock:
-    roof_id: UUID
-    building_id: str
-    roof_height: float
-    roof_area: float
-    roof_tilt: float
-    roof_orientation: float
+### Info classes (for posting to DB during development)
 
 
 @dataclass
 class Info:
     building_id: str
     source: str
+    lineage: str
+
+
+@dataclass
+class BuildingStockInfo(Info):
+    footprint: Polygon
+    centroid: Point
+    footprint_area: float
+    nuts3: str
+    nuts2: str
+    nuts1: str
+    nuts0: str
+    lau: str
 
 
 @dataclass
 class AddressInfo(Info):
-    street: str
-    house_number: str
-    postcode: str
-    city: str
-    priority: int
+    address: str
 
 
 @dataclass
 class TypeInfo(Info):
     value: str
-    lineage: str
     priority: int  # TODO use metadata table reference instead
 
 
 @dataclass
 class UseInfo(Info):
     value: str
+    value_raw: str
     priority: int  # TODO use metadata table reference instead
 
 
 @dataclass
 class HeightInfo(Info):
     value: float
-    lineage: str
     priority: int
+
 
 @dataclass
 class ElevationInfo(Info):
     value: float
-    lineage: str
     priority: int
+
 
 @dataclass
 class ParcelInfo(Info):
@@ -226,27 +340,14 @@ class ParcelInfo(Info):
 
 
 @dataclass
-class HouseholdInfo(Info):
-    value: int
+class OccupancyInfo(Info):
+    housing_unit_count: int
+    households: str
+    priority: int
 
 
 @dataclass
-class HeatingCommodityInfo(Info):
-    value: str
-
-
-@dataclass
-class CoolingCommodityInfo(Info):
-    value: str
-
-
-@dataclass
-class WaterHeatingCommodityInfo(Info):
-    value: str
-
-
-@dataclass
-class CookingCommodityInfo(Info):
+class EnergySystemInfo(Info):
     value: str
 
 
@@ -264,8 +365,13 @@ class HeatDemandInfo(Info):
 
 
 @dataclass
-class PvGenerationInfo(Info):
+class NormHeatingLoadInfo(Info):
     value: float
+
+
+@dataclass
+class PvPotentialInfo(Info):
+    value: str
 
 
 @dataclass
@@ -279,32 +385,9 @@ class RefurbishmentStateInfo(Info):
 
 
 @dataclass
-class RoofHeightInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofTiltInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofAreaInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofOrientationInfo(Info):
-    roof_id: str
-    value: float
-
-
-@dataclass
-class RoofTypeInfo(Info):
-    value: str
+class RoofCharacteristicsInfo(Info):
+    shape: str
+    geometry: str
 
 
 @dataclass
@@ -331,6 +414,9 @@ class AdditionalInfo(Info):
     attribute: str
     value: str
     lineage: str
+
+
+### Statistics (for public and internal use)
 
 
 @dataclass
@@ -371,9 +457,6 @@ class FootprintAreaStatistics(Statistics):
     sum_footprint_area_total_m2: float
     avg_footprint_area_total_m2: float
     median_footprint_area_total_m2: float
-    avg_footprint_area_total_irrelevant_m2: float
-    sum_footprint_area_total_irrelevant_m2: float
-    median_footprint_area_total_irrelevant_m2: float
     sum_footprint_area_residential_m2: float
     avg_footprint_area_residential_m2: float
     median_footprint_area_residential_m2: float
@@ -406,28 +489,23 @@ class RefurbishmentStateStatistics(Statistics):
 
 @dataclass
 class HeatDemandStatistics(Statistics):
-    heat_demand_mwh: float
+    yearly_heat_demand_mwh: float
+
 
 @dataclass
-class HeatDemandStatisticsByBuildingCharacteristics():
+class HeatDemandStatisticsByBuildingCharacteristics:
     country: str
     size_class: str
     construction_year: int
     refurbishment_state: str
-    heat_demand_mwh: float
-
-@dataclass
-class CommodityCount:
-    heating_commodity_count: int
-    cooling_commodity_count: int
-    water_heating_commodity_count: int
-    cooking_commodity_count: int
+    yearly_heat_demand_mwh: float
 
 
 @dataclass
 class EnergyCommodityStatistics(Statistics):
+    energy_system: str
     commodity_name: str
-    building_count: CommodityCount
+    commodity_count: int
 
 
 @dataclass
@@ -449,7 +527,7 @@ class NonResidentialEnergyConsumptionStatistics(Statistics):
 
 
 @dataclass
-class PvGenerationPotentialStatistics(Statistics):
+class PvPotentialStatistics(Statistics):
     sum_pv_generation_potential_kwh: float
     avg_pv_generation_potential_residential_kwh: float
     median_pv_generation_potential_residential_kwh: float

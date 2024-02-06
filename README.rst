@@ -23,11 +23,12 @@
         :alt: Twitter
         :target: https://twitter.com/builda-client
 
-.. image:: https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold
-    :alt: Project generated with PyScaffold
-    :target: https://pyscaffold.org/
+.. only:: html
 
-|
+    .. image:: https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold
+        :alt: Project generated with PyScaffold
+        :target: https://pyscaffold.org/
+
 
 =============
 builda-client
@@ -40,7 +41,7 @@ builda-client
 This is an HTTP-client that provides methods for accessing the API endpoints (see e.g. http://134.94.116.65:8000/api/v1_20220831/swagger/ for the first version) of the European building database (BUILDA).
 
 Installation
-====
+============
 You can install a specific release directly from remote repository via:
 
 .. code-block:: console
@@ -74,7 +75,7 @@ Or for development and testing:
     pip install -e ".[test,development]"
 
 Usage 
-====
+=====
 
 Import the client via:
 
@@ -107,7 +108,7 @@ To use these methods the client has to be instantiated with a valid username and
 
 
 How to create new version
-====
+==========================
 
 1. Set the base_url in config.yml to the new version of the API.
 2. Test if the client still works (test_client_read.py)
@@ -116,6 +117,8 @@ How to create new version
 5. Change base_url back to /api/v0 for further development and merge changes into main
 
 If you need to do changes to a version later, check out a new branch at the tag.
+
+Create documentation in HTML and LaTeX format via `tox -e docs_html,docs_latex`
 
 .. _pyscaffold-notes:
 

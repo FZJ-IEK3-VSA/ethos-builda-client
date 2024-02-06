@@ -88,7 +88,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "builda-client"
-copyright = "2022, k.dabrock"
+copyright = "2023, k.dabrock"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
