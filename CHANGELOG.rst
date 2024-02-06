@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 0.0.1
+Version 5.0
 ===========
 
-- First implementation of client with some post and get method
+- Implementation of client for version 5 of ETHOS.BUILDA database

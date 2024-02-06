@@ -23,22 +23,38 @@
         :alt: Twitter
         :target: https://twitter.com/builda-client
 
+
 .. only:: html
 
     .. image:: https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold
         :alt: Project generated with PyScaffold
         :target: https://pyscaffold.org/
 
+|
 
-=============
-builda-client
-=============
+.. image:: https://www.fz-juelich.de/static/media/Logo.2ceb35fc.svg
+    :alt: Forschungszentrum Juelich Logo
+    :target: https://www.fz-juelich.de/en/iek/iek-3
+    :width: 230px
+
+|
+
+====================
+ETHOS.BUILDA-Client
+====================
 
 
-    Client for BUILDA, the European building database.
+    Python client for ETHOS.BUILDA, the German building database.
 
 
-This is an HTTP-client that provides methods for accessing the API endpoints (see e.g. http://134.94.116.65:8000/api/v1_20220831/swagger/ for the first version) of the European building database (BUILDA).
+This is a Python HTTP-client that provides methods for accessing the API endpoints of ETHOS.BUILDA.
+The endpoints are documented using Swagger and can be accessed here: http://134.94.130.118/api/v5_20230915/swagger/ (version 5).
+
+ETHOS.BUILDA is a database containing building-level data for the German building stock. 
+It is based on various data sources that are combined and enriched with machine learning approaches to generate one consistent and complete building dataset.
+The database is released under the `Open Data Commons Open Database License (ODbL) <https://opendatacommons.org/licenses/odbl/>`_.
+The sources of the data points and information on the type of processing that was done to assign the information from the raw data to the building in ETHOS.BUILDA are included in the query results.
+
 
 Installation
 ============
@@ -46,7 +62,7 @@ You can install a specific release directly from remote repository via:
 
 .. code-block:: console
 
-    pip install git+https://jugit.fz-juelich.de/iek-3/groups/urbanmodels/personal/dabrock/building-database-builda/builda-client.git@v1.0 
+    pip install git+https://github.com/FZJ-IEK3-VSA/ethos-builda-client.git@v5.0 
 
 If you execute this command without specifying the tag/release, you will install the main branch. This branch is under development and will change based on the newest (not yet versioned) API and database modifications. It is not stable. 
 
@@ -77,35 +93,32 @@ Or for development and testing:
 Usage 
 =====
 
-Import the client via:
+Import and instantiate the client via:
 
 .. code-block:: python
 
-    from builda_client.client import ApiClient
-
-And instantiate client like this:
-
-.. code-block:: python
-
-    client: ApiClient = ApiClient()
+    from builda_client.client import BuildaClient
+    client: BuildaClient = BuildaClient()
 
 This is sufficient for the standard case. 
 
-If you need to use a proxy because you are executing your code on the cluster compute nodes, you have to tell the client on instantiation:
+If you need to use a proxy because you are executing your code on the cluster compute nodes, you have to provide the proxy host and port to the client on instantiation:
 
 .. code-block:: python
 
-    client: ApiClient = ApiClient(use_proxy=True)
-
-Now you can use the methods provided by the client, e.g.:
-
-.. code-block:: python
-
-    buildings: list[Building] = client.get_buildings()
+    buildings: list[BuildingResponseDto] = client.get_buildings()
 
 Some methods require authentication. You can recognize those by the comment [REQUIRES AUTHENTICATION] at the beginning of the method's docstring.
 To use these methods the client has to be instantiated with a valid username and password.
 
+If you are a database contributor/internal user, you need to instantiate the development client.
+
+.. code-block:: python
+
+    from builda_client.dev_client import BuildaDevClient
+    client: BuildaDevClient = BuildaDevClient()
+
+Using this client, you have access to the methods available in the client and additional methods for querying and writing.
 
 How to create new version
 ==========================
@@ -120,8 +133,17 @@ If you need to do changes to a version later, check out a new branch at the tag.
 
 Create documentation in HTML and LaTeX format via `tox -e docs_html,docs_latex`
 
-.. _pyscaffold-notes:
 
+Acknowledgements
+================
+This work was supported by the Helmholtz Association under the program "Energy System Design".
+
+.. image:: https://www.helmholtz.de/fileadmin/user_upload/05_aktuelles/Marke_Design/logos/HG_LOGO_S_ENG_RGB.jpg
+    :target: https://www.helmholtz.de/en/
+    :alt: Helmholtz Logo
+    :width: 200px
+
+.. _pyscaffold-notes:
 Note
 ====
 

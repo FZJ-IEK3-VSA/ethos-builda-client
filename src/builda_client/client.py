@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Optional, Tupel
+from typing import Dict, Optional, Tuple
 
 import requests
 from shapely.geometry import Polygon

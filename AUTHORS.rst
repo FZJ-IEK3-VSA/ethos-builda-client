@@ -2,4 +2,4 @@
 Contributors
 ============
 
-* k.dabrock <k.dabrock@fz-juelich.de>
+* Kristina Dabrock <k.dabrock@fz-juelich.de>
