@@ -87,8 +87,8 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = "builda-client"
-copyright = "2023, k.dabrock"
+project = "ethos-builda-client"
+copyright = "2024, Kristina Dabrock"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

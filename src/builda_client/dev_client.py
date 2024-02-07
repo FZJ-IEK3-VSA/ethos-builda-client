@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from uuid import UUID
 
 import requests
@@ -117,7 +117,7 @@ class BuildaDevClient(BuildaClient):
 
     def __init__(
         self,
-        proxy: bool = False,
+        proxy: Tuple[str, str] = None,
         username: str | None = None,
         password: str | None = None,
         phase="staging",
@@ -125,13 +125,13 @@ class BuildaDevClient(BuildaClient):
         """Constructor.
 
         Args:
-            proxy (bool, optional): Whether to use a proxy or not. Proxy should be used
-                when using client on cluster compute nodes. Defaults to False.
+            proxy (Tuple[str, str], optional): Proxy host and port. Proxy should be used
+                when using client on cluster compute nodes. Defaults to None.
             username (str | None, optional): Username for authentication. Only required
                 when using client for accessing endpoints that are not open. Defaults
                 to None.
             password (str | None, optional): Password; see username. Defaults to None.
-            dev (boolean, optional): The 'phase' the client is used in, i.e. which
+            phase (str, optional): The 'phase' the client is used in, i.e. which
                 database to access. Possible options: 'dev', 'staging'. Defaults to
                 'staging'.
         """
@@ -139,14 +139,13 @@ class BuildaDevClient(BuildaClient):
 
         self.username = username
         self.password = password
-        self.phase = phase
 
         if proxy:
-            host = self.config["proxy"]["host"]
-            port = self.config["proxy"]["port"]
+            host = proxy[0]
+            port = proxy[1]
         else:
-            host = self.config[self.phase]["api"]["host"]
-            port = self.config[self.phase]["api"]["port"]
+            host = self.config[phase]["api"]["host"]
+            port = self.config[phase]["api"]["port"]
 
         self.base_url = f"""http://{host}:{port}{self.config['base_url']}"""
         self.authentication_url = f"""http://{host}:{port}{self.AUTH_URL}"""

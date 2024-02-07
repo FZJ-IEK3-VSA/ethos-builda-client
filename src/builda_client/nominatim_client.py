@@ -11,12 +11,13 @@ from builda_client.util import load_config
 
 
 class NominatimClient:
-    def __init__(self, proxy: bool = False):
+    def __init__(self, nominatim: Tuple[str, str], proxy: Tuple[str, str] = None):
         """Constructor.
 
         Args:
-            proxy (bool, optional): Whether to use a proxy or not. Proxy should be used 
-                when using client on cluster compute nodes. Defaults to False.
+            nominatim (Tuple[str, str]): Nominatim host and port.
+            proxy (Tuple[str, str], optional): Proxy host and port. Proxy should be used
+                when using client on cluster compute nodes. Defaults to None.
         """
         logging.basicConfig(level=logging.WARN)
 
@@ -25,15 +26,15 @@ class NominatimClient:
             host = self.config["proxy"]["host"]
             port = self.config["proxy"]["port"]
         else:
-            host = self.config["nominatim"]["host"]
-            port = self.config["nominatim"]["port"]
+            host = nominatim[0]
+            port = nominatim[1]
 
         self.address = f"""http://{host}:{port}"""
 
     def get_address_from_location(
         self, lat: float, lon: float
     ) -> Tuple[str, str, str, str]:
-        logging.debug(f"NominatimClient: get_address_from_location")
+        logging.debug("NominatimClient: get_address_from_location")
         lat_str = np.format_float_positional(lat, trim='-')
         lon_str = np.format_float_positional(lon, trim='-')
 
