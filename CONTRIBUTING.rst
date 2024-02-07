@@ -102,7 +102,7 @@ Clone the repository
 
 #. Create a user account on |the repository service| if you do not already have one.
 #. Fork the project repository_: click on the *Fork* button near the top of the
-   page. This creates a copy of the code under your account on GitHub.
+   page. This creates a copy of the code under your account on |the repository service|.
 #. Clone this copy to your local disk::
 
     git clone git@github.com:YourLogin/ethos-builda-client.git
@@ -120,7 +120,7 @@ Implement your changes
 
 #. Create a branch to hold your changes::
 
-    git checkout -b [bug/feature]-issue-number/brief-feature-description
+    git checkout -b [bug/feature]-issue-number/brief-issue-description
 
    and start making changes. Never work on the main branch!
 
@@ -158,7 +158,7 @@ Implement your changes
 Submit your contribution
 ------------------------
 
-#. If everything works fine, push your local branch to GitHub with::
+#. If everything works fine, push your local branch to |the repository service| with::
 
     git push -u origin my-feature
 
