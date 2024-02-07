@@ -24,11 +24,10 @@
         :target: https://twitter.com/builda-client
 
 
-.. only:: html
 
-    .. image:: https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold
-        :alt: Project generated with PyScaffold
-        :target: https://pyscaffold.org/
+.. image:: https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold
+    :alt: Project generated with PyScaffold
+    :target: https://pyscaffold.org/
 
 |
 
