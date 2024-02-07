@@ -112,13 +112,14 @@ Some methods require authentication. You can recognize those by the comment [REQ
 To use these methods the client has to be instantiated with a valid username and password.
 
 If you are a database contributor/internal user, you need to instantiate the development client.
+Using this client, you have access to additional methods for querying and writing data.
+However, this requires a username and password as the respective API endpoints are not openly available (yet).
 
 .. code-block:: python
 
     from builda_client.dev_client import BuildaDevClient
-    client: BuildaDevClient = BuildaDevClient()
+    client: BuildaDevClient = BuildaDevClient(username='j.doe', password='secret_password')
 
-Using this client, you have access to the methods available in the client and additional methods for querying and writing.
 
 How to create new version
 ==========================
