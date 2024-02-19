@@ -1,3 +1,7 @@
+proxy:
+  host: 192.168.90.1
+  port: 8080
+
 dev:
   api:
     host: localhost
@@ -8,10 +12,8 @@ staging:
     host: iek3360.iek.kfa-juelich.de
     port: 8000
 
-production:
-  api:
-    host: 134.94.130.118
-    port: 80
-
 base_url: /api/v0/
 
+nominatim:
+  host: iek3360.iek.kfa-juelich.de
+  port: 8080
