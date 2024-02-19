@@ -453,6 +453,7 @@ class BuildaDevClient(BuildaClient):
         nuts_code: str = "",
         include_mixed: bool = True,
         exclude_auxiliary: bool = False,
+        geom: Polygon | None = None,
     ) -> list[NonResidentialBuilding]:
         """[REQUIRES AUTHENTICATION] 
         Gets all non-residential buildings that match the query parameters.
@@ -469,6 +470,7 @@ class BuildaDevClient(BuildaClient):
                 Defaults to True.
             exclude_auxiliary (bool, optional): Whether to exclude auxiliary buildings.
                 Defaults to False.
+            geom (Polygon, optional): Only return buildings within this geometry.
 
         Raises:
             ServerException: When an error occurs on the server side..
@@ -495,6 +497,8 @@ class BuildaDevClient(BuildaClient):
         building_type = "" if include_mixed else "non-residential"
 
         url: str = f"""{self.base_url}{self.NON_RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&exclude_auxiliary={exclude_auxiliary}"""
+        if geom:
+            url += f"&geom={geom}"
         try:
             response: requests.Response = requests.get(
                 url, 

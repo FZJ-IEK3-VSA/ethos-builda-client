@@ -85,6 +85,12 @@ class TestDevBuildaClient:
         non_residential_buildings = self.testee.get_non_residential_buildings(exclude_auxiliary=True)
         assert (pd.json_normalize(pd.DataFrame(non_residential_buildings)['use'])['sector'] == 'auxiliary').sum() == 0
 
+    def test_get_non_residential_buildings_by_geom(self):
+        self.__given_client_authenticated()
+        geom = self.__given_valid_custom_geom()
+        non_residential_buildings = self.testee.get_non_residential_buildings(geom=geom)
+        self.__then_result_list_min_length_returned(non_residential_buildings, 1)
+
     def test_get_building_ids_geom(self):
         self.__given_client_unauthenticated()
         geom = self.__given_valid_custom_geom()
