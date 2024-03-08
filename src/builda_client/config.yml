@@ -9,11 +9,11 @@ dev:
 
 staging:
   api:
-    host: iek3360.iek.kfa-juelich.de
+    host: 134.94.117.112
     port: 8000
 
-base_url: /api/v6_20240304/
+base_url: /api/v0/
 
 nominatim:
-  host: iek3360.iek.kfa-juelich.de
+  host: 134.94.117.112
   port: 8080
