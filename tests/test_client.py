@@ -416,7 +416,7 @@ class TestBuildaClient:
 
     # GIVEN
     def given_client(self) -> None:
-        self.testee = BuildaClient(phase='dev')
+        self.testee = BuildaClient(phase='staging')
 
     def given_valid_custom_geom(self) -> Polygon:
         return Polygon(

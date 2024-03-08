@@ -130,7 +130,7 @@ class BuildingWithSourceDto:
     elevation_m: FloatSource
     roof_shape: StringSource
     type: StringSource
-    pv_potential: PvPotentialSource
+    pv_potential: Optional[PvPotentialSource]
     additional: StringSource
 
 
