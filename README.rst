@@ -43,16 +43,16 @@ ETHOS.BUILDA-Client
 ====================
 
 
-    Python client for ETHOS.BUILDA, the German building database.
+    Python client for the building database ETHOS.BUILDA.
 
 
 This is a Python HTTP-client that provides methods for accessing the API endpoints of ETHOS.BUILDA.
-The endpoints are documented using Swagger and can be accessed here: http://134.94.130.118/api/v5_20230915/swagger/ (version 5).
+The endpoints are documented using Swagger and can be accessed here: https://ethos-builda.fz-juelich.de.
 
 ETHOS.BUILDA is a database containing building-level data for the German building stock. 
 It is based on various data sources that are combined and enriched with machine learning approaches to generate one consistent and complete building dataset.
-The database is released under the `Open Data Commons Open Database License (ODbL) <https://opendatacommons.org/licenses/odbl/>`_.
-The sources of the data points and information on the type of processing that was done to assign the information from the raw data to the building in ETHOS.BUILDA are included in the query results.
+The database is released under the `Open Data Commons Open Database License (ODbL) <https://opendatacommons.org/licenses/odbl/>`_.The license of the contents of the database are provided with the query results for the individual data points. 
+Additionally, the sources of the data points and information on the type of processing that was done to assign the information from the raw data to the building in ETHOS.BUILDA are included in the query results.
 
 
 Installation
@@ -61,7 +61,7 @@ You can install a specific release directly from remote repository via:
 
 .. code-block:: console
 
-    pip install git+https://github.com/FZJ-IEK3-VSA/ethos-builda-client.git@v5.0 
+    pip install git+https://github.com/FZJ-IEK3-VSA/ethos-builda-client.git@v7.0 
 
 If you execute this command without specifying the tag/release, you will install the main branch. This branch is under development and will change based on the newest (not yet versioned) API and database modifications. It is not stable. 
 
@@ -97,37 +97,30 @@ Import and instantiate the client via:
 .. code-block:: python
 
     from builda_client.client import BuildaClient
-    client: BuildaClient = BuildaClient()
+    client = BuildaClient()
 
-This is sufficient for the standard case. 
+This is sufficient for the standard case.
 
-If you need to use a proxy because you are executing your code on the cluster compute nodes, you have to provide the proxy host and port to the client on instantiation:
-
-.. code-block:: python
-
-    buildings: list[BuildingResponseDto] = client.get_buildings()
-
-Some methods require authentication. You can recognize those by the comment [REQUIRES AUTHENTICATION] at the beginning of the method's docstring.
-To use these methods the client has to be instantiated with a valid username and password.
-
-If you are a database contributor/internal user, you need to instantiate the development client.
+If you are an internal user at the IEK-3 of Forschungszentrum Jülich, please use the internal version of the client.
 Using this client, you have access to additional methods for querying and writing data.
 However, this requires a username and password as the respective API endpoints are not openly available (yet).
 
 .. code-block:: python
-
     from builda_client.dev_client import BuildaDevClient
-    client: BuildaDevClient = BuildaDevClient(username='j.doe', password='secret_password')
+    client = BuildaDevClient(username='your_username', password='your_password')
 
+
+In both cases you then have access to methods for querying individual building and statistical data.
+Please be aware that querying large amounts of data can take a long time, so make use of the filter parameters to appropriately restrict your query.
 
 How to create new version
 ==========================
 
 1. Set the base_url in config.yml to the new version of the API.
-2. Test if the client still works (test_client_read.py)
+2. Test if the client still works by running the tests
 3. Merge changes into main branch
 4. Tag with version (e.g. v1.0)
-5. Change base_url back to /api/v0 for further development and merge changes into main
+5. Change base_url back to /api/v0 for further development
 
 If you need to do changes to a version later, check out a new branch at the tag.
 
