@@ -4,8 +4,8 @@ from typing import Dict, Optional
 
 import requests
 from shapely.geometry import Polygon
-
-from builda_client.exceptions import ClientException, ServerException, UnauthorizedException
+from builda_client.base_client import BaseClient
+from builda_client.util import load_config
 from builda_client.model import (
     Address,
     AddressSource,
@@ -20,27 +20,22 @@ from builda_client.model import (
     ResidentialBuildingResponseDto,
     SourceResponseDto,
     NonResidentialBuildingWithSourceDto,
-    PvPotential,
-    PvPotentialSource,
     ResidentialBuildingWithSourceDto,
     SizeClassStatistics,
     BuildingStatistics,
     BuildingUseStatistics,
     ConstructionYearStatistics,
     Coordinates,
-    EnergyCommodityStatistics,
     FootprintAreaStatistics,
     HeatDemandStatistics,
     HeightStatistics,
-    NonResidentialEnergyConsumptionStatistics,
-    PvPotentialStatistics,
     RefurbishmentStateStatistics,
     StringSource,
 )
-from builda_client.util import determine_nuts_query_param, load_config
+from builda_client.util import determine_nuts_query_param
 
 
-class BuildaClient:
+class BuildaClient(BaseClient):
 
     # Buildings
     BUILDINGS_URL = "buildings"
@@ -50,92 +45,37 @@ class BuildaClient:
 
     # Statistics
     TYPE_STATISTICS_URL = "statistics/building-type"
-    TYPE_STATISTICS_BY_GEOM_URL = "statistics/building-type/geom"
     CONSTRUCTION_YEAR_STATISTICS_URL = "statistics/construction-year"
     FOOTPRINT_AREA_STATISTICS_URL = "statistics/footprint-area"
-    FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL = "statistics/footprint-area/geom"
     HEIGHT_STATISTICS_URL = "statistics/height"
-    HEIGHT_STATISTICS_BY_GEOM_URL = "statistics/height/geom"
     CONSTRUCTION_YEAR_STATISTICS_URL = "statistics/construction-year"
     REFURBISHMENT_STATE_STATISTICS_URL = "statistics/refurbishment-state"
-    PV_GENERATION_POTENTIAL_STATISTICS_URL = "statistics/pv-generation-potential"
-
     NON_RESIDENTIAL_USE_STATISTICS_URL = "statistics/non-residential/building-use"
-    NON_RESIDENTIAL_USE_STATISTICS_BY_GEOM_URL = (
-        "statistics/non-residential/building-use/geom"
-    )
-    NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_URL = (
-        "statistics/non-residential/energy-consumption"
-    )
-    NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_BY_GEOM_URL = (
-        "statistics/non-residential/energy-consumption/geom"
-    )
 
     RESIDENTIAL_SIZE_CLASS_STATISTICS_URL = "statistics/residential/size-class"
-    RESIDENTIAL_ENERGY_COMMODITY_STATISTICS_URL = (
-        "statistics/residential/energy-commodities"
-    )
-    RESIDENTIAL_ENERGY_COMMODITY_STATISTICS_BY_GEOM_URL = (
-        "statistics/residential/energy-commodities/geom"
-    )
-    RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_URL = (
-        "statistics/residential/energy-consumption"
-    )
-    RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_BY_GEOM_URL = (
-        "statistics/residential/energy-consumption/geom"
-    )
     RESIDENTIAL_HEAT_DEMAND_STATISTICS_URL = "statistics/residential/heat-demand"
     RESIDENTIAL_HEAT_DEMAND_STATISTICS_BY_BUILDING_CHARACTERISTICS_URL = (
         "statistics/residential/heat-demand-by-building-characteristics"
     )
-    RESIDENTIAL_HEAT_DEMAND_STATISTICS_BY_GEOM_URL = (
-        "statistics/residential/heat-demand/geom"
-    )
+
     REFURBISHMENT_STATE_URL = "refurbishment-state"
 
 
     def __init__(
         self,
-        proxy: bool = False,
-        phase: str = 'staging'
     ):
-        """Constructor.
-
-        Args:
-            proxy (bool, optional): Whether to use a proxy or not. Proxy should be used
-                when using client on cluster compute nodes. Defaults to False.
-            phase (str, optional): The phase of the release process. For normal users
-                this should not be modified; developpers might set to 'dev'. Defaults 
-                to 'staging'.
+        """This is the API client for the building database ETHOS.BUILDA by
+        Forschungszentrum Jülich - Jülich Systems Analysis (IEK-3) available
+        at https://ethos-builda.fz-juelich.de.
         """
+        self.config = load_config()
+        self.BASE_URL = self.config["production"]["api_address"] + self.config["base_url"]
         logging.basicConfig(level=logging.WARN)
 
-        self.phase: str = phase
         requests_log = logging.getLogger("urllib3")
         requests_log.setLevel(logging.WARN)
         requests_log.propagate = True
 
-        self.config = load_config()
-        if proxy:
-            host = self.config["proxy"]["host"]
-            port = self.config["proxy"]["port"]
-        else:
-            host = self.config[self.phase]["api"]["host"]
-            port = self.config[self.phase]["api"]["port"]
-
-        self.base_url = f"""http://{host}:{port}{self.config['base_url']}"""
-
-    def handle_exception(self, err: requests.exceptions.HTTPError):
-        if err.response.status_code == 403:
-            raise UnauthorizedException(
-                """You are not authorized to perform this operation. Perhaps wrong 
-                username and password given?"""
-            )
-
-        if err.response.status_code >= 400 and err.response.status_code <= 499:
-            raise ClientException("A client side error occured", err) from err
-
-        raise ServerException("An unexpected error occurred. Please contact administrator.", err) from err
 
     def get_buildings(
         self,
@@ -146,12 +86,11 @@ class BuildaClient:
         city: str = "",
         nuts_code: str = "",
     ) -> BuildingResponseDto:
-        """Gets all buildings that match the query parameters.
+        """Gets all buildings that match the query parameters with the basic attributes
+        common to all building use types.
         
         Args:
-            building_type (str): The type of building ('residential', 'non-residential', 'mixed'). 
-                If building_type = None returns all buildings without type.
-                If building_type = "", returns all buildings independent of type.
+            building_type (str): The type of building ('residential', 'non-residential', 'mixed').
             street (str, optional): The name of the street. Defaults to "".
             housenumber (str, optional): The house number. Defaults to "".
             postcode (str, optional): The postcode. Defaults to "".
@@ -164,7 +103,7 @@ class BuildaClient:
             ServerException: When an error occurs on the server side..
 
         Returns:
-            list[BuildingSource]: A list of buildings with attribute sources.
+            list[BuildingResponseDto]: A list of buildings with attribute sources and lineages.
         """
 
         logging.debug(
@@ -186,7 +125,7 @@ class BuildaClient:
         elif building_type == '':
             type_is_null = ""
 
-        url: str = f"""{self.base_url}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}"""
+        url: str = f"""{self.BASE_URL}{self.BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&type__isnull={type_is_null}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
@@ -208,13 +147,6 @@ class BuildaClient:
                 source = result["coordinates"]["source"],
                 lineage = result["coordinates"]["lineage"],
             )
-            pv_potential = PvPotentialSource(
-                value = PvPotential(
-                    capacity_kW=result["pv_potential"]["value"]["capacity_kW"],
-                    generation_kWh=result["pv_potential"]["value"]["generation_kWh"]),
-                source = result["pv_potential"]["source"],
-                lineage = result["pv_potential"]["lineage"],
-            ) if result["pv_potential"]["value"] else None
             address = AddressSource(
                 value = Address(
                     street = result["address"]["value"]["street"],
@@ -251,8 +183,6 @@ class BuildaClient:
                     source=result["roof_shape"]["source"],
                     lineage=result["roof_shape"]["lineage"],
                     ),
-                pv_potential=pv_potential,
-                additional=result["additional"]
             )
             buildings.append(building)
 
@@ -296,13 +226,12 @@ class BuildaClient:
         """Gets all residential buildings that match the query parameters.
 
         Args:
-            street (str, optional): The name of the street. Defaults to "".
-            housenumber (str, optional): The house number. Defaults to "".
-            postcode (str, optional): The postcode. Defaults to "".
-            city (str, optional): The city. Defaults to "".
+            street (str, optional): The name of the street.
+            housenumber (str, optional): The house number.
+            postcode (str, optional): The postcode.
+            city (str, optional): The city.
             nuts_code (str, optional): The NUTS-code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions or 2019 LAU definition.
-                Defaults to "".
             include_mixed (bool, optional): Whether or not to include mixed buildings.
                 Defaults to True.
 
@@ -310,7 +239,7 @@ class BuildaClient:
             ServerException: When an error occurs on the server side..
 
         Returns:
-            list[ResidentialBuilding]: A list of residential buildings.
+            list[ResidentialBuildingResponseDto]: A list of residential buildings.
         """
 
         logging.debug(
@@ -325,7 +254,7 @@ class BuildaClient:
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         building_type = "" if include_mixed else "residential"
 
-        url: str = f"""{self.base_url}{self.RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}"""
+        url: str = f"""{self.BASE_URL}{self.RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
@@ -346,13 +275,6 @@ class BuildaClient:
                 source = result["coordinates"]["source"],
                 lineage = result["coordinates"]["lineage"],
             )
-            pv_potential = PvPotentialSource(
-                value = PvPotential(
-                    capacity_kW=result["pv_potential"]["value"]["capacity_kW"],
-                    generation_kWh=result["pv_potential"]["value"]["generation_kWh"]),
-                source = result["pv_potential"]["source"],
-                lineage = result["pv_potential"]["lineage"],
-            ) if result["pv_potential"]["value"] else None
             address = AddressSource(
                 value = Address(
                     street = result["address"]["value"]["street"],
@@ -393,7 +315,6 @@ class BuildaClient:
                     source=result["construction_year"]["source"],
                     lineage=result["construction_year"]["lineage"],
                     ),
-                pv_potential=pv_potential,
                 size_class=StringSource(
                     value=result["size_class"]["value"], 
                     source=result["size_class"]["source"],
@@ -429,23 +350,6 @@ class BuildaClient:
                     source=result["yearly_heat_demand_mwh"]["source"],
                     lineage=result["yearly_heat_demand_mwh"]["lineage"],
                     ),
-                housing_unit_count=IntSource(
-                    value=result["housing_unit_count"]["value"], 
-                    source=result["housing_unit_count"]["source"],
-                    lineage=result["housing_unit_count"]["lineage"],
-                    ),
-                norm_heating_load_kw=FloatSource(
-                    value=result["norm_heating_load_kw"]["value"], 
-                    source=result["norm_heating_load_kw"]["source"],
-                    lineage=result["norm_heating_load_kw"]["lineage"],
-                    ),
-                households=StringSource(
-                    value=result["households"]["value"], 
-                    source=result["households"]["source"],
-                    lineage=result["households"]["lineage"],
-                    ),
-                energy_system=result["energy_system"],
-                additional=result["additional"],
             )
             buildings.append(building)
 
@@ -490,13 +394,12 @@ class BuildaClient:
         """Gets all non-residential buildings that match the query parameters.
 
         Args:
-            street (str, optional): The name of the street. Defaults to "".
-            housenumber (str, optional): The house number. Defaults to "".
-            postcode (str, optional): The postcode. Defaults to "".
-            city (str, optional): The city. Defaults to "".
+            street (str, optional): The name of the street.
+            housenumber (str, optional): The house number.
+            postcode (str, optional): The postcode.
+            city (str, optional): The city.
             nuts_code (str, optional): The NUTS-code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions or 2019 LAU definition.
-                Defaults to "".
             include_mixed (bool, optional): Whether or not to include mixed buildings.
                 Defaults to True.
             exclude_auxiliary (bool, optional): Whether to exclude auxiliary buildings.
@@ -506,7 +409,7 @@ class BuildaClient:
             ServerException: When an error occurs on the server side..
 
         Returns:
-            list[NonResidentialBuilding]: A list of non-residential buildings.
+            list[NonResidentialBuildingResponseDto]: A list of non-residential buildings.
         """
 
         logging.debug(
@@ -521,7 +424,7 @@ class BuildaClient:
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         building_type = "" if include_mixed else "non-residential"
 
-        url: str = f"""{self.base_url}{self.NON_RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&exclude_auxiliary={exclude_auxiliary}"""
+        url: str = f"""{self.BASE_URL}{self.NON_RESIDENTIAL_BUILDINGS_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}&exclude_auxiliary={exclude_auxiliary}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             logging.debug("ApiClient: received response. Checking for errors.")
@@ -543,14 +446,6 @@ class BuildaClient:
                 source = result["coordinates"]["source"],
                 lineage = result["coordinates"]["lineage"],
             )
-            pv_potential = PvPotentialSource(
-                value = PvPotential(
-                    capacity_kW=result["pv_potential"]["value"]["capacity_kW"],
-                    generation_kWh=result["pv_potential"]["value"]["generation_kWh"]
-                ),
-                source = result["pv_potential"]["source"],
-                lineage = result["pv_potential"]["lineage"],
-            ) if result["pv_potential"]["value"] else None
             building = NonResidentialBuildingWithSourceDto(
                 id=result["id"],
                 coordinates=coordinates,
@@ -576,18 +471,11 @@ class BuildaClient:
                     source=result["roof_shape"]["source"],
                     lineage=result["roof_shape"]["lineage"],
                     ),
-                pv_potential=pv_potential,
                 use=StringSource(
                     value=result["use"]["value"], 
                     source=result["use"]["source"],
                     lineage=result["use"]["lineage"],
                     ),
-                electricity_consumption_mwh=FloatSource(
-                    value=result["electricity_consumption_MWh"]["value"], 
-                    source=result["electricity_consumption_MWh"]["source"],
-                    lineage=result["electricity_consumption_MWh"]["lineage"],
-                    ),
-                additional=result["additional"]
             )
             buildings.append(building)
         
@@ -624,9 +512,8 @@ class BuildaClient:
         country: str = "",
         nuts_level: Optional[int] = None,
         nuts_code: Optional[str] = None,
-        geom: Optional[Polygon] = None,
     ) -> list[BuildingStatistics]:
-        """Get the building type statistics for the given nuts level or nuts code. Only
+        """Get the building type statistics for the given NUTS level or NUTS code. Only
         one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -636,7 +523,6 @@ class BuildaClient:
                 of Germany. Defaults to None.
             nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
-            geom (Polygon | None, optional): A custom geometry.
         Raises:
             ValueError: If both nuts_level and nuts_code are specified.
             ServerException: If an unexpected error occurrs on the server side.
@@ -650,23 +536,14 @@ class BuildaClient:
                 "Either nuts_level or nuts_code can be specified, not both."
             )
 
-        if (nuts_level or nuts_code or country) and geom:
-            raise ValueError(
-                "You can query either by NUTS or by custom geometry, not both."
-            )
+        statistics_url = self.TYPE_STATISTICS_URL
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
 
-        if geom is not None:
-            statistics_url = self.TYPE_STATISTICS_BY_GEOM_URL
-            query_params = f"?geom={geom.wkt}"
-        else:
-            statistics_url = self.TYPE_STATISTICS_URL
-            query_params = f"?country={country}"
-            if nuts_level is not None:
-                query_params += f"&nuts_level={nuts_level}"
-            elif nuts_code is not None:
-                query_params += f"&nuts_code={nuts_code}"
-
-        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        url: str = f"""{self.BASE_URL}{statistics_url}{query_params}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
@@ -691,10 +568,9 @@ class BuildaClient:
         country: str = "",
         nuts_level: Optional[int] = None,
         nuts_code: Optional[str] = None,
-        geom: Optional[Polygon] = None,
     ) -> list[BuildingUseStatistics]:
-        """Get the building use statistics for the given nuts level or nuts code. Only
-        one of nuts_level and nuts_code may be specified.
+        """Get the building use statistics of non-residential buildings for the given 
+        NUTS level or NUTS code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
             country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
@@ -703,7 +579,6 @@ class BuildaClient:
                 of Germany. Defaults to None.
             nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
-            geom (Polygon | None, optional): A custom geometry.
 
         Raises:
             ValueError: If both nuts_level and nuts_code are specified.
@@ -718,23 +593,14 @@ class BuildaClient:
                 "Either nuts_level or nuts_code can be specified, not both."
             )
 
-        if (nuts_level or nuts_code or country) and geom:
-            raise ValueError(
-                "You can query either by NUTS or by custom geometry, not both."
-            )
+        statistics_url = self.NON_RESIDENTIAL_USE_STATISTICS_URL
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
 
-        if geom is not None:
-            statistics_url = self.NON_RESIDENTIAL_USE_STATISTICS_BY_GEOM_URL
-            query_params = f"?geom={geom.wkt}"
-        else:
-            statistics_url = self.NON_RESIDENTIAL_USE_STATISTICS_URL
-            query_params = f"?country={country}"
-            if nuts_level is not None:
-                query_params += f"&nuts_level={nuts_level}"
-            elif nuts_code is not None:
-                query_params += f"&nuts_code={nuts_code}"
-
-        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        url: str = f"""{self.BASE_URL}{statistics_url}{query_params}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
@@ -759,7 +625,7 @@ class BuildaClient:
         nuts_level: int | None = None,
         nuts_code: str | None = None,
     ) -> list[SizeClassStatistics]:
-        """Get the building class statistics for the given nuts level or nuts code. Only
+        """Get the building class statistics for the given NUTS level or NUTS code. Only
             one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -789,7 +655,7 @@ class BuildaClient:
         elif nuts_code is not None:
             query_params += f"&nuts_code={nuts_code}"
 
-        url: str = f"""{self.base_url}{self.RESIDENTIAL_SIZE_CLASS_STATISTICS_URL}{query_params}"""
+        url: str = f"""{self.BASE_URL}{self.RESIDENTIAL_SIZE_CLASS_STATISTICS_URL}{query_params}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
@@ -815,7 +681,7 @@ class BuildaClient:
         nuts_level: int | None = None,
         nuts_code: str | None = None,
     ) -> list[ConstructionYearStatistics]:
-        """Get the construction year statistics for the given nuts level or nuts code.
+        """Get the construction year statistics for the given NUTS level or NUTS code.
         Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -846,7 +712,7 @@ class BuildaClient:
             query_params += f"&nuts_code={nuts_code}"
 
         url: str = (
-            f"""{self.base_url}{self.CONSTRUCTION_YEAR_STATISTICS_URL}{query_params}"""
+            f"""{self.BASE_URL}{self.CONSTRUCTION_YEAR_STATISTICS_URL}{query_params}"""
         )
         try:
             response: requests.Response = requests.get(url, timeout=3600)
@@ -869,9 +735,8 @@ class BuildaClient:
         country: str = "",
         nuts_level: Optional[int] = None,
         nuts_code: Optional[str] = None,
-        geom: Optional[Polygon] = None,
     ) -> list[FootprintAreaStatistics]:
-        """Get the footprint area statistics [m2] for the given nuts level or nuts code.
+        """Get the footprint area statistics [m2] for the given NUTS level or NUTS code.
         Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -881,7 +746,6 @@ class BuildaClient:
                 of Germany. Defaults to None.
             nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
-            geom (Polygon | None, optional): A custom geometry.
 
         Raises:
             ValueError: If both nuts_level and nuts_code are specified.
@@ -896,23 +760,14 @@ class BuildaClient:
                 "Either nuts_level or nuts_code can be specified, not both."
             )
 
-        if (nuts_level or nuts_code or country) and geom:
-            raise ValueError(
-                "You can query either by NUTS or by custom geometry, not both."
-            )
+        statistics_url = self.FOOTPRINT_AREA_STATISTICS_URL
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
 
-        if geom is not None:
-            statistics_url = self.FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL
-            query_params = f"?geom={geom.wkt}"
-        else:
-            statistics_url = self.FOOTPRINT_AREA_STATISTICS_URL
-            query_params = f"?country={country}"
-            if nuts_level is not None:
-                query_params += f"&nuts_level={nuts_level}"
-            elif nuts_code is not None:
-                query_params += f"&nuts_code={nuts_code}"
-
-        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        url: str = f"""{self.BASE_URL}{statistics_url}{query_params}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
@@ -957,9 +812,8 @@ class BuildaClient:
         country: str = "",
         nuts_level: Optional[int] = None,
         nuts_code: Optional[str] = None,
-        geom: Optional[Polygon] = None,
     ) -> list[HeightStatistics]:
-        """Get the height statistics [m] for the given nuts level or nuts code. Only one
+        """Get the height statistics [m] for the given NUTS level or NUTS code. Only one
         of nuts_level and nuts_code may be specified.
 
         Args:
@@ -969,7 +823,6 @@ class BuildaClient:
                 of Germany. Defaults to None.
             nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
-            geom (Polygon | None, optional): A custom geometry.
 
         Raises:
             ValueError: If both nuts_level and nuts_code are specified.
@@ -984,23 +837,14 @@ class BuildaClient:
                 "Either nuts_level or nuts_code can be specified, not both."
             )
 
-        if (nuts_level or nuts_code or country) and geom:
-            raise ValueError(
-                "You can query either by NUTS or by custom geometry, not both."
-            )
+        statistics_url = self.HEIGHT_STATISTICS_URL
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
 
-        if geom is not None:
-            statistics_url = self.HEIGHT_STATISTICS_BY_GEOM_URL
-            query_params = f"?geom={geom.wkt}"
-        else:
-            statistics_url = self.HEIGHT_STATISTICS_URL
-            query_params = f"?country={country}"
-            if nuts_level is not None:
-                query_params += f"&nuts_level={nuts_level}"
-            elif nuts_code is not None:
-                query_params += f"&nuts_code={nuts_code}"
-
-        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        url: str = f"""{self.BASE_URL}{statistics_url}{query_params}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
@@ -1031,7 +875,7 @@ class BuildaClient:
         nuts_code: Optional[str] = None,
         geom: Optional[Polygon] = None,
     ) -> list[RefurbishmentStateStatistics]:
-        """Get the refurbishment state statistics [m2] for the given nuts level or nuts 
+        """Get the refurbishment state statistics [m2] for the given NUTS level or NUTS 
         code. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -1071,7 +915,7 @@ class BuildaClient:
             elif nuts_code is not None:
                 query_params += f"&nuts_code={nuts_code}"
 
-        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        url: str = f"""{self.BASE_URL}{statistics_url}{query_params}"""
         try:
             response: requests.Response = requests.get(url)
             response.raise_for_status()
@@ -1090,77 +934,14 @@ class BuildaClient:
             statistics.append(statistic)
         return statistics
 
-    def get_pv_potential_statistics(
-        self,
-        country: str = "",
-        nuts_level: Optional[int] = None,
-        nuts_code: Optional[str] = None,
-    ) -> list[PvPotentialStatistics]:
-        """Get the PV potential statistics [kWh] for the given nuts level or
-        nuts code. Only one of nuts_level and nuts_code may be specified.
-
-        Args:
-            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
-                for Germany. Defaults to "".
-            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
-                of Germany. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
-                according to the 2021 NUTS code definitions. Defaults to None.
-
-        Raises:
-            ValueError: If both nuts_level and nuts_code are specified.
-            ServerException: If an unexpected error occurrs on the server side.
-
-        Returns:
-            list[BuildingStatistics]: A list of objects per NUTS region with statistical
-                info about rooftop PV potentials of buildings.
-        """
-        if nuts_level is not None and nuts_code is not None:
-            raise ValueError(
-                "Either nuts_level or nuts_code can be specified, not both."
-            )
-
-        query_params = f"?country={country}"
-        if nuts_level is not None:
-            query_params += f"&nuts_level={nuts_level}"
-        elif nuts_code is not None:
-            query_params += f"&nuts_code={nuts_code}"
-
-        url: str = f"""{self.base_url}{self.PV_GENERATION_POTENTIAL_STATISTICS_URL}{query_params}"""
-        try:
-            response: requests.Response = requests.get(url, timeout=3600)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.handle_exception(err)
-
-        results: list = json.loads(response.content)
-        statistics: list[PvPotentialStatistics] = []
-        for res in results:
-            statistic = PvPotentialStatistics(
-                nuts_code=res["nuts_code"],
-                sum_pv_generation_potential_kwh=res["nuts_code"],
-                avg_pv_generation_potential_residential_kwh=res["nuts_code"],
-                median_pv_generation_potential_residential_kwh=res["nuts_code"],
-                sum_pv_generation_potential_residential_kwh=res["nuts_code"],
-                avg_pv_generation_potential_non_residential_kwh=res["nuts_code"],
-                median_pv_generation_potential_non_residential_kwh=res["nuts_code"],
-                sum_pv_generation_potential_non_residential_kwh=res["nuts_code"],
-                avg_pv_generation_potential_mixed_kwh=res["nuts_code"],
-                median_pv_generation_potential_mixed_kwh=res["nuts_code"],
-                sum_pv_generation_potential_mixed_kwh=res["nuts_code"],
-            )
-            statistics.append(statistic)
-        return statistics
-
     def get_residential_heat_demand_statistics(
         self,
         country: str = "",
         nuts_level: Optional[int] = None,
         nuts_code: Optional[str] = None,
-        geom: Optional[Polygon] = None,
     ) -> list[HeatDemandStatistics]:
         """Get the residential heat demand statistics [MWh] for the given NUTS level or
-            NUTS/LAU code. Results can be limited to a certain country by setting the
+            NUTS code. Results can be limited to a certain country by setting the
             country parameter. Only one of nuts_level and nuts_code may be specified.
 
         Args:
@@ -1170,7 +951,6 @@ class BuildaClient:
                 of Germany. Defaults to None.
             nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
                 according to the 2021 NUTS code definitions. Defaults to None.
-            geom (Polygon | None, optional): A custom geometry.
 
         Raises:
             ValueError: If both nuts_level and nuts_code are specified or the nuts_level
@@ -1190,23 +970,14 @@ class BuildaClient:
                 "Invalid NUTS/LAU level provided; nuts_level must be in range [0,4]."
             )
 
-        if (nuts_level or nuts_code or country) and geom:
-            raise ValueError(
-                "You can query either by NUTS or by custom geometry, not both."
-            )
+        statistics_url = self.RESIDENTIAL_HEAT_DEMAND_STATISTICS_URL
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
 
-        if geom is not None:
-            statistics_url = self.RESIDENTIAL_HEAT_DEMAND_STATISTICS_BY_GEOM_URL
-            query_params = f"?geom={geom.wkt}"
-        else:
-            statistics_url = self.RESIDENTIAL_HEAT_DEMAND_STATISTICS_URL
-            query_params = f"?country={country}"
-            if nuts_level is not None:
-                query_params += f"&nuts_level={nuts_level}"
-            elif nuts_code is not None:
-                query_params += f"&nuts_code={nuts_code}"
-
-        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        url: str = f"""{self.BASE_URL}{statistics_url}{query_params}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
@@ -1267,8 +1038,7 @@ class BuildaClient:
 
         query_params = f"?country={country}&construction_year__gt={construction_year_after_param}&construction_year={construction_year_param}&construction_year__lt={construction_year_before_param}&size_class={size_class}&refurbishment_state={refurbishment_state}"
 
-
-        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        url: str = f"""{self.BASE_URL}{statistics_url}{query_params}"""
         try:
             response: requests.Response = requests.get(url, timeout=3600)
             response.raise_for_status()
@@ -1288,158 +1058,3 @@ class BuildaClient:
             statistics.append(statistic)
         return statistics
 
-    def get_non_residential_energy_consumption_statistics(
-        self,
-        country: str = "",
-        nuts_level: Optional[int] = None,
-        nuts_code: Optional[str] = None,
-        geom: Optional[Polygon] = None,
-    ) -> list[NonResidentialEnergyConsumptionStatistics]:
-        """Get the energy consumption statistics [MWh] for the given nuts level or nuts
-        code. Only one of nuts_level and nuts_code may be specified.
-
-        Args:
-            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
-                for Germany. Defaults to "".
-            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
-                of Germany. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
-                according to the 2021 NUTS code definitions. Defaults to None.
-            geom (Polygon | None, optional): A custom geometry.
-
-        Raises:
-            ValueError: If both nuts_level and nuts_code are given.
-            ServerException: If an error occurrs on the server side.
-
-        Returns:
-            list[EnergyConsumptionStatistics]: A list of energy consumption statistics
-                of non-residential buildings.
-        """
-        logging.debug(
-            "ApiClient: get_energy_consumption_statistics(nuts_level=%s, nuts_code=%s)",
-            nuts_level,
-            nuts_code,
-        )
-
-        if nuts_level is not None and nuts_code is not None:
-            raise ValueError(
-                "Either nuts_level or nuts_code can be specified, not both."
-            )
-
-        if (nuts_level or nuts_code or country) and geom:
-            raise ValueError(
-                "You can query either by NUTS or by custom geometry, not both."
-            )
-
-        if geom is not None:
-            statistics_url = (
-                self.NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_BY_GEOM_URL
-            )
-            query_params = f"?geom={geom.wkt}"
-        else:
-            statistics_url = self.NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_URL
-            query_params = f"?country={country}"
-            if nuts_level is not None:
-                query_params += f"&nuts_level={nuts_level}"
-            elif nuts_code is not None:
-                query_params += f"&nuts_code={nuts_code}"
-
-        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
-        try:
-            response: requests.Response = requests.get(url, timeout=3600)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.handle_exception(err)
-
-        results: list = json.loads(response.content)
-        statistics: list[NonResidentialEnergyConsumptionStatistics] = []
-        for res in results:
-            statistic = NonResidentialEnergyConsumptionStatistics(
-                nuts_code=res["nuts_code"],
-                use=res["use"],
-                electricity_consumption_mwh=res["electricity_consumption_MWh"],
-            )
-            statistics.append(statistic)
-        return statistics
-
-
-    def get_residential_energy_commodity_statistics(
-        self,
-        country: str = "",
-        nuts_level: Optional[int] = None,
-        nuts_code: Optional[str] = None,
-        geom: Optional[Polygon] = None,
-        commodity: str = "",
-    ) -> list[EnergyCommodityStatistics]:
-        """Get the energy commodity statistics for the given nuts level or nuts code.
-        Only one of nuts_level and nuts_code may be specified.
-
-        Args:
-            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
-                for Germany. Defaults to "".
-            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
-                of Germany. Defaults to None.
-            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
-                according to the 2021 NUTS code definitions. Defaults to None.
-            geom (Polygon | None, optional): A custom geometry.
-            commodity (str, optional): The commodity for which to get statistics.
-                Defaults to "".
-
-        Raises:
-            ValueError: If both nuts_level and nuts_code are given.
-            ServerException: If an error occurrs on the server side.
-            geom (str | None, optional): A custom geometry.
-
-        Returns:
-            list[EnergyCommodityStatistics]: A list of building commodity statistics
-                of residential buildings.
-        """
-        logging.debug(
-            """ApiClient: get_energy_commodity_statistics(nuts_level=%d, nuts_code=%s, 
-            commodity=%s)""",
-            nuts_level,
-            nuts_code,
-            commodity,
-        )
-
-        if nuts_level is not None and nuts_code is not None:
-            raise ValueError(
-                "Either nuts_level or nuts_code can be specified, not both."
-            )
-
-        if (nuts_level or nuts_code or country) and geom:
-            raise ValueError(
-                "You can query either by NUTS or by custom geometry, not both."
-            )
-
-        if geom is not None:
-            statistics_url = self.RESIDENTIAL_ENERGY_COMMODITY_STATISTICS_BY_GEOM_URL
-            query_params = f"?geom={geom.wkt}"
-        else:
-            statistics_url = self.RESIDENTIAL_ENERGY_COMMODITY_STATISTICS_URL
-            query_params = f"?country={country}"
-            if nuts_level is not None:
-                query_params += f"&nuts_level={nuts_level}"
-            elif nuts_code is not None:
-                query_params += f"&nuts_code={nuts_code}"
-
-        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
-        try:
-            response: requests.Response = requests.get(url, timeout=3600)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.handle_exception(err)
-
-        results: list = json.loads(response.content)
-        statistics: list[EnergyCommodityStatistics] = []
-        for res in results:
-         
-            statistic = EnergyCommodityStatistics(
-                nuts_code=res["nuts_code"],
-                energy_system=res["energy_system"],
-                commodity_name=res["commodity"],
-                commodity_count= res["commodity_count"]
-            )
-            statistics.append(statistic)
-
-        return statistics

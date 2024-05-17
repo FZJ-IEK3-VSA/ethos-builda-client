@@ -1,18 +1,15 @@
-proxy:
-  host: 192.168.90.1
-  port: 8080
+proxy_address: 192.168.90.1:8080
 
-dev:
-  api:
-    host: localhost
-    port: 8001
+local:
+  api_address: http://localhost:8001
 
-staging:
-  api:
-    host: 134.94.117.112
-    port: 8000
+development:
+  api_address: http://134.94.117.112:8000
 
-base_url: /api/v0/
+production:
+  api_address: https://ethos-builda.fz-juelich.de
+
+base_url: /api/v7_20240429/
 
 nominatim:
   host: 134.94.117.112

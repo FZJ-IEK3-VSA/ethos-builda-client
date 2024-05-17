@@ -1,3 +1,4 @@
+from enum import Enum
 import json
 import logging
 from typing import Any, Dict, Optional
@@ -5,14 +6,30 @@ from uuid import UUID
 
 import requests
 from shapely.geometry import Polygon, shape
+from builda_client.base_client import BaseClient
+from builda_client.util import load_config
 
-from builda_client.client import BuildaClient
 from builda_client.exceptions import (
     MissingCredentialsException,
     ServerException,
     UnauthorizedException,
 )
 from builda_client.model import (
+    Address,
+    AddressSource,
+    CoordinatesSource,
+    FloatSource,
+    HeatDemandStatistics,
+    BuildingUseStatistics,
+    FootprintAreaStatistics,
+    HeightStatistics,
+    BuildingStatistics,
+    IntSource,
+    LineageResponseDto,
+    SourceResponseDto,
+    StringSource
+)
+from builda_client.dev_model import (
     AdditionalInfo,
     AddressInfo,
     Building,
@@ -25,7 +42,10 @@ from builda_client.model import (
     NonResidentialBuilding,
     NormHeatingLoadInfo,
     PvPotential,
+    PvPotentialSource,
     ResidentialBuilding,
+    ResidentialBuildingResponseDto,
+    ResidentialBuildingWithSourceDto,
     SizeClassInfo,
     BuildingParcel,
     BuildingStockEntry,
@@ -47,16 +67,24 @@ from builda_client.model import (
     TypeInfo,
     UseInfo,
     EnergySystemInfo,
-    BuildingGeometry
+    BuildingGeometry,
+    NonResidentialEnergyConsumptionStatistics,
+    EnergyCommodityStatistics,
+    PvPotentialStatistics,
 )
 from builda_client.util import determine_nuts_query_param, ewkt_loads
 
+class Phase(Enum):
+    LOCAL = "local",
+    DEVELOPMENT = "development",
+    PRODUCTION = "production"
 
-class BuildaDevClient(BuildaClient):
-    """A client for the ETHOS.BUILDA API for internal use.
-
-    Args:
-        BuildaClient (BuildaClient): Base implementation for client.
+class BuildaDevClient(BaseClient):
+    """API-client for accessing the private endpoints of the ETHOS.BUILDA API, 
+    which are currently available only for internal use to members of the IEK-3
+    at Forschungszentrum Jülich.
+    For accessing the public endpoints, please use BuildaClient by importing:
+    from builda_client.client import BuildaClient
 
     Raises:
         UnauthorizedException: If current user is not authorized to execute method.
@@ -68,12 +96,15 @@ class BuildaDevClient(BuildaClient):
     Returns:
         BuildaDevClient: Client for ETHOS.BUILDA API access with methods for internal use.
     """
-    # For developpers/ write users of database
+    # For internal users and developpers/ write users of database
 
     # Buildings
     BUILDINGS_URL = "buildings/stripped"
+    BUILDINGS_WITH_SOURCES_URL = "buildings/sources"
     RESIDENTIAL_BUILDINGS_URL = "buildings/residential/stripped"
+    RESIDENTIAL_BUILDINGS_WITH_SOURCES_URL = "buildings/residential/sources"
     NON_RESIDENTIAL_BUILDINGS_URL = "buildings/non-residential/stripped"
+    NON_RESIDENTIAL_BUILDINGS_WITH_SOURCES_URL = "buildings/non-residential/sources"
 
     AUTH_URL = "/auth/api-token"
     BUILDINGS_BASE_URL = "buildings-base/"
@@ -115,41 +146,65 @@ class BuildaDevClient(BuildaClient):
 
     CUSTOM_QUERY_URL = "custom-query"
 
+    # Statistics
+    TYPE_STATISTICS_BY_GEOM_URL = "statistics/building-type/geom"
+    FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL = "statistics/footprint-area/geom"
+    HEIGHT_STATISTICS_BY_GEOM_URL = "statistics/height/geom"
+    NON_RESIDENTIAL_USE_STATISTICS_BY_GEOM_URL = (
+        "statistics/non-residential/building-use/geom"
+    )
+    RESIDENTIAL_HEAT_DEMAND_STATISTICS_BY_GEOM_URL = (
+        "statistics/residential/heat-demand/geom"
+    )
+
+    RESIDENTIAL_ENERGY_COMMODITY_STATISTICS_URL = (
+        "statistics/residential/energy-commodities"
+    )
+    RESIDENTIAL_ENERGY_COMMODITY_STATISTICS_BY_GEOM_URL = (
+        "statistics/residential/energy-commodities/geom"
+    )
+    RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_URL = (
+        "statistics/residential/energy-consumption"
+    )
+    RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_BY_GEOM_URL = (
+        "statistics/residential/energy-consumption/geom"
+    )
+    NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_URL = (
+        "statistics/non-residential/energy-consumption"
+    )
+    NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_BY_GEOM_URL = (
+        "statistics/non-residential/energy-consumption/geom"
+    )
+    PV_GENERATION_POTENTIAL_STATISTICS_URL = "statistics/pv-generation-potential"
+
     def __init__(
         self,
+        username: str,
+        password: str,
+        phase: Phase = Phase.PRODUCTION,
         proxy: bool = False,
-        username: str | None = None,
-        password: str | None = None,
-        phase="staging",
     ):
         """Constructor.
 
         Args:
             proxy (bool, optional): Whether to use a proxy or not. Proxy should be used
                 when using client on cluster compute nodes. Defaults to False.
-            username (str | None, optional): Username for authentication. Only required
-                when using client for accessing endpoints that are not open. Defaults
-                to None.
-            password (str | None, optional): Password; see username. Defaults to None.
-            dev (boolean, optional): The 'phase' the client is used in, i.e. which
-                database to access. Possible options: 'dev', 'staging'. Defaults to
-                'staging'.
+            username (str): Username for API authentication.
+            password (str): Password for API authentication.
+            phase (Phase, optional): The 'phase' the client is used in, i.e. which
+                database to access. Defaults to Phase.PRODUCTION.
         """
-        super().__init__(proxy)
+        super().__init__()
 
         self.username = username
         self.password = password
         self.phase = phase
+        self.config = load_config()
 
-        if proxy:
-            host = self.config["proxy"]["host"]
-            port = self.config["proxy"]["port"]
-        else:
-            host = self.config[self.phase]["api"]["host"]
-            port = self.config[self.phase]["api"]["port"]
-
-        self.base_url = f"""http://{host}:{port}{self.config['base_url']}"""
-        self.authentication_url = f"""http://{host}:{port}{self.AUTH_URL}"""
+        address = self.config["proxy_address"] if proxy else self.config[self.phase.value]["api_address"]
+      
+        self.base_url = f"""{address}{self.config['base_url']}"""
+        self.authentication_url = f"""{address}{self.AUTH_URL}"""
         self.api_token = self.__get_authentication_token()
 
     def __get_authentication_token(self) -> str:
@@ -234,14 +289,14 @@ class BuildaDevClient(BuildaClient):
             url += f"&geom={geom}"
 
         try:
-            response: requests.Response = requests.get(url)
+            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise ServerException("An unexpected exception occurred.")
+            self.handle_exception(e)
 
         logging.debug(
-            f"ApiClient: received ok response, proceeding with deserialization."
+            "ApiClient: received ok response, proceeding with deserialization."
         )
         buildings = self.__deserialize(response.content)
         return buildings
@@ -444,7 +499,198 @@ class BuildaDevClient(BuildaClient):
 
         return buildings
     
+    def get_residential_buildings_with_sources(
+        self,
+        street: str = "",
+        housenumber: str = "",
+        postcode: str = "",
+        city: str = "",
+        nuts_code: str = "",
+        include_mixed: bool = True,
+    ) -> ResidentialBuildingResponseDto:
+        """Gets all residential buildings that match the query parameters.
 
+        Args:
+            street (str, optional): The name of the street. Defaults to "".
+            housenumber (str, optional): The house number. Defaults to "".
+            postcode (str, optional): The postcode. Defaults to "".
+            city (str, optional): The city. Defaults to "".
+            nuts_code (str, optional): The NUTS-code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions or 2019 LAU definition.
+                Defaults to "".
+            include_mixed (bool, optional): Whether or not to include mixed buildings.
+                Defaults to True.
+
+        Raises:
+            ServerException: When an error occurs on the server side..
+
+        Returns:
+            list[ResidentialBuilding]: A list of residential buildings.
+        """
+
+        logging.debug(
+            """ApiClient: get_buildings(street=%s, housenumber=%s, postcode=%s, city=%s, 
+            nuts_code=%s)""",
+            street,
+            housenumber,
+            postcode,
+            city,
+            nuts_code,
+        )
+        nuts_query_param: str = determine_nuts_query_param(nuts_code)
+        building_type = "" if include_mixed else "residential"
+
+        url: str = f"""{self.base_url}{self.RESIDENTIAL_BUILDINGS_WITH_SOURCES_URL}?street={street}&house_number={housenumber}&postcode={postcode}&city={city}&{nuts_query_param}={nuts_code}&type={building_type}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
+            logging.debug("ApiClient: received response. Checking for errors.")
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+        logging.debug(
+            "ApiClient: received ok response, proceeding with deserialization."
+        )
+        results: Dict = json.loads(response.content)
+        buildings: list[ResidentialBuildingWithSourceDto] = []
+        for result in results["buildings"]:
+            coordinates = CoordinatesSource(
+                value = Coordinates(
+                    latitude=result["coordinates"]['value']["latitude"],
+                    longitude=result["coordinates"]['value']["longitude"]),
+                source = result["coordinates"]["source"],
+                lineage = result["coordinates"]["lineage"],
+            )
+            pv_potential = PvPotentialSource(
+                value = PvPotential(
+                    capacity_kW=result["pv_potential"]["value"]["capacity_kW"],
+                    generation_kWh=result["pv_potential"]["value"]["generation_kWh"]),
+                source = result["pv_potential"]["source"],
+                lineage = result["pv_potential"]["lineage"],
+            ) if result["pv_potential"]["value"] else None
+            address = AddressSource(
+                value = Address(
+                    street = result["address"]["value"]["street"],
+                    house_number = result["address"]["value"]["house_number"],
+                    postcode = result["address"]["value"]["postcode"],
+                    city = result["address"]["value"]["city"],
+                ),
+                source = result["address"]["source"],
+                lineage = result["address"]["lineage"],
+            )
+            building = ResidentialBuildingWithSourceDto(
+                id=result["id"],
+                coordinates=coordinates,
+                address=address,
+                footprint_area_m2=result["footprint_area_m2"],
+                height_m=FloatSource(
+                    value=result["height_m"]["value"], 
+                    source=result["height_m"]["source"],
+                    lineage=result["height_m"]["lineage"],
+                    ),
+                elevation_m=FloatSource(
+                    value=result["elevation_m"]["value"], 
+                    source=result["elevation_m"]["source"],
+                    lineage=result["elevation_m"]["lineage"],
+                    ),
+                type=StringSource(
+                    value=result["type"]["value"], 
+                    source=result["type"]["source"],
+                    lineage=result["type"]["source"],
+                    ),
+                roof_shape=StringSource(
+                    value=result["roof_shape"]["value"], 
+                    source=result["roof_shape"]["source"],
+                    lineage=result["roof_shape"]["lineage"],
+                    ),
+                construction_year=IntSource(
+                    value=result["construction_year"]["value"],
+                    source=result["construction_year"]["source"],
+                    lineage=result["construction_year"]["lineage"],
+                    ),
+                pv_potential=pv_potential,
+                size_class=StringSource(
+                    value=result["size_class"]["value"], 
+                    source=result["size_class"]["source"],
+                    lineage=result["size_class"]["lineage"],
+                    ),
+                refurbishment_state=IntSource(
+                    value=result["refurbishment_state"]["value"], 
+                    source=result["refurbishment_state"]["source"],
+                    lineage=result["refurbishment_state"]["lineage"],
+                    ),
+                tabula_type=StringSource(
+                    value=result["tabula_type"]["value"], 
+                    source=result["tabula_type"]["source"],
+                    lineage=result["tabula_type"]["lineage"],
+                    ),
+                useful_area_m2=FloatSource(
+                    value=result["useful_area_m2"]["value"], 
+                    source=result["useful_area_m2"]["source"],
+                    lineage=result["useful_area_m2"]["lineage"],
+                    ),
+                conditioned_living_area_m2=FloatSource(
+                    value=result["conditioned_living_area_m2"]["value"], 
+                    source=result["conditioned_living_area_m2"]["source"],
+                    lineage=result["conditioned_living_area_m2"]["lineage"],
+                    ),
+                net_floor_area_m2=FloatSource(
+                    value=result["net_floor_area_m2"]["value"], 
+                    source=result["net_floor_area_m2"]["source"],
+                    lineage=result["net_floor_area_m2"]["lineage"],
+                    ),
+                yearly_heat_demand_mwh=FloatSource(
+                    value=result["yearly_heat_demand_mwh"]["value"], 
+                    source=result["yearly_heat_demand_mwh"]["source"],
+                    lineage=result["yearly_heat_demand_mwh"]["lineage"],
+                    ),
+                housing_unit_count=IntSource(
+                    value=result["housing_unit_count"]["value"], 
+                    source=result["housing_unit_count"]["source"],
+                    lineage=result["housing_unit_count"]["lineage"],
+                    ),
+                norm_heating_load_kw=FloatSource(
+                    value=result["norm_heating_load_kw"]["value"], 
+                    source=result["norm_heating_load_kw"]["source"],
+                    lineage=result["norm_heating_load_kw"]["lineage"],
+                    ),
+                households=StringSource(
+                    value=result["households"]["value"], 
+                    source=result["households"]["source"],
+                    lineage=result["households"]["lineage"],
+                    ),
+                energy_system=result["energy_system"],
+                additional=result["additional"],
+            )
+            buildings.append(building)
+
+        data_sources: list[SourceResponseDto] = []
+        for entry in results["sources"]:
+            source = SourceResponseDto(
+                key=entry["key"],
+                name=entry["name"],
+                provider=entry["provider"],
+                referring_website=entry["referring_website"],
+                license=entry["license"],
+                citation=entry["citation"],
+            )
+            
+            data_sources.append(source)
+        
+        data_lineages: list[LineageResponseDto] = []
+        for entry in results["lineages"]:
+            lineage = LineageResponseDto(
+                key=entry["key"],
+                description=entry["description"],
+            )
+            
+            data_lineages.append(lineage)
+
+        return ResidentialBuildingResponseDto(
+            buildings=buildings, 
+            sources=data_sources, 
+            lineages=data_lineages)
+    
     def get_non_residential_buildings(
         self,
         street: str = "",
@@ -568,7 +814,7 @@ class BuildaDevClient(BuildaClient):
             url += f"&geom={geom}"
 
         try:
-            response: requests.Response = requests.get(url)
+            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as err:
@@ -586,6 +832,11 @@ class BuildaDevClient(BuildaClient):
         logging.debug(
             f"ApiClient: get_building_ids(nuts_code = {nuts_code}, type = {type})"
         )
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
         nuts_query_param: str = determine_nuts_query_param(nuts_code)
         height_lt = "" if height_max is None else str(height_max)
         url: str = f"""{self.base_url}{self.BUILDINGS_ID_URL}?{nuts_query_param}={nuts_code}&type={type}&height__lt={height_lt}"""
@@ -593,7 +844,7 @@ class BuildaDevClient(BuildaClient):
             url += f"&geom={geom}"
             
         try:
-            response: requests.Response = requests.get(url)
+            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
             logging.debug("ApiClient: received response. Checking for errors.")
             response.raise_for_status()
         except requests.HTTPError as e:
@@ -1588,7 +1839,7 @@ class BuildaDevClient(BuildaClient):
         logging.debug("ApiClient: get_nuts_region")
         url: str = f"""{self.base_url}{self.NUTS_URL}/{nuts_code}"""
         try:
-            response: requests.Response = requests.get(url)
+            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.HTTPError as e:
             if e.response.status_code == 403:
@@ -1616,7 +1867,7 @@ class BuildaDevClient(BuildaClient):
             f"""{self.base_url}{self.NUTS_CODES_URL}?parent={parent_region_code}"""
         )
         try:
-            response: requests.Response = requests.get(url)
+            response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
             response.raise_for_status()
         except requests.HTTPError as e:
             if e.response.status_code == 403:
@@ -1792,3 +2043,585 @@ class BuildaDevClient(BuildaClient):
         except requests.exceptions.HTTPError as err:
             self.handle_exception(err)
 
+    def get_non_residential_energy_consumption_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[NonResidentialEnergyConsumptionStatistics]:
+        """Get the energy consumption statistics [MWh] for the given nuts level or nuts
+        code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
+                for Germany. Defaults to "".
+            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
+                of Germany. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions. Defaults to None.
+            geom (Polygon | None, optional): A custom geometry.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are given.
+            ServerException: If an error occurrs on the server side.
+
+        Returns:
+            list[EnergyConsumptionStatistics]: A list of energy consumption statistics
+                of non-residential buildings.
+        """
+        logging.debug(
+            "ApiClient: get_energy_consumption_statistics(nuts_level=%s, nuts_code=%s)",
+            nuts_level,
+            nuts_code,
+        )
+
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        if (nuts_level or nuts_code or country) and geom:
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
+
+        if geom is not None:
+            statistics_url = (
+                self.NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_BY_GEOM_URL
+            )
+            query_params = f"?geom={geom.wkt}"
+        else:
+            statistics_url = self.NON_RESIDENTIAL_ENERGY_CONSUMPTION_STATISTICS_URL
+            query_params = f"?country={country}"
+            if nuts_level is not None:
+                query_params += f"&nuts_level={nuts_level}"
+            elif nuts_code is not None:
+                query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+        results: list = json.loads(response.content)
+        statistics: list[NonResidentialEnergyConsumptionStatistics] = []
+        for res in results:
+            statistic = NonResidentialEnergyConsumptionStatistics(
+                nuts_code=res["nuts_code"],
+                use=res["use"],
+                electricity_consumption_mwh=res["electricity_consumption_MWh"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+
+    def get_residential_energy_commodity_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+        commodity: str = "",
+    ) -> list[EnergyCommodityStatistics]:
+        """Get the energy commodity statistics for the given nuts level or nuts code.
+        Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
+                for Germany. Defaults to "".
+            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
+                of Germany. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions. Defaults to None.
+            geom (Polygon | None, optional): A custom geometry.
+            commodity (str, optional): The commodity for which to get statistics.
+                Defaults to "".
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are given.
+            ServerException: If an error occurrs on the server side.
+            geom (str | None, optional): A custom geometry.
+
+        Returns:
+            list[EnergyCommodityStatistics]: A list of building commodity statistics
+                of residential buildings.
+        """
+        logging.debug(
+            """ApiClient: get_energy_commodity_statistics(nuts_level=%d, nuts_code=%s, 
+            commodity=%s)""",
+            nuts_level,
+            nuts_code,
+            commodity,
+        )
+
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        if (nuts_level or nuts_code or country) and geom:
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
+
+        if geom is not None:
+            statistics_url = self.RESIDENTIAL_ENERGY_COMMODITY_STATISTICS_BY_GEOM_URL
+            query_params = f"?geom={geom.wkt}"
+        else:
+            statistics_url = self.RESIDENTIAL_ENERGY_COMMODITY_STATISTICS_URL
+            query_params = f"?country={country}"
+            if nuts_level is not None:
+                query_params += f"&nuts_level={nuts_level}"
+            elif nuts_code is not None:
+                query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+        results: list = json.loads(response.content)
+        statistics: list[EnergyCommodityStatistics] = []
+        for res in results:
+         
+            statistic = EnergyCommodityStatistics(
+                nuts_code=res["nuts_code"],
+                energy_system=res["energy_system"],
+                commodity_name=res["commodity"],
+                commodity_count= res["commodity_count"]
+            )
+            statistics.append(statistic)
+
+        return statistics
+
+    def get_pv_potential_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+    ) -> list[PvPotentialStatistics]:
+        """Get the PV potential statistics [kWh] for the given nuts level or
+        nuts code. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
+                for Germany. Defaults to "".
+            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
+                of Germany. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions. Defaults to None.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical
+                info about rooftop PV potentials of buildings.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        query_params = f"?country={country}"
+        if nuts_level is not None:
+            query_params += f"&nuts_level={nuts_level}"
+        elif nuts_code is not None:
+            query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{self.PV_GENERATION_POTENTIAL_STATISTICS_URL}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+        results: list = json.loads(response.content)
+        statistics: list[PvPotentialStatistics] = []
+        for res in results:
+            statistic = PvPotentialStatistics(
+                nuts_code=res["nuts_code"],
+                sum_pv_generation_potential_kwh=res["nuts_code"],
+                avg_pv_generation_potential_residential_kwh=res["nuts_code"],
+                median_pv_generation_potential_residential_kwh=res["nuts_code"],
+                sum_pv_generation_potential_residential_kwh=res["nuts_code"],
+                avg_pv_generation_potential_non_residential_kwh=res["nuts_code"],
+                median_pv_generation_potential_non_residential_kwh=res["nuts_code"],
+                sum_pv_generation_potential_non_residential_kwh=res["nuts_code"],
+                avg_pv_generation_potential_mixed_kwh=res["nuts_code"],
+                median_pv_generation_potential_mixed_kwh=res["nuts_code"],
+                sum_pv_generation_potential_mixed_kwh=res["nuts_code"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+def get_building_type_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[BuildingStatistics]:
+        """Get the building type statistics for the given nuts level or nuts code. Only
+        one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
+                for Germany. Defaults to "".
+            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
+                of Germany. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions. Defaults to None.
+            geom (Polygon | None, optional): A custom geometry.
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region or custom
+                geometry with statistical info about building types.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        if (nuts_level or nuts_code or country) and geom:
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
+
+        if geom is not None:
+            statistics_url = self.TYPE_STATISTICS_BY_GEOM_URL
+            query_params = f"?geom={geom.wkt}"
+        else:
+            statistics_url = self.TYPE_STATISTICS_URL
+            query_params = f"?country={country}"
+            if nuts_level is not None:
+                query_params += f"&nuts_level={nuts_level}"
+            elif nuts_code is not None:
+                query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+        results: list[Dict] = json.loads(response.content)
+        statistics: list[BuildingStatistics] = []
+        for result in results:
+            statistic = BuildingStatistics(
+                nuts_code=result["nuts_code"],
+                building_count_total=result["building_count_total"],
+                building_count_residential=result["building_count_residential"],
+                building_count_non_residential=result["building_count_non_residential"],
+                building_count_mixed=result["building_count_mixed"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+def get_non_residential_building_use_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[BuildingUseStatistics]:
+        """Get the building use statistics for the given nuts level or nuts code. Only
+        one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
+                for Germany. Defaults to "".
+            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
+                of Germany. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions. Defaults to None.
+            geom (Polygon | None, optional): A custom geometry.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical
+                info about non-residential building uses.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        if (nuts_level or nuts_code or country) and geom:
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
+
+        if geom is not None:
+            statistics_url = self.NON_RESIDENTIAL_USE_STATISTICS_BY_GEOM_URL
+            query_params = f"?geom={geom.wkt}"
+        else:
+            statistics_url = self.NON_RESIDENTIAL_USE_STATISTICS_URL
+            query_params = f"?country={country}"
+            if nuts_level is not None:
+                query_params += f"&nuts_level={nuts_level}"
+            elif nuts_code is not None:
+                query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+        results: list = json.loads(response.content)
+        statistics: list[BuildingUseStatistics] = []
+        for res in results:
+            statistic = BuildingUseStatistics(
+                nuts_code=res["nuts_code"],
+                type=res["type"],
+                use=res["use"],
+                building_count=res["building_count"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+def get_footprint_area_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[FootprintAreaStatistics]:
+        """Get the footprint area statistics [m2] for the given nuts level or nuts code.
+        Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
+                for Germany. Defaults to "".
+            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
+                of Germany. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions. Defaults to None.
+            geom (Polygon | None, optional): A custom geometry.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical
+                info about building footprint areas.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        if (nuts_level or nuts_code or country) and geom:
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
+
+        if geom is not None:
+            statistics_url = self.FOOTPRINT_AREA_STATISTICS_BY_GEOM_URL
+            query_params = f"?geom={geom.wkt}"
+        else:
+            statistics_url = self.FOOTPRINT_AREA_STATISTICS_URL
+            query_params = f"?country={country}"
+            if nuts_level is not None:
+                query_params += f"&nuts_level={nuts_level}"
+            elif nuts_code is not None:
+                query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+        results: list = json.loads(response.content)
+        statistics: list[FootprintAreaStatistics] = []
+        for res in results:
+            statistic = FootprintAreaStatistics(
+                nuts_code=res["nuts_code"],
+                sum_footprint_area_total_m2=res["sum_footprint_area_total_m2"],
+                avg_footprint_area_total_m2=res["avg_footprint_area_total_m2"],
+                median_footprint_area_total_m2=res["median_footprint_area_total_m2"],
+                sum_footprint_area_residential_m2=res[
+                    "sum_footprint_area_residential_m2"
+                ],
+                avg_footprint_area_residential_m2=res[
+                    "avg_footprint_area_residential_m2"
+                ],
+                median_footprint_area_residential_m2=res[
+                    "median_footprint_area_residential_m2"
+                ],
+                sum_footprint_area_non_residential_m2=res[
+                    "sum_footprint_area_non_residential_m2"
+                ],
+                avg_footprint_area_non_residential_m2=res[
+                    "avg_footprint_area_non_residential_m2"
+                ],
+                median_footprint_area_non_residential_m2=res[
+                    "median_footprint_area_non_residential_m2"
+                ],
+                sum_footprint_area_mixed_m2=res["sum_footprint_area_mixed_m2"],
+                avg_footprint_area_mixed_m2=res["avg_footprint_area_mixed_m2"],
+                median_footprint_area_mixed_m2=res["median_footprint_area_mixed_m2"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+def get_height_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[HeightStatistics]:
+        """Get the height statistics [m] for the given nuts level or nuts code. Only one
+        of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
+                for Germany. Defaults to "".
+            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
+                of Germany. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions. Defaults to None.
+            geom (Polygon | None, optional): A custom geometry.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[BuildingStatistics]: A list of objects per NUTS region with statistical
+                info about building heights.
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+
+        if (nuts_level or nuts_code or country) and geom:
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
+
+        if geom is not None:
+            statistics_url = self.HEIGHT_STATISTICS_BY_GEOM_URL
+            query_params = f"?geom={geom.wkt}"
+        else:
+            statistics_url = self.HEIGHT_STATISTICS_URL
+            query_params = f"?country={country}"
+            if nuts_level is not None:
+                query_params += f"&nuts_level={nuts_level}"
+            elif nuts_code is not None:
+                query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+        results: list = json.loads(response.content)
+        statistics: list[HeightStatistics] = []
+        for res in results:
+            statistic = HeightStatistics(
+                nuts_code=res["nuts_code"],
+                avg_height_total_m=res["avg_height_total_m"],
+                median_height_total_m=res["median_height_total_m"],
+                avg_height_residential_m=res["avg_height_residential_m"],
+                median_height_residential_m=res["median_height_residential_m"],
+                avg_height_non_residential_m=res["avg_height_non_residential_m"],
+                median_height_non_residential_m=res["median_height_non_residential_m"],
+                avg_height_mixed_m=res["avg_height_mixed_m"],
+                median_height_mixed_m=res["median_height_mixed_m"],
+            )
+            statistics.append(statistic)
+        return statistics
+
+def get_residential_heat_demand_statistics(
+        self,
+        country: str = "",
+        nuts_level: Optional[int] = None,
+        nuts_code: Optional[str] = None,
+        geom: Optional[Polygon] = None,
+    ) -> list[HeatDemandStatistics]:
+        """Get the residential heat demand statistics [MWh] for the given NUTS level or
+            NUTS/LAU code. Results can be limited to a certain country by setting the
+            country parameter. Only one of nuts_level and nuts_code may be specified.
+
+        Args:
+            country (str, optional): The NUTS-0 code for the country, e.g. 'DE'
+                for Germany. Defaults to "".
+            nuts_level (int | None, optional): The NUTS level, e.g. 1 for federal states
+                of Germany. Defaults to None.
+            nuts_code (str | None, optional): The NUTS code, e.g. 'DE' for Germany
+                according to the 2021 NUTS code definitions. Defaults to None.
+            geom (Polygon | None, optional): A custom geometry.
+
+        Raises:
+            ValueError: If both nuts_level and nuts_code are specified or the nuts_level
+                is invalid.
+            ServerException: If an unexpected error occurrs on the server side.
+
+        Returns:
+            list[HeatDemandStatistics]: A list of objects per NUTS/LAU region with
+                statistical info about heat demand [MWh].
+        """
+        if nuts_level is not None and nuts_code is not None:
+            raise ValueError(
+                "Either nuts_level or nuts_code can be specified, not both."
+            )
+        if nuts_level is not None and nuts_level not in range(0, 5):
+            raise ValueError(
+                "Invalid NUTS/LAU level provided; nuts_level must be in range [0,4]."
+            )
+
+        if (nuts_level or nuts_code or country) and geom:
+            raise ValueError(
+                "You can query either by NUTS or by custom geometry, not both."
+            )
+
+        if geom is not None:
+            statistics_url = self.RESIDENTIAL_HEAT_DEMAND_STATISTICS_BY_GEOM_URL
+            query_params = f"?geom={geom.wkt}"
+        else:
+            statistics_url = self.RESIDENTIAL_HEAT_DEMAND_STATISTICS_URL
+            query_params = f"?country={country}"
+            if nuts_level is not None:
+                query_params += f"&nuts_level={nuts_level}"
+            elif nuts_code is not None:
+                query_params += f"&nuts_code={nuts_code}"
+
+        url: str = f"""{self.base_url}{statistics_url}{query_params}"""
+        try:
+            response: requests.Response = requests.get(url, timeout=3600, headers=self.__construct_authorization_header())
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+        results: list = json.loads(response.content)
+        statistics: list[HeatDemandStatistics] = []
+        for res in results:
+            statistic = HeatDemandStatistics(
+                nuts_code=res["nuts_code"],
+                yearly_heat_demand_mwh=res["yearly_heat_demand_mwh"],
+            )
+            statistics.append(statistic)
+        return statistics
