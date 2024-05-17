@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 import pandas as pd
@@ -5,6 +6,9 @@ import pytest
 
 from builda_client.dev_client import BuildaDevClient, Phase
 from builda_client.dev_model import (BuildingParcel, NutsRegion)
+from dotenv import load_dotenv
+
+load_dotenv()
 
 __author__ = "k.dabrock"
 __copyright__ = "k.dabrock"
@@ -133,7 +137,9 @@ class TestDevBuildaClient:
 
     # GIVEN
     def __given_client_authenticated(self, proxy: bool = False) -> None:
-        self.testee = BuildaDevClient(proxy=proxy, username='builda_internal_user', password='P3L2DlR2NRJXqtAbQfkhaj9jrxDk', phase=Phase.PRODUCTION)
+        username = os.getenv('API_USERNAME')
+        password = os.getenv('API_PASSWORD')
+        self.testee = BuildaDevClient(proxy=proxy, username=username, password=password, phase=Phase.PRODUCTION)
 
     
     # THEN

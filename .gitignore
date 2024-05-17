@@ -55,3 +55,6 @@ MANIFEST
 
 # VSCode extension files
 .history
+
+# Secrets
+.env
