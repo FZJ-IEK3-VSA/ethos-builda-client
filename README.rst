@@ -106,6 +106,7 @@ Using this client, you have access to additional methods for querying and writin
 However, this requires a username and password as the respective API endpoints are not openly available (yet).
 
 .. code-block:: python
+
     from builda_client.dev_client import BuildaDevClient
     client = BuildaDevClient(username='your_username', password='your_password')
 
