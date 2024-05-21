@@ -63,7 +63,7 @@ You can install a specific release directly from remote repository via:
 
     pip install git+https://github.com/FZJ-IEK3-VSA/ethos-builda-client.git@v7.0 
 
-If you execute this command without specifying the tag/release, you will install the main branch. This branch is under development and will change based on the newest (not yet versioned) API and database modifications. It is not stable. 
+If you execute this command without specifying the tag/release, you will install the latest release.
 
 You can also install by downloading the repo to a local folder, checking out the tag/branch you need, cd-ing into it and installing the client into an environment of your choice (e.g. conda) via:
 
@@ -99,19 +99,40 @@ Import and instantiate the client via:
     from builda_client.client import BuildaClient
     client = BuildaClient()
 
-This is sufficient for the standard case.
+This is sufficient for the standard use case.
 
 If you are an internal user at the IEK-3 of Forschungszentrum Jülich, please use the internal version of the client.
 Using this client, you have access to additional methods for querying and writing data.
 However, this requires a username and password as the respective API endpoints are not openly available (yet).
 
 .. code-block:: python
+
     from builda_client.dev_client import BuildaDevClient
     client = BuildaDevClient(username='your_username', password='your_password')
 
 
 In both cases you then have access to methods for querying individual building and statistical data.
 Please be aware that querying large amounts of data can take a long time, so make use of the filter parameters to appropriately restrict your query.
+
+.. code-block:: python
+
+    building_data = client.get_residential_buildings(city='Jülich', street='Grünstr.')
+
+You can access the buildings and convert them to a pandas dataframe by calling: 
+
+.. code-block:: python
+
+    import pandas as pd 
+    building_df = pd.DataFrame(building_data.buildings)
+
+The values of the attributes are saved in the JSON dictionary with the key 'value'.
+Details for the source and lineage abbreviations used in the building data can be access via:
+
+.. code-block:: python
+
+    lineages = pd.DataFrame(building_data.lineages)
+    sources = pd.DataFrame(building_data.sources)
+
 
 How to create new version
 ==========================
