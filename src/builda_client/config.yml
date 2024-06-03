@@ -1,4 +1,4 @@
-proxy_address: 192.168.90.1:8080
+proxy_address: http://192.168.90.1:8080
 
 local:
   api_address: http://localhost:8001
