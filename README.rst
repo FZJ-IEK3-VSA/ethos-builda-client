@@ -38,6 +38,8 @@
 
 |
 
+**!!! The API this client is accessing will be available from July 1st !!!**
+
 ====================
 ETHOS.BUILDA-Client
 ====================
