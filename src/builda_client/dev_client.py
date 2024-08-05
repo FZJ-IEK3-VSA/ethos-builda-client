@@ -37,6 +37,7 @@ from builda_client.dev_model import (
     BuildingStockInfo,
     Coordinates,
     ElevationInfo,
+    FacadeAreaInfo,
     FloorAreasInfo,
     Lineage,
     NonResidentialBuilding,
@@ -125,6 +126,7 @@ class BuildaDevClient(BaseClient):
     USE_URL = "use/"
     HEIGHT_URL = "height/"
     ELEVATION_URL = "elevation/"
+    FACADE_AREA_URL = "facade-area/"
     OCCUPANCY_URL = "occupancy"
     ENERGY_SYSTEM_URL = "energy-system"
     ENERGY_CONSUMPTION_URL = "energy-consumption"
@@ -389,6 +391,7 @@ class BuildaDevClient(BaseClient):
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
                 elevation_m=result["elevation_m"],
+                facade_area_m2=result["facade_area_m2"],
                 type=result["type"],
                 roof_shape=result["roof_shape"],
                 pv_potential=pv_potential,
@@ -478,6 +481,7 @@ class BuildaDevClient(BaseClient):
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
                 elevation_m=result["elevation_m"],
+                facade_area_m2=result["facade_area_m2"],
                 type=result["type"],
                 construction_year=result["construction_year"],
                 roof_shape=result["roof_shape"],
@@ -592,6 +596,11 @@ class BuildaDevClient(BaseClient):
                     value=result["elevation_m"]["value"], 
                     source=result["elevation_m"]["source"],
                     lineage=result["elevation_m"]["lineage"],
+                    ),
+                facade_area_m2=FloatSource(
+                    value=result["facade_area_m2"]["value"], 
+                    source=result["facade_area_m2"]["source"],
+                    lineage=result["facade_area_m2"]["lineage"],
                     ),
                 type=StringSource(
                     value=result["type"]["value"], 
@@ -777,6 +786,7 @@ class BuildaDevClient(BaseClient):
                 footprint_area_m2=result["footprint_area_m2"],
                 height_m=result["height_m"],
                 elevation_m=result["elevation_m"],
+                facade_area_m2=result["facade_area_m2"],
                 type=result["type"],
                 roof_shape=result["roof_shape"],
                 use=result["use"],
@@ -1437,6 +1447,41 @@ class BuildaDevClient(BaseClient):
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             self.handle_exception(err)
+
+
+    def post_facade_area_info(self, infos: list[FacadeAreaInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the facade area data to the database.
+
+        Args:
+            infos (list[FacadeAreaInfo]): The facade area data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
+                the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_facade_area_info")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+
+        url: str = f"""{self.base_url}{self.FACADE_AREA_URL}"""
+        infos_json = json.dumps(infos, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=infos_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
 
     def post_floor_areas_info(self, floor_areas_infos: list[FloorAreasInfo]) -> None:
         """[REQUIRES AUTHENTICATION] Posts the floor area data to the database.

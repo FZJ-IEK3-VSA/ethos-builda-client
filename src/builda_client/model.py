@@ -72,6 +72,7 @@ class BuildingWithSourceDto:
     footprint_area_m2: float
     height_m: FloatSource
     elevation_m: FloatSource
+    facade_area_m2: FloatSource
     roof_shape: StringSource
     type: StringSource
 

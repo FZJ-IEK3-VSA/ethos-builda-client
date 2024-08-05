@@ -173,6 +173,11 @@ class BuildaClient(BaseClient):
                     source=result["elevation_m"]["source"],
                     lineage=result["elevation_m"]["lineage"],
                     ),
+                facade_area_m2=FloatSource(
+                    value=result["facade_area_m2"]["value"], 
+                    source=result["facade_area_m2"]["source"],
+                    lineage=result["facade_area_m2"]["lineage"],
+                    ),
                 type=StringSource(
                     value=result["type"]["value"], 
                     source=result["type"]["source"],
@@ -299,6 +304,11 @@ class BuildaClient(BaseClient):
                     value=result["elevation_m"]["value"], 
                     source=result["elevation_m"]["source"],
                     lineage=result["elevation_m"]["lineage"],
+                    ),
+                facade_area_m2=FloatSource(
+                    value=result["facade_area_m2"]["value"], 
+                    source=result["facade_area_m2"]["source"],
+                    lineage=result["facade_area_m2"]["lineage"],
                     ),
                 type=StringSource(
                     value=result["type"]["value"], 
@@ -460,6 +470,11 @@ class BuildaClient(BaseClient):
                     value=result["elevation_m"]["value"], 
                     source=result["elevation_m"]["source"],
                     lineage=result["elevation_m"]["lineage"],
+                    ),
+                facade_area_m2=FloatSource(
+                    value=result["facade_area_m2"]["value"], 
+                    source=result["facade_area_m2"]["source"],
+                    lineage=result["facade_area_m2"]["lineage"],
                     ),
                 type=StringSource(
                     value=result["type"]["value"], 

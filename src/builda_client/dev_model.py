@@ -81,6 +81,7 @@ class Building:
     footprint_area_m2: float
     height_m: float
     elevation_m: float
+    facade_area_m2: float
     roof_shape: str
     type: str
     pv_potential: PvPotential | None
@@ -110,6 +111,7 @@ class BuildingWithSourceDto:
     footprint_area_m2: float
     height_m: FloatSource
     elevation_m: FloatSource
+    facade_area_m2: FloatSource
     roof_shape: StringSource
     type: StringSource
     pv_potential: PvPotentialSource
@@ -273,6 +275,9 @@ class ElevationInfo(Info):
     value: float
     priority: int
 
+@dataclass
+class FacadeAreaInfo(Info):
+    value: float
 
 @dataclass
 class ParcelInfo(Info):
