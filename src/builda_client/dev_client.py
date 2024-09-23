@@ -1,7 +1,7 @@
 from enum import Enum
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from uuid import UUID
 
 import requests
@@ -55,7 +55,7 @@ from builda_client.dev_model import (
     EnhancedJSONEncoder,
     HeatDemandInfo,
     HeightInfo,
-    OccupancyInfo,
+    HousingUnitCountInfo,
     Metadata,
     NutsRegion,
     Parcel,
@@ -72,12 +72,14 @@ from builda_client.dev_model import (
     NonResidentialEnergyConsumptionStatistics,
     EnergyCommodityStatistics,
     PvPotentialStatistics,
+    Household,
+    Person
 )
 from builda_client.util import determine_nuts_query_param, ewkt_loads
 
 class Phase(Enum):
-    LOCAL = "local",
-    DEVELOPMENT = "development",
+    LOCAL = "local"
+    DEVELOPMENT = "development"
     PRODUCTION = "production"
 
 class BuildaDevClient(BaseClient):
@@ -110,7 +112,6 @@ class BuildaDevClient(BaseClient):
     AUTH_URL = "/auth/api-token"
     BUILDINGS_BASE_URL = "buildings-base/"
     ADDRESS_URL = "address/"
-    BUILDINGS_HOUSEHOLDS_URL = "buildings/residential/household-count"
     BUILDINGS_PARCEL_URL = "buildings-parcel/"
     BUILDINGS_ENERGY_CHARACTERISTICS_URL = (
         "buildings/residential/energy-characteristics"
@@ -127,7 +128,10 @@ class BuildaDevClient(BaseClient):
     HEIGHT_URL = "height/"
     ELEVATION_URL = "elevation/"
     FACADE_AREA_URL = "facade-area/"
-    OCCUPANCY_URL = "occupancy"
+    HOUSING_UNIT_COUNT_URL = "housing-unit-count"
+    HOUSEHOLD_URL = "households"
+    PERSON_URL = "persons"
+    MOBILITY_PREFERENCE_URL = "persons/mobility-preferences"
     ENERGY_SYSTEM_URL = "energy-system"
     ENERGY_CONSUMPTION_URL = "energy-consumption"
     HEAT_DEMAND_URL = "heat-demand"
@@ -1383,10 +1387,10 @@ class BuildaDevClient(BaseClient):
             self.handle_exception(err)
 
     def post_height_info(self, height_infos: list[HeightInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the household count data to the database.
+        """[REQUIRES AUTHENTICATION] Posts the height data to the database.
 
         Args:
-            household_infos (list[HeightInfo]): The household count data to post.
+            height_infos (list[HeightInfo]): The height data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the
@@ -1487,7 +1491,7 @@ class BuildaDevClient(BaseClient):
         """[REQUIRES AUTHENTICATION] Posts the floor area data to the database.
 
         Args:
-            household_infos (list[FloorAreasInfo]): The household count data to post.
+            floor_areas_infos (list[FloorAreasInfo]): The floor areas data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the
@@ -1516,13 +1520,12 @@ class BuildaDevClient(BaseClient):
         except requests.exceptions.HTTPError as err:
             self.handle_exception(err)
 
-    def post_occupancy_info(self, occupancy_infos: list[OccupancyInfo]) -> None:
-        """[REQUIRES AUTHENTICATION] Posts the housing unit count and households data to 
+    def post_housing_unit_count_info(self, housing_unit_count_infos: list[HousingUnitCountInfo]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the housing unit count data to 
         the database.
 
         Args:
-            occupancy_infos (list[OccupancyInfo]): The housing unit count and 
-            household data to post.
+            housing_unit_count_infos (list[HousingUnitCountInfo]): The housing unit count data to post.
 
         Raises:
             MissingCredentialsException: If no API token exists. This is probably the
@@ -1539,12 +1542,115 @@ class BuildaDevClient(BaseClient):
                 when initializing the client."""
             )
 
-        url: str = f"""{self.base_url}{self.OCCUPANCY_URL}"""
-        occupancy_infos_json = json.dumps(occupancy_infos, cls=EnhancedJSONEncoder)
+        url: str = f"""{self.base_url}{self.HOUSING_UNIT_COUNT_URL}"""
+        housing_unit_count_infos_json = json.dumps(housing_unit_count_infos, cls=EnhancedJSONEncoder)
         try:
             response: requests.Response = requests.post(
                 url,
-                data=occupancy_infos_json,
+                data=housing_unit_count_infos_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+    def post_households(self, households: list[Household]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the households data to the database.
+
+        Args:
+            households (list[Household]): The household data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
+                the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_households")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+
+        url: str = f"""{self.base_url}{self.HOUSEHOLD_URL}"""
+        households_json = json.dumps(households, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=households_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+    def post_persons(self, persons: list[Person]) -> None:
+        """[REQUIRES AUTHENTICATION] Posts the person data to the database.
+
+        Args:
+            persons (list[Person]): The person data to post.
+
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
+                the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: post_persons")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+
+        url: str = f"""{self.base_url}{self.PERSON_URL}"""
+        persons_json = json.dumps(persons, cls=EnhancedJSONEncoder)
+        try:
+            response: requests.Response = requests.post(
+                url,
+                data=persons_json,
+                headers=self.__construct_authorization_header(),
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            self.handle_exception(err)
+
+    def update_mobility_preference(self, mobility_preference: list[Tuple[str, str]]) -> None:
+        """[REQUIRES AUTHENTICATION] Updates mobility preference data.
+
+        Args:
+            mobility_preference (list[Tuple[str, str]]): Mobility preference of person.
+                The tuple should consist of person id and a json with the mobility preference.
+                For example:
+                [
+                    ('8d5aeaab-3f82-4524-8425-e65bee5ccbd0', '{"pref": "walk"}'),
+                    ('0c7d1e92-f834-473f-8aa6-28d0b47eb0e0', '{"pref": "train"}')
+                ]
+        Raises:
+            MissingCredentialsException: If no API token exists. This is probably the
+                case because username and password were not specified when initializing
+                the client.
+            UnauthorizedException: If the API token is not accepted.
+            ClientException: If an error on the client side occurred.
+            ServerException: If an unexpected error on the server side occurred.
+        """
+        logging.debug("ApiClient: update_mobility_preference")
+        if not self.api_token:
+            raise MissingCredentialsException(
+                """This endpoint is private. You need to provide username and password 
+                when initializing the client."""
+            )
+
+        url: str = f"""{self.base_url}{self.MOBILITY_PREFERENCE_URL}"""
+        try:
+            response: requests.Response = requests.post(
+                url,
+                json=mobility_preference,
                 headers=self.__construct_authorization_header(),
             )
             response.raise_for_status()

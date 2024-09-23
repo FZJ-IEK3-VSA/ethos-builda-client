@@ -285,11 +285,23 @@ class ParcelInfo(Info):
 
 
 @dataclass
-class OccupancyInfo(Info):
-    housing_unit_count: int
-    households: str
-    priority: int
+class HousingUnitCountInfo(Info):
+    value: int
 
+@dataclass
+class Household:
+    id: UUID
+    building_id: str
+    cars: str
+    income: str
+
+@dataclass
+class Person:
+    id: UUID
+    household_id: UUID
+    age: str
+    gender: str
+    employment: str
 
 @dataclass
 class EnergySystemInfo(Info):
