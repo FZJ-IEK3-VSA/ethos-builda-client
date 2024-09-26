@@ -100,6 +100,17 @@ class TestDevBuildaClient:
         buildings = self.testee.get_buildings_base(nuts_code='01058007')
         self.__then_result_list_min_length_returned(buildings, 1)
 
+    # Commented out so this will not unintentionally overwrite existing data
+    # def test_update_mobility_preference(self):
+    #     self.__given_client_authenticated()
+    #     person_count = 10000
+    #     person_ids = self.testee.execute_query(f"SELECT id::varchar from data.persons limit {person_count}")
+    #     person_ids = [x for xs in person_ids for x in xs]
+    #     data = []
+    #     for p in person_ids:
+    #         data.append((p, '{"pref": "train"}'))
+
+    #     self.testee.update_mobility_preference(data)
 
     @pytest.mark.parametrize(
         "nuts_level,country,expected_min_count",
@@ -137,9 +148,9 @@ class TestDevBuildaClient:
 
     # GIVEN
     def __given_client_authenticated(self, proxy: bool = False) -> None:
-        username = os.getenv('API_USERNAME')
-        password = os.getenv('API_PASSWORD')
-        self.testee = BuildaDevClient(proxy=proxy, username=username, password=password, phase=Phase.PRODUCTION)
+        username = os.getenv('API_USERNAME_DEV')
+        password = os.getenv('API_PASSWORD_DEV')
+        self.testee = BuildaDevClient(proxy=proxy, username=username, password=password, phase=Phase.DEVELOPMENT)
 
     
     # THEN

@@ -9,7 +9,7 @@ development:
 production:
   api_address: https://ethos-builda.fz-juelich.de
 
-base_url: /api/v0/
+base_url: /api/v8_20240916/
 
 nominatim:
   host: 134.94.117.112

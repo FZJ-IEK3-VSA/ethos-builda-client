@@ -187,8 +187,9 @@ class BuildaDevClient(BaseClient):
         self,
         username: str,
         password: str,
-        phase: Phase = Phase.PRODUCTION,
+        phase: Phase = Phase.DEVELOPMENT,
         proxy: bool = False,
+        version: str = "v0"
     ):
         """Constructor.
 
@@ -198,7 +199,8 @@ class BuildaDevClient(BaseClient):
             username (str): Username for API authentication.
             password (str): Password for API authentication.
             phase (Phase, optional): The 'phase' the client is used in, i.e. which
-                database to access. Defaults to Phase.PRODUCTION.
+                database to access. Defaults to Phase.DEVELOPMENT.
+            version (str, optional): The API version. Defaults to v0
         """
         super().__init__()
 
@@ -209,7 +211,7 @@ class BuildaDevClient(BaseClient):
 
         address = self.config["proxy_address"] if proxy else self.config[self.phase.value]["api_address"]
       
-        self.base_url = f"""{address}{self.config['base_url']}"""
+        self.base_url = f"""{address}/api/{version}/"""
         self.authentication_url = f"""{address}{self.AUTH_URL}"""
         self.api_token = self.__get_authentication_token()
 
