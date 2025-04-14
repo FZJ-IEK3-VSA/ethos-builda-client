@@ -45,11 +45,10 @@ class BuildaClient(BaseClient):
 
     # Statistics
     TYPE_STATISTICS_URL = "statistics/building-type"
-    CONSTRUCTION_YEAR_STATISTICS_URL = "statistics/construction-year"
     FOOTPRINT_AREA_STATISTICS_URL = "statistics/footprint-area"
     HEIGHT_STATISTICS_URL = "statistics/height"
-    CONSTRUCTION_YEAR_STATISTICS_URL = "statistics/construction-year"
-    REFURBISHMENT_STATE_STATISTICS_URL = "statistics/refurbishment-state"
+    CONSTRUCTION_YEAR_STATISTICS_URL = "statistics/residential/construction-year"
+    REFURBISHMENT_STATE_STATISTICS_URL = "statistics/residential/refurbishment-state"
     NON_RESIDENTIAL_USE_STATISTICS_URL = "statistics/non-residential/building-use"
 
     RESIDENTIAL_SIZE_CLASS_STATISTICS_URL = "statistics/residential/size-class"
