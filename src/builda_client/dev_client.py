@@ -116,13 +116,12 @@ class BuildaDevClient(BaseClient):
     BUILDINGS_ENERGY_CHARACTERISTICS_URL = (
         "buildings/residential/energy-characteristics"
     )
-    BUILDINGS_ID_URL = "buildings-id/"
-    BUILDINGS_GEOMETRY_URL = "buildings-geometry/"
+    BUILDINGS_ID_URL = "buildings/ids"
+    BUILDINGS_GEOMETRY_URL = "buildings/geometries/stripped"
     SIZE_CLASS_URL = "size-class"
     VIEW_REFRESH_URL = "refresh-materialized_view"
     BUILDING_STOCK_URL = "building-stock"
-    NUTS_URL = "nuts"
-    NUTS_CODES_URL = "nuts-codes/"
+    NUTS_CODES_URL = "nuts-codes"
     TYPE_URL = "type/"
     USE_URL = "use/"
     HEIGHT_URL = "height/"
@@ -139,7 +138,6 @@ class BuildaDevClient(BaseClient):
     PV_POTENTIAL_URL = "pv-potential/"
     CONSTRUCTION_YEAR_URL = "construction-year"
     TIMING_LOG_URL = "admin/timing-log"
-    NUTS_URL = "nuts"
     PARCEL_URL = "parcels"
     PARCEL_INFO_URL = "parcel-info"
     ROOF_CHARACTERISTICS_INFO_URL = "roof-characteristics/"
@@ -1271,7 +1269,7 @@ class BuildaDevClient(BaseClient):
                 when initializing the client."""
             )
 
-        url: str = f"""{self.base_url}{self.NUTS_URL}"""
+        url: str = f"""{self.base_url}{self.NUTS_CODES_URL}"""
 
         nuts_regions_json = json.dumps(nuts_regions, cls=EnhancedJSONEncoder)
 
@@ -1990,7 +1988,7 @@ class BuildaDevClient(BaseClient):
 
     def get_nuts_region(self, nuts_code: str):
         logging.debug("ApiClient: get_nuts_region")
-        url: str = f"""{self.base_url}{self.NUTS_URL}/{nuts_code}"""
+        url: str = f"""{self.base_url}{self.NUTS_CODES_URL}/{nuts_code}"""
         try:
             response: requests.Response = requests.get(url, headers=self.__construct_authorization_header())
             response.raise_for_status()
