@@ -162,6 +162,9 @@ This work was supported by the Helmholtz Association under the program "Energy S
     :alt: Helmholtz Logo
     :width: 200px
 
+Furthermore, the authors would like to express their gratitude to the Federal Ministry for Economic Affairs and Climate Action (BMWK.IIB4) for providing the necessary resources to conduct this study. Our research was supported by the WAAGE Grant Program (Grant No. 03EI1044/03EE 5031D), and we appreciate their financial assistance.
+
+
 .. _pyscaffold-notes:
 Note
 ====
